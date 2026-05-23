@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   EyeOff,
   RotateCcw,
+  Sun,
   TrendingUp,
   Trophy,
   Trash2,
@@ -51,6 +52,7 @@ import type {
   Specialist,
   UserProfile,
 } from './domain/types'
+import { useTheme } from './lib/theme'
 import './index.css'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
@@ -165,26 +167,37 @@ function exportJson(rows: Assessment[]) {
   downloadFile('oceniator-ewidencja.json', 'application/json;charset=utf-8', JSON.stringify(rows, null, 2))
 }
 
-function exportExcel(rows: Assessment[]) {
+async function exportExcel(rows: Assessment[]) {
+  const { utils, writeFile } = await import('xlsx')
   const header = ['Specjalista', 'Stanowisko', 'Dzial', 'Typ', 'Okres', 'Data', 'Oceniajacy', 'Wynik', 'Ocena', 'Status']
-  const tableRows = rows.map((item) => [
-    item.spec,
-    item.stand,
-    item.dzial,
-    TYPE_LABELS[item.type],
-    item.period,
-    item.data,
-    item.oce,
-    `${item.avgFinal}%`,
-    ratingLabel(item.rating),
-    statusLabels[item.status],
-  ])
-  const html = `<!doctype html><html><head><meta charset="utf-8"></head><body><table><thead><tr>${header
-    .map((item) => `<th>${esc(item)}</th>`)
-    .join('')}</tr></thead><tbody>${tableRows
-    .map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`)
-    .join('')}</tbody></table></body></html>`
-  downloadFile('oceniator-ewidencja.xls', 'application/vnd.ms-excel;charset=utf-8', html)
+  const tableRows = rows.map((item) => ({
+    Specjalista: item.spec,
+    Stanowisko: item.stand,
+    Dzial: item.dzial,
+    Typ: TYPE_LABELS[item.type],
+    Okres: item.period,
+    Data: item.data,
+    Oceniajacy: item.oce,
+    Wynik: item.avgFinal,
+    Ocena: ratingLabel(item.rating),
+    Status: statusLabels[item.status],
+  }))
+  const worksheet = utils.json_to_sheet(tableRows, { header })
+  worksheet['!cols'] = [
+    { wch: 24 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 16 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 22 },
+    { wch: 10 },
+    { wch: 16 },
+    { wch: 18 },
+  ]
+  const workbook = utils.book_new()
+  utils.book_append_sheet(workbook, worksheet, 'Ewidencja')
+  writeFile(workbook, 'oceniator-ewidencja.xlsx')
 }
 
 function printAssessment(assessment: Assessment): boolean {
@@ -245,6 +258,7 @@ function LoginScreen({
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -278,24 +292,27 @@ function LoginScreen({
           <span />
           <div>
             <strong>Oceniator</strong>
-            <small>PeP & P24 Quality Suite</small>
+            <small>Quality Operations SaaS</small>
           </div>
         </div>
-        <h1>Desktopowe centrum oceny jakosci</h1>
+        <h1>Centrum jakosci, ktore prowadzi caly proces oceny.</h1>
         <p>
-          Nowy interfejs laczy formularze, ewidencje, raporty i admina w jednym spokojnym,
-          SaaSowym ukladzie z prawym panelem wynikow.
+          Formularze, ewidencja, raporty i administracja w jednym neutralnym,
+          produkcyjnym portalu z szybkim trybem demo i gotowoscia pod Supabase.
         </p>
         <div className="login-proof">
           <div><ShieldCheck size={18} /> Role i zakresy</div>
-          <div><Database size={18} /> Supabase albo demo lokalne</div>
-          <div><PanelRight size={18} /> Panele przypiete po prawej</div>
+          <div><Database size={18} /> Supabase lub lokalnie</div>
+          <div><PanelRight size={18} /> Operacyjny pulpit</div>
         </div>
       </section>
       <section className="login-card">
         <div className="section-title">
           <span>{provider.mode === 'supabase' ? 'Logowanie Supabase' : 'Tryb lokalny'}</span>
-          <small>{provider.mode === 'supabase' ? 'Konta produkcyjne' : 'Konta demo'}</small>
+          <button className="theme-toggle" type="button" onClick={toggleTheme} title="Przelacz motyw">
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            <span>{theme === 'dark' ? 'Jasny' : 'Ciemny'}</span>
+          </button>
         </div>
         <form onSubmit={submit} className="stack">
           <label>
@@ -339,6 +356,7 @@ function AppShell({
 }) {
   const visibleNavItems = availableNavItems(user)
   const activeTitle = visibleNavItems.find((item) => item.key === view)?.label || 'Oceniator'
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <div className="app-shell">
@@ -346,8 +364,8 @@ function AppShell({
         <div className="brand-block">
           <span className="logo-box" />
           <div>
-            <strong>Ocena Jakosci</strong>
-            <small>PeP & P24</small>
+            <strong>Oceniator</strong>
+            <small>Quality OS</small>
           </div>
         </div>
         <nav className="side-nav">
@@ -362,7 +380,10 @@ function AppShell({
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="mode-chip"><Moon size={14} /> Motyw premium</div>
+          <button className="theme-toggle theme-toggle-wide" type="button" onClick={toggleTheme}>
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            <span>{theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'}</span>
+          </button>
           <div className="mode-chip"><Database size={14} /> {providerMode === 'supabase' ? 'Supabase' : 'Local demo'}</div>
         </div>
       </aside>
@@ -375,6 +396,9 @@ function AppShell({
           <div className="user-pill">
             <UserRound size={15} />
             <span>{user.email}</span>
+            <button className="topbar-theme" type="button" onClick={toggleTheme} title="Przelacz motyw">
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
             <button type="button" onClick={onLogout}><LogOut size={15} /> Wyloguj</button>
           </div>
         </header>
@@ -1138,10 +1162,10 @@ function RegistryView({
     }
   }
 
-  function exportRows(kind: 'csv' | 'excel' | 'json') {
+  async function exportRows(kind: 'csv' | 'excel' | 'json') {
     try {
       if (kind === 'csv') exportCsv(rows)
-      if (kind === 'excel') exportExcel(rows)
+      if (kind === 'excel') await exportExcel(rows)
       if (kind === 'json') exportJson(rows)
       setNotice(`Eksport ${kind.toUpperCase()} przygotowany dla ${rows.length} pozycji.`)
     } catch (error) {
@@ -1171,9 +1195,9 @@ function RegistryView({
           <option value="all">Wszystkie okresy</option>
           {periods.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
-        <button className="ghost-btn" type="button" onClick={() => exportRows('csv')}><Download size={16} /> CSV</button>
-        <button className="ghost-btn" type="button" onClick={() => exportRows('excel')}><Download size={16} /> Excel</button>
-        <button className="ghost-btn" type="button" onClick={() => exportRows('json')}><Download size={16} /> JSON</button>
+        <button className="ghost-btn" type="button" onClick={() => void exportRows('csv')}><Download size={16} /> CSV</button>
+        <button className="ghost-btn" type="button" onClick={() => void exportRows('excel')}><Download size={16} /> Excel</button>
+        <button className="ghost-btn" type="button" onClick={() => void exportRows('json')}><Download size={16} /> JSON</button>
         <label className="ghost-btn import-btn">
           <Upload size={16} /> Import JSON
           <input disabled={!canMutate} type="file" accept="application/json,.json" onChange={(event) => void importJson(event.target.files?.[0])} />

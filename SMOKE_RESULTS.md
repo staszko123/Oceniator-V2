@@ -13,7 +13,7 @@
 - ✅ `lib/export.ts` - eksporty danych (Excel .xlsx via SheetJS, CSV, JSON, print PDF)
 - ✅ `lib/security.ts` - guardy uprawnień (canCreate, canAdmin, canViewTeam, canEditAssessment)
 - ✅ `lib/theme.ts` - hook useTheme do zarządzania motywem light/dark
-- ✅ `lib/navigation.ts` - nawigacja i filtrowanie po zakresie lidera
+- ⚠️ `lib/navigation.ts` - nie istnieje jeszcze; nawigacja i filtrowanie zakresu lidera nadal sa w `App.tsx`
 - ✅ `components/ui/ThemeToggle.tsx` - przełącznik motywu z ikonami Sun/Moon
 - ✅ `components/ui/Button.tsx` - komponent Button z wariantami
 - ✅ `components/ui/Input.tsx` - komponent Input z label i error
