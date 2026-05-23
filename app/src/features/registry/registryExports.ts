@@ -9,6 +9,23 @@ export const statusLabels: Record<AssessmentStatus, string> = {
   archived: 'Archiwum',
 }
 
+function lastStatusEvent(assessment: Assessment) {
+  const history = assessment.statusHistory || []
+  return history[history.length - 1]
+}
+
+function lastEventAt(assessment: Assessment): string {
+  return lastStatusEvent(assessment)?.at || ''
+}
+
+function lastEventBy(assessment: Assessment): string {
+  return lastStatusEvent(assessment)?.by || ''
+}
+
+function lastEventNote(assessment: Assessment): string {
+  return lastStatusEvent(assessment)?.note || ''
+}
+
 function esc(value: unknown): string {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -31,7 +48,7 @@ function downloadFile(fileName: string, mime: string, content: string) {
 }
 
 export function exportCsv(rows: Assessment[]) {
-  const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status']
+  const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status', 'Ostatnia zmiana', 'Zmienił', 'Opis zmiany']
   const body = rows.map((item) => [
     item.spec,
     item.stand,
@@ -43,6 +60,9 @@ export function exportCsv(rows: Assessment[]) {
     item.avgFinal,
     ratingLabel(item.rating),
     statusLabels[item.status],
+    lastEventAt(item),
+    lastEventBy(item),
+    lastEventNote(item),
   ])
   const csv = `\uFEFF${[header, ...body].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
   downloadFile('oceniator-ewidencja.csv', 'text/csv;charset=utf-8', csv)
@@ -54,7 +74,7 @@ export function exportJson(rows: Assessment[]) {
 
 export async function exportExcel(rows: Assessment[]) {
   const { utils, writeFile } = await import('xlsx')
-  const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status']
+  const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status', 'Ostatnia zmiana', 'Zmienił', 'Opis zmiany']
   const tableRows = rows.map((item) => ({
     Specjalista: item.spec,
     Stanowisko: item.stand,
@@ -66,6 +86,9 @@ export async function exportExcel(rows: Assessment[]) {
     Wynik: item.avgFinal,
     Ocena: ratingLabel(item.rating),
     Status: statusLabels[item.status],
+    'Ostatnia zmiana': lastEventAt(item),
+    'Zmienił': lastEventBy(item),
+    'Opis zmiany': lastEventNote(item),
   }))
   const worksheet = utils.json_to_sheet(tableRows, { header })
   worksheet['!cols'] = [
@@ -79,6 +102,9 @@ export async function exportExcel(rows: Assessment[]) {
     { wch: 10 },
     { wch: 16 },
     { wch: 18 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 52 },
   ]
   const workbook = utils.book_new()
   utils.book_append_sheet(workbook, worksheet, 'Ewidencja')
@@ -111,7 +137,7 @@ export function printAssessment(assessment: Assessment): boolean {
     .nopr{position:sticky;top:0;background:#07111f;padding:10px;text-align:right}.nopr button{background:#0f8f87;color:#fff;border:0;border-radius:6px;padding:9px 14px;font-weight:700}
     @media print{.nopr{display:none}.page{padding:12mm}header{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
   </style></head><body><div class="nopr"><button onclick="window.print()">Drukuj / Zapisz PDF</button></div><div class="page">
-    <header><div><h1>${esc(def.name)}</h1><small>System Oceny Jakości PeP & P24</small></div><div class="result">${assessment.avgFinal}%</div></header>
+    <header><div><h1>${esc(def.name)}</h1><small>Oceniator • raport karty jakości</small></div><div class="result">${assessment.avgFinal}%</div></header>
     <div class="meta">
       <div><span>Specjalista</span><strong>${esc(assessment.spec)}</strong></div>
       <div><span>Stanowisko</span><strong>${esc(assessment.stand)}</strong></div>

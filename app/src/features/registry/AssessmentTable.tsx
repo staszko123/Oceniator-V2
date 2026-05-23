@@ -15,6 +15,23 @@ function typeIcon(type: AssessmentType) {
   return <MonitorCog size={15} />
 }
 
+function lastStatusEvent(assessment: Assessment) {
+  const history = assessment.statusHistory || []
+  return history[history.length - 1]
+}
+
+function shortDateTime(value: string): string {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function AssessmentTable({
   assessments,
   compact = false,
@@ -48,31 +65,45 @@ export function AssessmentTable({
             {!compact ? <th>Oceniający</th> : null}
             <th>Wynik</th>
             <th>Status</th>
+            {!compact ? <th>Ostatnia zmiana</th> : null}
             {hasActions ? <th>Akcje</th> : null}
           </tr>
         </thead>
         <tbody>
-          {assessments.map((item) => (
-            <tr key={item.id}>
-              <td><strong>{item.spec}</strong><small>{item.dzial}</small></td>
-              <td><span className="type-badge">{typeIcon(item.type)} {TYPE_LABELS[item.type]}</span></td>
-              <td>{item.period}</td>
-              <td>{item.data}</td>
-              {!compact ? <td>{item.oce}</td> : null}
-              <td><span className={scoreClass(item.avgFinal)}>{item.avgFinal}%</span></td>
-              <td><span className={`status ${item.status}`}>{statusLabels[item.status]}</span></td>
-              {hasActions ? (
-                <td>
-                  <div className="table-actions">
-                    {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podgląd"><Eye size={15} /></button> : null}
-                    {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
-                    {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
-                    {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}
-                  </div>
-                </td>
-              ) : null}
-            </tr>
-          ))}
+          {assessments.map((item) => {
+            const lastEvent = lastStatusEvent(item)
+            return (
+              <tr key={item.id}>
+                <td><strong>{item.spec}</strong><small>{item.dzial}</small></td>
+                <td><span className="type-badge">{typeIcon(item.type)} {TYPE_LABELS[item.type]}</span></td>
+                <td>{item.period}</td>
+                <td>{item.data}</td>
+                {!compact ? <td>{item.oce}</td> : null}
+                <td><span className={scoreClass(item.avgFinal)}>{item.avgFinal}%</span></td>
+                <td><span className={`status ${item.status}`}>{statusLabels[item.status]}</span></td>
+                {!compact ? (
+                  <td>
+                    <div className="table-meta">
+                      <strong>{lastEvent ? shortDateTime(lastEvent.at) : '-'}</strong>
+                      <small className="table-subline">
+                        {lastEvent ? `${lastEvent.by || 'system'} • ${lastEvent.note}` : 'Brak historii zmian'}
+                      </small>
+                    </div>
+                  </td>
+                ) : null}
+                {hasActions ? (
+                  <td>
+                    <div className="table-actions">
+                      {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podgląd"><Eye size={15} /></button> : null}
+                      {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
+                      {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
+                      {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmień status"><ShieldCheck size={15} /></button> : null}
+                    </div>
+                  </td>
+                ) : null}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

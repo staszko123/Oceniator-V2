@@ -568,7 +568,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 
 .toolbar-panel {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) repeat(3, minmax(150px, 190px));
+  grid-template-columns: minmax(280px, 1fr) repeat(4, minmax(150px, 190px));
   align-items: center;
   gap: 12px;
   padding: 14px;
@@ -602,6 +602,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 .status.approved { background: #dcfce7; color: #166534; }
 .status.archived { background: #e2e8f0; color: #475569; }
 .row-action-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.registry-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -4px 0 16px;
+}
+.table-meta {
+  display: grid;
+  gap: 4px;
+}
+.table-meta strong { font-size: 12px; }
+.table-subline { max-width: 320px; }
 .empty-state { padding: 34px; text-align: center; color: var(--muted); background: #fff; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .empty-state.compact { padding: 18px; font-size: 12px; }
 .table-actions { display: flex; gap: 6px; }

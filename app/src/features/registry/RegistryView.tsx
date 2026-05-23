@@ -49,6 +49,22 @@ function summarizeAssessmentChanges(previous: Assessment, next: Assessment): str
   return changes
 }
 
+function latestEvent(assessment: Assessment) {
+  const history = assessment.statusHistory || []
+  return history[history.length - 1]
+}
+
+function isRecentlyUpdated(assessment: Assessment, hours = 72): boolean {
+  const event = latestEvent(assessment)
+  if (!event?.at) return false
+  const diff = Date.now() - new Date(event.at).getTime()
+  return diff >= 0 && diff <= hours * 60 * 60 * 1000
+}
+
+function hasEditHistory(assessment: Assessment): boolean {
+  return (assessment.statusHistory || []).some((item) => item.note.toLowerCase().includes('edytowano kart'))
+}
+
 function canCreate(user: UserProfile): boolean {
   return ['admin', 'director', 'leader', 'assessor'].includes(user.role)
 }
@@ -328,6 +344,7 @@ export default function RegistryView({
   const [type, setType] = useState<AssessmentType | 'all'>('all')
   const [status, setStatus] = useState<AssessmentStatus | 'all'>('all')
   const [period, setPeriod] = useState('all')
+  const [changeFilter, setChangeFilter] = useState<'all' | 'recent' | 'edited' | 'decision'>('all')
   const [selected, setSelected] = useState<Assessment | null>(null)
   const [editing, setEditing] = useState<Assessment | null>(null)
   const [notice, setNotice] = useState('')
@@ -335,12 +352,21 @@ export default function RegistryView({
   const canAdvanceStatuses = user.role === 'admin' || user.role === 'director' || user.role === 'leader'
   const rows = useMemo(() => assessments.filter((item) => {
     const matchesQuery = `${item.spec} ${item.dzial} ${item.oce}`.toLowerCase().includes(query.toLowerCase())
+    const matchesChangeFilter =
+      changeFilter === 'all'
+      || (changeFilter === 'recent' && isRecentlyUpdated(item))
+      || (changeFilter === 'edited' && hasEditHistory(item))
+      || (changeFilter === 'decision' && (item.status === 'submitted' || item.status === 'review'))
     return matchesQuery
       && (type === 'all' || item.type === type)
       && (status === 'all' || item.status === status)
       && (period === 'all' || item.period === period)
-  }), [assessments, period, query, status, type])
+      && matchesChangeFilter
+  }), [assessments, changeFilter, period, query, status, type])
   const periods = useMemo(() => uniqueSorted(assessments.map((item) => item.period)), [assessments])
+  const editedCount = useMemo(() => assessments.filter(hasEditHistory).length, [assessments])
+  const recentCount = useMemo(() => assessments.filter((item) => isRecentlyUpdated(item)).length, [assessments])
+  const decisionCount = useMemo(() => assessments.filter((item) => item.status === 'submitted' || item.status === 'review').length, [assessments])
 
   function canEditRow(item: Assessment) {
     return canEditAssessmentForUser(user, item)
@@ -443,6 +469,12 @@ export default function RegistryView({
           <option value="all">Wszystkie okresy</option>
           {periods.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
+        <select value={changeFilter} onChange={(event) => setChangeFilter(event.target.value as 'all' | 'recent' | 'edited' | 'decision')}>
+          <option value="all">Wszystkie zmiany</option>
+          <option value="recent">Aktywność 72h</option>
+          <option value="edited">Tylko edytowane</option>
+          <option value="decision">Do decyzji</option>
+        </select>
         <button className="ghost-btn" type="button" onClick={() => void exportRows('csv')}><Download size={16} /> CSV</button>
         <button className="ghost-btn" type="button" onClick={() => void exportRows('excel')}><Download size={16} /> Excel</button>
         <button className="ghost-btn" type="button" onClick={() => void exportRows('json')}><Download size={16} /> JSON</button>
@@ -450,6 +482,12 @@ export default function RegistryView({
           <Upload size={16} /> Import JSON
           <input disabled={!canMutate} type="file" accept="application/json,.json" onChange={(event) => void importJson(event.target.files?.[0])} />
         </label>
+      </section>
+      <section className="registry-summary">
+        <div className="status-chip">Wynik filtra: {rows.length}</div>
+        <div className="status-chip">Edytowane karty: {editedCount}</div>
+        <div className="status-chip">Aktywność 72h: {recentCount}</div>
+        <div className="status-chip">Do decyzji: {decisionCount}</div>
       </section>
       <section className="data-panel">
         <div className="section-title"><span>Ewidencja kart</span><small>{notice || `${rows.length} pozycji`}</small></div>
