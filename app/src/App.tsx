@@ -1,8 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   BarChart3,
-  ChevronDown,
-  ChevronUp,
   ClipboardCheck,
   Database,
   Download,
@@ -10,25 +8,20 @@ import {
   Eye,
   FileBarChart,
   FileText,
-  GripVertical,
   LayoutDashboard,
   LogOut,
   Mail,
-  Maximize2,
   MonitorCog,
   Moon,
   PanelRight,
   PhoneCall,
   Plus,
+  RotateCcw,
   Save,
   Search,
   Settings,
   ShieldCheck,
-  EyeOff,
-  RotateCcw,
   Sun,
-  TrendingUp,
-  Trophy,
   Trash2,
   Upload,
   UserRound,
@@ -39,8 +32,7 @@ import { ASSESSMENT_DEFS, SCORE_OPTIONS, TYPE_LABELS } from './domain/defs'
 import { assessmentToDraft, calculateDraft, createDraft, draftHasContent, draftToAssessment, periodOf, ratingLabel, resizeDraft } from './domain/scoring'
 import { buildDemoAdmin } from './data/seed'
 import { createProvider } from './data/supabaseProvider'
-import { AnalyticsFilterBar } from './features/analytics/shared'
-import { applyAnalyticsFilters, defaultAnalyticsFilters, uniqueSorted, type AnalyticsFilters } from './features/analytics/filters'
+import { uniqueSorted } from './features/analytics/filters'
 import { SpecialistProfileModal } from './features/specialists/profile'
 import { canEditAssessment as canEditAssessmentForUser } from './lib/security'
 import type {
@@ -80,11 +72,22 @@ const statusLabels: Record<AssessmentStatus, string> = {
 
 const ReportsView = lazy(() => import('./features/reports/ReportsView'))
 const AdminView = lazy(() => import('./features/admin/AdminView'))
+const DashboardView = lazy(() => import('./features/dashboard/DashboardView'))
 const lazyViewFallback = (
   <main className="screen">
     <div className="empty-state">Ladowanie widoku...</div>
   </main>
 )
+
+const lazyViewLoaders: Partial<Record<ViewKey, () => Promise<unknown>>> = {
+  dashboard: () => import('./features/dashboard/DashboardView'),
+  reports: () => import('./features/reports/ReportsView'),
+  admin: () => import('./features/admin/AdminView'),
+}
+
+function preloadView(view: ViewKey) {
+  void lazyViewLoaders[view]?.()
+}
 
 function canCreate(user: UserProfile): boolean {
   return ['admin', 'director', 'leader', 'assessor'].includes(user.role)
@@ -416,6 +419,7 @@ function AppShell({
   providerMode,
   view,
   setView,
+  onViewIntent,
   children,
   onLogout,
   systemNotice,
@@ -424,6 +428,7 @@ function AppShell({
   providerMode: DataProvider['mode']
   view: ViewKey
   setView: (view: ViewKey) => void
+  onViewIntent?: (view: ViewKey) => void
   children: React.ReactNode
   onLogout: () => void
   systemNotice?: string
@@ -446,7 +451,14 @@ function AppShell({
           {visibleNavItems.map((item) => {
             const Icon = item.icon
             return (
-              <button key={item.key} className={view === item.key ? 'active' : ''} onClick={() => setView(item.key)} type="button">
+              <button
+                key={item.key}
+                className={view === item.key ? 'active' : ''}
+                onClick={() => setView(item.key)}
+                onMouseEnter={() => onViewIntent?.(item.key)}
+                onFocus={() => onViewIntent?.(item.key)}
+                type="button"
+              >
                 <Icon size={17} />
                 {item.label}
               </button>
@@ -1462,6 +1474,7 @@ function RegistryView({
   )
 }
 
+/*
 type DashboardPanelKey = 'trend' | 'typeMix' | 'sections' | 'leaders' | 'weak' | 'lowScores'
 type DashboardDensity = 'comfortable' | 'compact'
 type DashboardLayout = 'grid' | 'focus'
@@ -1937,6 +1950,8 @@ function DashboardWidget({
   )
 }
 
+*/
+
 function App() {
   const [provider, setProvider] = useState<DataProvider>(() => createProvider())
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -2092,7 +2107,7 @@ function App() {
   const effectiveView = availableNavItems(user).some((item) => item.key === view) ? view : 'start'
 
   return (
-    <AppShell user={user} providerMode={provider.mode} view={effectiveView} setView={setView} onLogout={logout} systemNotice={bootError}>
+    <AppShell user={user} providerMode={provider.mode} view={effectiveView} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
       {effectiveView === 'start' ? (
         <StartView
           user={user}
@@ -2115,7 +2130,15 @@ function App() {
       ) : null}
       {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={setView} /> : null}
       {effectiveView === 'registry' ? <RegistryView assessments={assessments} user={user} onUpdate={updateAssessment} onBulkImport={bulkImportAssessments} /> : null}
-      {effectiveView === 'dashboard' ? <DashboardView assessments={assessments} goals={admin.goals} /> : null}
+      {effectiveView === 'dashboard' ? (
+        <Suspense fallback={lazyViewFallback}>
+          <DashboardView
+            assessments={assessments}
+            goals={admin.goals}
+            renderAssessmentTable={(rows) => <AssessmentTable assessments={rows} compact />}
+          />
+        </Suspense>
+      ) : null}
       {effectiveView === 'reports' ? (
         <Suspense fallback={lazyViewFallback}>
           <ReportsView assessments={assessments} />
