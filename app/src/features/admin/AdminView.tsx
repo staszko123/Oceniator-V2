@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { Plus, Save, Trash2, Users, X } from 'lucide-react'
 import type { AdminConfig, AssessmentPeriod, ManagedUser, Specialist, UserProfile } from '../../domain/types'
 
@@ -99,10 +99,32 @@ export default function AdminView({
   const [newLeader, setNewLeader] = useState('')
   const [newDepartment, setNewDepartment] = useState('')
   const [newPosition, setNewPosition] = useState('')
+  const [specialistQuery, setSpecialistQuery] = useState('')
+  const [userQuery, setUserQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | UserProfile['role']>('all')
   const [notice, setNotice] = useState('')
 
   const selectedSpecialist = draftAdmin.specialists.find((item) => item.id === selectedSpecialistId) || draftAdmin.specialists[0] || emptySpecialist(draftAdmin)
   const selectedUser = draftUsers.find((item) => item.id === selectedUserId) || draftUsers[0]
+  const filteredSpecialists = useMemo(() => draftAdmin.specialists.filter((item) => {
+    const haystack = `${item.name} ${item.leader} ${item.department} ${item.position}`.toLowerCase()
+    return haystack.includes(specialistQuery.trim().toLowerCase())
+  }), [draftAdmin.specialists, specialistQuery])
+  const filteredUsers = useMemo(() => draftUsers.filter((item) => {
+    if (roleFilter !== 'all' && item.role !== roleFilter) return false
+    const haystack = `${item.fullName} ${item.email} ${item.login || ''} ${item.leaderScope || ''}`.toLowerCase()
+    return haystack.includes(userQuery.trim().toLowerCase())
+  }), [draftUsers, roleFilter, userQuery])
+  const configDirty = useMemo(() => JSON.stringify(draftAdmin) !== JSON.stringify(admin), [admin, draftAdmin])
+  const usersDirty = useMemo(() => JSON.stringify(draftUsers) !== JSON.stringify(users), [draftUsers, users])
+  const selectedUserDirty = useMemo(() => {
+    if (!selectedUser) return false
+    const sourceUser = users.find((item) => item.id === selectedUser.id)
+    if (!sourceUser) return true
+    return JSON.stringify(sourceUser) !== JSON.stringify(selectedUser)
+  }, [selectedUser, users])
+  const canCreateUser = Boolean((newUser.email || '').trim() || (newUser.login || '').trim())
+  const pendingBadges = [configDirty ? 'konfiguracja' : null, usersDirty ? 'użytkownicy' : null].filter(Boolean) as string[]
 
   if (!canAdmin(user)) {
     return (
@@ -229,8 +251,13 @@ export default function AdminView({
         <div>
           <div className="section-title"><span>Panel administratora</span><small>{notice || 'Konfiguracja słowników i celów'}</small></div>
           <p className="hint-text">Zmiany w tym widoku zasilają formularz oceny, zakres liderów oraz raporty. Zapis jest jawny, żeby uniknąć przypadkowych zmian słowników.</p>
+          {pendingBadges.length ? (
+            <div className="status-chips">
+              {pendingBadges.map((item) => <span className="status-chip" key={item}>Niezapisane: {item}</span>)}
+            </div>
+          ) : null}
         </div>
-        <button className="primary-btn" onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfigurację</button>
+        <button className="primary-btn" disabled={!configDirty} onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfigurację</button>
       </section>
       <section className="data-panel">
         <div className="section-title"><span>Cele jakościowe</span><small>progi i wolumeny</small></div>
@@ -279,7 +306,11 @@ export default function AdminView({
         <div className="specialist-layout">
           <div className="specialist-list">
             <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> Dodaj specjalistę</button>
-            {draftAdmin.specialists.map((specialist) => (
+            <div className="list-toolbar">
+              <input value={specialistQuery} onChange={(event) => setSpecialistQuery(event.target.value)} placeholder="Szukaj specjalisty, lidera lub działu" />
+              <small>{filteredSpecialists.length} wyników</small>
+            </div>
+            {filteredSpecialists.map((specialist) => (
               <button
                 key={specialist.id}
                 className={specialist.id === selectedSpecialist.id ? 'active' : ''}
@@ -290,6 +321,7 @@ export default function AdminView({
                 <small>{specialist.leader || 'Bez lidera'} • {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
               </button>
             ))}
+            {!filteredSpecialists.length ? <div className="empty-state compact-empty">Brak specjalistów dla tego filtra.</div> : null}
           </div>
           <div className="specialist-editor">
             <div className="field-grid two">
@@ -309,7 +341,14 @@ export default function AdminView({
         <div className="section-title"><span>Użytkownicy i role</span><small>{draftUsers.length} kont</small></div>
         <div className="user-layout">
           <div className="user-list">
-            {draftUsers.map((account) => (
+            <div className="list-toolbar">
+              <input value={userQuery} onChange={(event) => setUserQuery(event.target.value)} placeholder="Szukaj po imieniu, e-mailu lub loginie" />
+              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as 'all' | UserProfile['role'])}>
+                <option value="all">Wszystkie role</option>
+                {Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
+              </select>
+            </div>
+            {filteredUsers.map((account) => (
               <button
                 key={account.id}
                 className={account.id === selectedUser?.id ? 'active' : ''}
@@ -320,6 +359,7 @@ export default function AdminView({
                 <small>{roleLabels[account.role]} • {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
               </button>
             ))}
+            {!filteredUsers.length ? <div className="empty-state compact-empty">Brak użytkowników dla tego filtra.</div> : null}
           </div>
           <div className="user-editor">
             {selectedUser ? (
@@ -334,7 +374,7 @@ export default function AdminView({
                 </div>
                 <div className="admin-inline-actions">
                   <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> Konto aktywne</label>
-                  <button className="primary-btn" type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz użytkownika</button>
+                  <button className="primary-btn" disabled={!selectedUserDirty} type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz użytkownika</button>
                 </div>
               </>
             ) : <div className="empty-state">Brak użytkowników.</div>}
@@ -350,7 +390,7 @@ export default function AdminView({
             <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
             <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pełny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
           </div>
-          <button className="ghost-btn" type="button" onClick={createNewUser}><Plus size={16} /> Utwórz konto</button>
+          <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> Utwórz konto</button>
         </div>
       </section>
       <section className="data-panel periods-panel">

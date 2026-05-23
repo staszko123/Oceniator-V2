@@ -8,7 +8,7 @@ export type DashboardPrefs = { order: DashboardPanelKey[]; hidden: DashboardPane
 
 export const dashboardPanelLabels: Record<DashboardPanelKey, string> = {
   trend: 'Trend okresowy',
-  typeMix: 'Rozklad typow',
+  typeMix: 'Rozkład typów',
   sections: 'Sekcje jakości',
   leaders: 'Ranking liderów',
   weak: 'Słabe kryteria',

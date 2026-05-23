@@ -270,7 +270,7 @@ export default function DashboardView({
               <div className="weak-item" key={item.label}>
                 <span>{item.label}</span>
                 <strong className={scoreClass(item.avg)}>{item.avg}%</strong>
-                <small>{item.count} ocen czastkowych</small>
+                <small>{item.count} ocen cząstkowych</small>
               </div>
             ))}
           </div>
@@ -279,7 +279,7 @@ export default function DashboardView({
     }
     if (panel === 'leaders') {
       return (
-        <DashboardWidget panel={panel} title="Ranking liderów" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Ranking liderów" subtitle="średnia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="leader-board">
             {leaders.map((item, index) => (
               <div className="leader-row" key={item.leader}>
@@ -337,7 +337,7 @@ export default function DashboardView({
             {prefs.hidden.map((panel) => <button key={panel} type="button" onClick={() => showPanel(panel)}>{dashboardPanelLabels[panel]}</button>)}
           </div>
         ) : null}
-        <button className="ghost-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Reset ukladu</button>
+        <button className="ghost-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Reset układu</button>
         <button className="ghost-btn" type="button" onClick={exportDashboardCsv}><Download size={15} /> Eksport CSV</button>
         <button className="ghost-btn" type="button" onClick={() => setShowDiagnostics((value) => !value)}><Settings size={15} /> Diagnostyka</button>
       </section>

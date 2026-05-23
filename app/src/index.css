@@ -1129,6 +1129,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
   align-items: center;
   gap: 24px;
 }
+.status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid rgba(217, 119, 6, .24);
+  border-radius: 999px;
+  background: rgba(255, 247, 237, .92);
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 900;
+}
 .dictionary-panel,
 .specialist-admin,
 .user-admin,
@@ -1173,6 +1191,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
   overflow: auto;
   padding-right: 4px;
 }
+.list-toolbar {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 4px;
+}
+.list-toolbar small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
 .specialist-list > button:not(.ghost-btn),
 .user-list > button {
   border: 1px solid var(--line);
@@ -1190,6 +1218,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 .user-list strong { display: block; font-size: 13px; }
 .specialist-list small,
 .user-list small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+.compact-empty {
+  padding: 18px;
+  font-size: 12px;
+}
 .specialist-editor,
 .user-editor,
 .new-user-panel {
