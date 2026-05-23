@@ -299,6 +299,121 @@ async function exportExcel(rows: Assessment[]) {
   writeFile(workbook, 'oceniator-ewidencja.xlsx')
 }
 
+type ReportMode = 'detail' | 'summary' | 'trend'
+type ReportTable = {
+  title: string
+  description: string
+  fileName: string
+  columns: string[]
+  rows: Array<Array<string | number>>
+}
+
+function buildCsv(columns: string[], rows: Array<Array<string | number>>) {
+  return `\uFEFF${[columns, ...rows].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
+}
+
+function exportTableCsv(table: ReportTable) {
+  downloadFile(`${table.fileName}.csv`, 'text/csv;charset=utf-8', buildCsv(table.columns, table.rows))
+}
+
+async function exportTableExcel(table: ReportTable) {
+  const { utils, writeFile } = await import('xlsx')
+  const worksheet = utils.aoa_to_sheet([table.columns, ...table.rows])
+  worksheet['!cols'] = table.columns.map((label) => ({ wch: Math.max(14, Math.min(36, label.length + 6)) }))
+  const workbook = utils.book_new()
+  utils.book_append_sheet(workbook, worksheet, table.title.slice(0, 31))
+  writeFile(workbook, `${table.fileName}.xlsx`)
+}
+
+function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTable {
+  if (mode === 'detail') {
+    return {
+      title: 'Raport szczegolowy',
+      description: 'Jeden wiersz na karte z podstawowymi polami operacyjnymi.',
+      fileName: 'oceniator-raport-szczegolowy',
+      columns: ['Data', 'Okres', 'Typ', 'Specjalista', 'Lider', 'Dzial', 'Stanowisko', 'Wynik', 'Ocena', 'Status', 'Kontakty'],
+      rows: [...rows]
+        .sort((a, b) => b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt))
+        .map((item) => [
+          item.data,
+          item.period,
+          TYPE_LABELS[item.type],
+          item.spec,
+          item.oce || item.leaderScope,
+          item.dzial,
+          item.stand,
+          `${item.avgFinal}%`,
+          ratingLabel(item.rating),
+          statusLabels[item.status],
+          item.contactCount,
+        ]),
+    }
+  }
+
+  if (mode === 'summary') {
+    const buckets = new Map<string, Assessment[]>()
+    rows.forEach((item) => {
+      buckets.set(item.spec, [...(buckets.get(item.spec) || []), item])
+    })
+    return {
+      title: 'Raport specjalistow',
+      description: 'Agregacja wynikow per specjalista wraz z rozkladem ocen.',
+      fileName: 'oceniator-raport-specjalisci',
+      columns: ['Specjalista', 'Lider', 'Dzial', 'Stanowisko', 'Kart', 'Srednia', 'Min', 'Max', 'Bardzo dobry', 'Dobry', 'Ponizej standardu', 'Ostatnia karta'],
+      rows: [...buckets.entries()]
+        .map(([specialist, specialistRows]) => {
+          const scores = specialistRows.map((item) => item.avgFinal)
+          const average = Math.round(scores.reduce((acc, value) => acc + value, 0) / scores.length)
+          const last = [...specialistRows].sort((a, b) => b.data.localeCompare(a.data))[0]
+          return [
+            specialist,
+            last?.oce || last?.leaderScope || '',
+            last?.dzial || '',
+            last?.stand || '',
+            specialistRows.length,
+            `${average}%`,
+            `${Math.min(...scores)}%`,
+            `${Math.max(...scores)}%`,
+            specialistRows.filter((item) => item.rating === 'great').length,
+            specialistRows.filter((item) => item.rating === 'good').length,
+            specialistRows.filter((item) => item.rating === 'below').length,
+            last?.data || '',
+          ]
+        })
+        .sort((left, right) => Number(String(left[5]).replace('%', '')) - Number(String(right[5]).replace('%', ''))),
+    }
+  }
+
+  const trendBuckets = new Map<string, Assessment[]>()
+  rows.forEach((item) => {
+    const key = `${item.spec}__${item.period}`
+    trendBuckets.set(key, [...(trendBuckets.get(key) || []), item])
+  })
+  return {
+    title: 'Raport trendow',
+    description: 'Zestawienie wynikow per specjalista i okres rozliczeniowy.',
+    fileName: 'oceniator-raport-trendy',
+    columns: ['Specjalista', 'Okres', 'Lider', 'Dzial', 'Kart', 'Srednia', 'Bardzo dobry', 'Ponizej standardu', 'Do decyzji'],
+    rows: [...trendBuckets.entries()]
+      .map(([, trendRows]) => {
+        const last = [...trendRows].sort((a, b) => b.data.localeCompare(a.data))[0]
+        const avg = Math.round(trendRows.reduce((acc, item) => acc + item.avgFinal, 0) / trendRows.length)
+        return [
+          last?.spec || '',
+          last?.period || '',
+          last?.oce || last?.leaderScope || '',
+          last?.dzial || '',
+          trendRows.length,
+          `${avg}%`,
+          trendRows.filter((item) => item.rating === 'great').length,
+          trendRows.filter((item) => item.rating === 'below').length,
+          trendRows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
+        ]
+      })
+      .sort((left, right) => String(left[1]).localeCompare(String(right[1]), 'pl') || String(left[0]).localeCompare(String(right[0]), 'pl')),
+  }
+}
+
 function printAssessment(assessment: Assessment): boolean {
   const def = ASSESSMENT_DEFS[assessment.type]
   const sections = def.sections.map((section) => {
@@ -2121,15 +2236,9 @@ function DashboardWidget({
   )
 }
 
-function exportLeaderSummary(rows: Array<{ leader: string; count: number; avg: number; great: number; below: number }>) {
-  const header = ['Lider', 'Karty', 'Srednia', 'Bardzo dobry', 'Ponizej standardu']
-  const body = rows.map((item) => [item.leader, item.count, `${item.avg}%`, item.great, item.below])
-  const csv = `\uFEFF${[header, ...body].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
-  downloadFile('oceniator-raport-liderow.csv', 'text/csv;charset=utf-8', csv)
-}
-
 function ReportsView({ assessments }: { assessments: Assessment[] }) {
   const [filters, setFilters] = useState<AnalyticsFilters>(() => defaultAnalyticsFilters())
+  const [mode, setMode] = useState<ReportMode>('summary')
   const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
   const filtered = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
   const byLeader = useMemo(() => {
@@ -2144,6 +2253,7 @@ function ReportsView({ assessments }: { assessments: Assessment[] }) {
       avg: Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length),
       great: rows.filter((item) => item.rating === 'great').length,
       below: rows.filter((item) => item.rating === 'below').length,
+      review: rows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
     })).sort((a, b) => b.avg - a.avg)
   }, [filtered])
 
@@ -2160,22 +2270,73 @@ function ReportsView({ assessments }: { assessments: Assessment[] }) {
       lastDate: [...rows].sort((a, b) => b.data.localeCompare(a.data))[0]?.data || '',
     })).sort((a, b) => a.avg - b.avg).slice(0, 20)
   }, [filtered])
+  const reportTable = useMemo(() => buildReportTable(filtered, mode), [filtered, mode])
+  const reportPreviewRows = reportTable.rows.slice(0, 24)
+  const activeAvg = filtered.length ? Math.round(filtered.reduce((acc, item) => acc + item.avgFinal, 0) / filtered.length) : 0
+  const activeBelow = filtered.filter((item) => item.rating === 'below').length
+  const activeGreat = filtered.filter((item) => item.rating === 'great').length
+  const activeReview = filtered.filter((item) => item.status === 'review' || item.status === 'submitted').length
 
   return (
     <main className="screen">
       <AnalyticsFilterBar assessments={assessments} filters={filters} onChange={setFilters} />
       <section className="data-panel">
         <div className="section-title">
-          <span>Raport liderow</span>
-          <small>{filtered.length} kart w filtrze</small>
+          <span>Builder raportow</span>
+          <small>{filtered.length} kart po filtrach</small>
+        </div>
+        <div className="report-mode-group">
+          <button className={mode === 'detail' ? 'active' : ''} type="button" onClick={() => setMode('detail')}>
+            <FileText size={15} /> Szczegolowy
+          </button>
+          <button className={mode === 'summary' ? 'active' : ''} type="button" onClick={() => setMode('summary')}>
+            <Users size={15} /> Specjalisci
+          </button>
+          <button className={mode === 'trend' ? 'active' : ''} type="button" onClick={() => setMode('trend')}>
+            <TrendingUp size={15} /> Trendy
+          </button>
         </div>
         <div className="report-actions">
-          <button className="ghost-btn" type="button" onClick={() => exportLeaderSummary(byLeader)}><Download size={16} /> Eksport CSV</button>
+          <button className="ghost-btn" type="button" onClick={() => exportTableCsv(reportTable)}><Download size={16} /> Eksport CSV</button>
+          <button className="ghost-btn" type="button" onClick={() => void exportTableExcel(reportTable)}><Download size={16} /> Eksport XLSX</button>
           <button className="ghost-btn" type="button" onClick={() => exportJson(filtered)}><Download size={16} /> Karty JSON</button>
+        </div>
+        <div className="report-kpi-grid">
+          <div className="metric-panel"><span>Sredni wynik</span><strong>{activeAvg || '-'}%</strong><small>w aktywnym filtrze</small></div>
+          <div className="metric-panel"><span>Bardzo dobry</span><strong>{activeGreat}</strong><small>kart z ocena wysoka</small></div>
+          <div className="metric-panel"><span>Ponizej standardu</span><strong>{activeBelow}</strong><small>wymagaja reakcji</small></div>
+          <div className="metric-panel"><span>Do decyzji</span><strong>{activeReview}</strong><small>submitted lub review</small></div>
+        </div>
+        <div className="report-preview-panel">
+          <div className="section-title"><span>{reportTable.title}</span><small>{reportTable.rows.length} wierszy wynikowych</small></div>
+          <p className="hint-text">{reportTable.description}</p>
+          {reportTable.rows.length ? (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>{reportTable.columns.map((column) => <th key={column}>{column}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {reportPreviewRows.map((row, index) => (
+                    <tr key={`${reportTable.fileName}-${index}`}>
+                      {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <div className="empty-state">Brak danych dla aktualnego zestawu filtrow.</div>}
+          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pelny zakres pobierzesz z eksportu.</p> : null}
+        </div>
+      </section>
+      <section className="data-panel">
+        <div className="section-title">
+          <span>Raport liderow</span>
+          <small>agregacja w biezacym filtrze</small>
         </div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Lider</th><th>Karty</th><th>Srednia</th><th>Bardzo dobry</th><th>Ponizej standardu</th></tr></thead>
+            <thead><tr><th>Lider</th><th>Karty</th><th>Srednia</th><th>Bardzo dobry</th><th>Ponizej standardu</th><th>Do decyzji</th></tr></thead>
             <tbody>
               {byLeader.map((item) => (
                 <tr key={item.leader}>
@@ -2184,6 +2345,7 @@ function ReportsView({ assessments }: { assessments: Assessment[] }) {
                   <td><span className={scoreClass(item.avg)}>{item.avg}%</span></td>
                   <td>{item.great}</td>
                   <td>{item.below}</td>
+                  <td>{item.review}</td>
                 </tr>
               ))}
             </tbody>

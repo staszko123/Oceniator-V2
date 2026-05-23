@@ -984,6 +984,47 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
   display: flex;
   gap: 10px;
   margin: -4px 0 14px;
+  flex-wrap: wrap;
+}
+.report-mode-group {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.report-mode-group button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 11px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+.report-mode-group button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  box-shadow: 0 8px 18px rgba(37, 99, 235, .16);
+}
+.report-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.report-preview-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface-2);
 }
 .team-hero {
   display: flex;
