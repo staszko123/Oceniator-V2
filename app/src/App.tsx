@@ -134,6 +134,104 @@ function readableError(error: unknown, fallback: string): string {
   return fallback
 }
 
+type DraftAssistantResult = {
+  status: 'ok' | 'warning'
+  title: string
+  summary: string
+  warnings: string[]
+  suggestions: string[]
+}
+
+function cleanSectionLabel(label: string): string {
+  return label.replace(/^[IVX]+\.\s*/, '').trim()
+}
+
+function reviewDraftQuality(draft: AssessmentDraft): DraftAssistantResult {
+  const def = ASSESSMENT_DEFS[draft.type]
+  const warnings: string[] = []
+  const suggestions: string[] = []
+  const filledIds = draft.contactIds.filter((item) => item.trim())
+  const noteCount = def.sections.reduce((total, section) => (
+    total + (draft.notes[section.key] || []).filter((item) => item.trim()).length
+  ), 0)
+  const lowScores = def.sections.reduce((total, section) => (
+    total + section.criteria.reduce((sectionTotal, _criterion, criterionIndex) => (
+      sectionTotal + (draft.scores[section.key]?.[criterionIndex] || []).filter((value) => value === 0 || value === 0.5).length
+    ), 0)
+  ), 0)
+  const hasGold = draft.gold.some((value) => Number(value) > 0)
+  const finalScore = calculateDraft(draft).avgFinal
+
+  if (!draft.specialist.trim()) warnings.push('Brakuje wybranego specjalisty.')
+  if (!draft.date) warnings.push('Brakuje daty oceny.')
+  if (!filledIds.length) warnings.push('Uzupelnij przynajmniej jeden identyfikator kontaktu.')
+  if (filledIds.length && filledIds.length < draft.contactCount) {
+    suggestions.push('Nie wszystkie pola kontaktow sa uzupelnione. Sprawdz, czy liczba kontaktow zgadza sie z karta.')
+  }
+  if (lowScores > 0 && noteCount === 0 && !draft.summary.trim()) {
+    warnings.push('W karcie sa obnizone oceny, ale brakuje komentarzy sekcyjnych lub podsumowania.')
+  }
+  if (hasGold && !draft.goldDescription.trim()) {
+    warnings.push('Dodano zlote punkty bez opisu sytuacji.')
+  }
+  if (finalScore >= 92 && !draft.summary.trim()) {
+    suggestions.push('Przy bardzo dobrym wyniku warto dodac krotkie podsumowanie, zeby karta byla czytelna w ewidencji.')
+  }
+
+  return {
+    status: warnings.length ? 'warning' : 'ok',
+    title: 'Kontrola jakosci karty',
+    summary: warnings.length
+      ? `Wykryto ${warnings.length} ryzyk przed zapisem.`
+      : 'Karta nie ma widocznych ryzyk przed zapisem.',
+    warnings,
+    suggestions,
+  }
+}
+
+function buildDraftSummary(draft: AssessmentDraft): string {
+  const def = ASSESSMENT_DEFS[draft.type]
+  const calculated = calculateDraft(draft)
+  const parts = def.sections.map((section) => {
+    const score = calculated.secAvg[section.key] || 0
+    const notes = (draft.notes[section.key] || []).filter((item) => item.trim()).join(' ')
+    const intro = score >= 92
+      ? `${cleanSectionLabel(section.label)} jest na wysokim poziomie.`
+      : score >= 82
+        ? `${cleanSectionLabel(section.label)} jest na dobrym poziomie, ale widac miejsce na doszlifowanie.`
+        : `${cleanSectionLabel(section.label)} wymaga poprawy i doprecyzowania dalszych dzialan.`
+    return `${intro} Wynik sekcji: ${score}%.${notes ? ` Uwagi: ${notes}` : ''}`
+  })
+  parts.push(`Wynik koncowy wynosi ${calculated.avgFinal}%. Ocena: ${ratingLabel(calculated.rating)}.`)
+  return parts.join('\n\n')
+}
+
+function specialistProfileData(assessments: Assessment[], specialist: string) {
+  const rows = assessments
+    .filter((item) => item.spec === specialist)
+    .sort((a, b) => a.data.localeCompare(b.data))
+  const recent = [...rows].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 6)
+  const trend = rows.slice(-6).map((item) => ({
+    id: item.id,
+    label: item.period || item.data,
+    date: item.data,
+    score: item.avgFinal,
+    type: item.type,
+    status: item.status,
+  }))
+  const weakAreas = weakestCriteria(rows).slice(0, 4)
+  const avg = rows.length ? Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length) : 0
+  const great = rows.filter((item) => item.rating === 'great').length
+  const below = rows.filter((item) => item.rating === 'below').length
+  const review = rows.filter((item) => item.status === 'review' || item.status === 'submitted').length
+  const momentum = trend.length > 1 ? trend[trend.length - 1].score - trend[0].score : 0
+  const recommendation = weakAreas[0]?.avg && weakAreas[0].avg < 82
+    ? `Najwiekszy potencjal poprawy jest w obszarze: ${weakAreas[0].label}.`
+    : 'Profil jest stabilny. Warto utrzymac rytm informacji zwrotnej i monitorowac ostatnie oceny.'
+
+  return { rows, recent, trend, weakAreas, avg, great, below, review, momentum, recommendation }
+}
+
 function downloadFile(fileName: string, mime: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }))
   const link = document.createElement('a')
@@ -499,6 +597,92 @@ function StartView({
   )
 }
 
+function SpecialistProfileModal({
+  specialist,
+  assessments,
+  onClose,
+}: {
+  specialist: string
+  assessments: Assessment[]
+  onClose: () => void
+}) {
+  const profile = useMemo(() => specialistProfileData(assessments, specialist), [assessments, specialist])
+
+  if (!profile.rows.length) return null
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <section className="modal-card preview-modal specialist-profile-modal">
+        <header className="modal-header">
+          <div>
+            <h3>{specialist}</h3>
+            <p>Profil jakosciowy specjalisty oparty o zapisane karty.</p>
+          </div>
+          <button type="button" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="specialist-kpi-grid">
+          <div><span>Sredni wynik</span><strong className={scoreClass(profile.avg)}>{profile.avg}%</strong></div>
+          <div><span>Liczba kart</span><strong>{profile.rows.length}</strong></div>
+          <div><span>Ponizej standardu</span><strong>{profile.below}</strong></div>
+          <div><span>Kolejka decyzji</span><strong>{profile.review}</strong></div>
+        </div>
+        <div className="specialist-profile-grid">
+          <section className="specialist-profile-panel">
+            <div className="section-title"><span>Trend ostatnich ocen</span><small>{profile.momentum >= 0 ? `+${profile.momentum}` : profile.momentum} pp</small></div>
+            <div className="specialist-trend-bars">
+              {profile.trend.map((item) => (
+                <div className="specialist-trend-bar" key={item.id}>
+                  <div className="specialist-trend-meta">
+                    <strong>{item.score}%</strong>
+                    <small>{TYPE_LABELS[item.type]}</small>
+                  </div>
+                  <div className="specialist-trend-track"><i style={{ height: `${Math.max(12, item.score)}%` }} /></div>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="specialist-profile-panel">
+            <div className="section-title"><span>Obszary do poprawy</span><small>{profile.weakAreas.length} pozycji</small></div>
+            <div className="weak-list enhanced">
+              {profile.weakAreas.length ? profile.weakAreas.map((item) => (
+                <div className="weak-item" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong className={scoreClass(item.avg)}>{item.avg}%</strong>
+                  <small>{item.count} ocen czastkowych</small>
+                </div>
+              )) : <div className="empty-state compact">Brak wystarczajacej liczby danych do wskazania slabych kryteriow.</div>}
+            </div>
+            <p className="hint-text specialist-profile-reco">{profile.recommendation}</p>
+          </section>
+        </div>
+        <section className="specialist-profile-panel specialist-profile-full">
+          <div className="section-title"><span>Ostatnie oceny</span><small>{profile.recent.length} najnowszych kart</small></div>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead><tr><th>Data</th><th>Typ</th><th>Wynik</th><th>Status</th><th>Podsumowanie</th></tr></thead>
+              <tbody>
+                {profile.recent.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.data}</td>
+                    <td>{TYPE_LABELS[item.type]}</td>
+                    <td><span className={scoreClass(item.avgFinal)}>{item.avgFinal}%</span></td>
+                    <td><span className={`status ${item.status}`}>{statusLabels[item.status]}</span></td>
+                    <td><small>{item.notes || 'Brak podsumowania koncowego.'}</small></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <footer className="modal-footer">
+          <button className="primary-btn" type="button" onClick={onClose}>Zamknij</button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
 function TeamView({
   user,
   admin,
@@ -525,6 +709,7 @@ function TeamView({
     item.status !== 'archived'
     && (!activeLeader || item.leaderScope === activeLeader || item.oce === activeLeader)
   )), [assessments, activeLeader])
+  const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
   const avg = rows.length ? Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length) : 0
   const pending = rows.filter((item) => item.status === 'submitted' || item.status === 'review').length
   const below = rows.filter((item) => item.rating === 'below').length
@@ -570,7 +755,7 @@ function TeamView({
         <div className="section-title"><span>Specjalisci zespolu</span><small>{specialistRows.length} osob</small></div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Specjalista</th><th>Stanowisko</th><th>Dzial</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th></tr></thead>
+            <thead><tr><th>Specjalista</th><th>Stanowisko</th><th>Dzial</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
             <tbody>
               {specialistRows.map((item) => (
                 <tr key={item.specialist.id}>
@@ -580,6 +765,11 @@ function TeamView({
                   <td>{item.count}</td>
                   <td>{item.count ? <span className={scoreClass(item.avg)}>{item.avg}%</span> : '-'}</td>
                   <td>{item.last ? `${item.last.data} · ${TYPE_LABELS[item.last.type]}` : 'Brak kart'}</td>
+                  <td>
+                    <button className="ghost-btn table-inline-btn" type="button" onClick={() => setSelectedSpecialistProfile(item.specialist.name)} disabled={!item.count}>
+                      <Eye size={15} /> Profil
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -599,6 +789,13 @@ function TeamView({
           compact
         />
       </section>
+      {selectedSpecialistProfile ? (
+        <SpecialistProfileModal
+          specialist={selectedSpecialistProfile}
+          assessments={rows}
+          onClose={() => setSelectedSpecialistProfile(null)}
+        />
+      ) : null}
     </main>
   )
 }
@@ -619,6 +816,7 @@ function EvaluationView({
   onSaveAssessment: (draft: AssessmentDraft) => Promise<void>
 }) {
   const [notice, setNotice] = useState('')
+  const [assistantResult, setAssistantResult] = useState<DraftAssistantResult | null>(null)
   const def = ASSESSMENT_DEFS[draft.type]
   const calculated = useMemo(() => calculateDraft(draft), [draft])
   const specialists = useMemo(() => {
@@ -631,6 +829,7 @@ function EvaluationView({
 
   function update(next: AssessmentDraft) {
     if (notice) setNotice('')
+    if (assistantResult) setAssistantResult(null)
     onDraftChange(next)
   }
 
@@ -659,6 +858,22 @@ function EvaluationView({
     const notes = structuredClone(draft.notes)
     notes[sectionKey][contactIndex] = value
     update({ ...draft, notes })
+  }
+
+  function runDraftGuard() {
+    setAssistantResult(reviewDraftQuality(draft))
+  }
+
+  function generateSummary() {
+    const summary = buildDraftSummary(draft)
+    update({ ...draft, summary })
+    setAssistantResult({
+      status: 'ok',
+      title: 'Generator podsumowania',
+      summary: 'Wygenerowano robocze podsumowanie na podstawie sekcji i wynikow.',
+      warnings: [],
+      suggestions: ['Przejrzyj tekst przed zapisem i dopasuj go do realnego feedbacku dla specjalisty.'],
+    })
   }
 
   async function submit() {
@@ -840,6 +1055,35 @@ function EvaluationView({
           <div className="section-title"><span>Akcje</span><small>{notice || draftSaveState}</small></div>
           <button className="primary-btn wide" onClick={submit} disabled={!canCreate(user)} type="button"><Save size={16} /> Dodaj karte</button>
           <button className="ghost-btn wide" onClick={() => update(createDraft(draft.type))} type="button"><Trash2 size={16} /> Wyczysc szkic</button>
+        </section>
+        <section className="rail-card assistant-card">
+          <div className="section-title"><span>Asystent oceny</span><small>inspiracja z legacy, przebudowana pod v2</small></div>
+          <div className="assistant-actions">
+            <button className="ghost-btn wide" type="button" onClick={runDraftGuard}><ShieldCheck size={16} /> Sprawdz karte</button>
+            <button className="ghost-btn wide" type="button" onClick={generateSummary}><FileText size={16} /> Wygeneruj podsumowanie</button>
+          </div>
+          {assistantResult ? (
+            <div className={`assistant-result ${assistantResult.status}`}>
+              <strong>{assistantResult.title}</strong>
+              <p>{assistantResult.summary}</p>
+              {assistantResult.warnings.length ? (
+                <div>
+                  <span>Ryzyka</span>
+                  <ul>
+                    {assistantResult.warnings.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {assistantResult.suggestions.length ? (
+                <div>
+                  <span>Sugestie</span>
+                  <ul>
+                    {assistantResult.suggestions.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : <p className="hint-text">Uzyj kontroli jakosci przed zapisem albo wygeneruj pierwsza wersje komentarza koncowego.</p>}
         </section>
         <section className="rail-card result-card">
           <div className="section-title"><span>Wynik koncowy</span><small>{ratingLabel(calculated.rating)}</small></div>
@@ -1886,6 +2130,7 @@ function exportLeaderSummary(rows: Array<{ leader: string; count: number; avg: n
 
 function ReportsView({ assessments }: { assessments: Assessment[] }) {
   const [filters, setFilters] = useState<AnalyticsFilters>(() => defaultAnalyticsFilters())
+  const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
   const filtered = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
   const byLeader = useMemo(() => {
     const map = new Map<string, Assessment[]>()
@@ -1949,7 +2194,7 @@ function ReportsView({ assessments }: { assessments: Assessment[] }) {
         <div className="section-title"><span>Specjalisci do uwagi</span><small>najslabsze srednie w filtrze</small></div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th></tr></thead>
+            <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
             <tbody>
               {bySpecialist.map((item) => (
                 <tr key={item.specialist}>
@@ -1958,12 +2203,24 @@ function ReportsView({ assessments }: { assessments: Assessment[] }) {
                   <td>{item.count}</td>
                   <td><span className={scoreClass(item.avg)}>{item.avg}%</span></td>
                   <td>{item.lastDate}</td>
+                  <td>
+                    <button className="ghost-btn table-inline-btn" type="button" onClick={() => setSelectedSpecialistProfile(item.specialist)}>
+                      <Eye size={15} /> Profil
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+      {selectedSpecialistProfile ? (
+        <SpecialistProfileModal
+          specialist={selectedSpecialistProfile}
+          assessments={filtered}
+          onClose={() => setSelectedSpecialistProfile(null)}
+        />
+      ) : null}
     </main>
   )
 }

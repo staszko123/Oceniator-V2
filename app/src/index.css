@@ -382,6 +382,38 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 .form-main { display: grid; gap: 14px; min-width: 0; }
 .right-rail { position: sticky; top: 84px; display: grid; gap: 12px; align-self: start; }
 .rail-card { padding: 16px; }
+.assistant-card { gap: 12px; }
+.assistant-actions { display: grid; gap: 8px; }
+.assistant-result {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-2);
+}
+.assistant-result.warning { border-color: rgba(217, 119, 6, 0.32); background: rgba(255, 247, 237, 0.92); }
+.assistant-result.ok { border-color: rgba(22, 163, 74, 0.22); }
+.assistant-result strong { font-size: 13px; }
+.assistant-result p,
+.assistant-result span,
+.assistant-result li {
+  font-size: 12px;
+  line-height: 1.55;
+}
+.assistant-result p { margin: 0; color: var(--muted); }
+.assistant-result span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-weight: 800;
+}
+.assistant-result ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
 .type-tabs { display: flex; gap: 8px; }
 .type-tabs button {
   display: flex;
@@ -491,6 +523,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 .status.archived { background: #e2e8f0; color: #475569; }
 .row-action-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .empty-state { padding: 34px; text-align: center; color: var(--muted); background: #fff; border: 1px dashed var(--line-strong); border-radius: 8px; }
+.empty-state.compact { padding: 18px; font-size: 12px; }
 .table-actions { display: flex; gap: 6px; }
 .table-actions button {
   width: 31px;
@@ -504,6 +537,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
   color: var(--muted);
 }
 .table-actions button:hover { color: var(--teal); border-color: rgba(15,143,135,.35); background: #eefdfa; }
+.table-inline-btn {
+  min-width: 92px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
 .import-btn { position: relative; overflow: hidden; margin: 0; }
 .import-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .import-btn input:disabled { cursor: not-allowed; }
@@ -1151,6 +1189,74 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
   color: var(--text);
   font-size: 11px;
   font-weight: 800;
+}
+.specialist-profile-modal { width: min(1080px, 100%); }
+.specialist-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 18px 20px 0;
+}
+.specialist-kpi-grid div,
+.specialist-profile-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.specialist-kpi-grid div { padding: 14px; }
+.specialist-kpi-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.specialist-kpi-grid strong {
+  display: inline-flex;
+  margin-top: 8px;
+  font-size: 28px;
+}
+.specialist-profile-grid {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap: 12px;
+  padding: 18px 20px;
+}
+.specialist-profile-panel { padding: 14px; }
+.specialist-profile-full { margin: 0 20px 20px; }
+.specialist-trend-bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 10px;
+}
+.specialist-trend-bar {
+  display: grid;
+  gap: 8px;
+  align-items: end;
+}
+.specialist-trend-meta strong,
+.specialist-trend-meta small,
+.specialist-trend-bar span {
+  display: block;
+}
+.specialist-trend-meta small,
+.specialist-trend-bar span,
+.specialist-profile-reco {
+  color: var(--muted);
+  font-size: 11px;
+}
+.specialist-trend-track {
+  display: flex;
+  align-items: end;
+  height: 140px;
+  border-radius: 8px;
+  padding: 8px;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(15, 143, 135, 0.18));
+}
+.specialist-trend-track i {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--blue), var(--teal));
 }
 .preview-sections, .edit-sections { display: grid; gap: 14px; padding: 0 20px 20px; }
 .preview-sections section, .edit-sections section {
