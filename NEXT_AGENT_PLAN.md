@@ -2,7 +2,8 @@
 
 Repozytorium: https://github.com/staszko123/Oceniator-V2
 Domyslna galaz: `main`
-Ostatni sprawdzony commit po publikacji: `532bc37050fb5699ac83aedd33b66c30c16d48f7`
+Widocznosc repo: publiczne
+Ostatni sprawdzony commit po publikacji: `5206fbc`
 
 ## Gotowy prompt do wklejenia
 
@@ -22,7 +23,27 @@ Oceniator v2 to portal dla zespolow jakosci. Aplikacja sluzy do:
 - administracji slownikami, specjalistami, liderami, okresami, celami i uzytkownikami,
 - pracy na Supabase albo w lokalnym trybie demo.
 
-Uzytkownik chce, aby portal wygladal jak nowoczesny SaaS: czytelny, szybki, intuicyjny, z fluid animations, glass design, wysoka jakoscia typografii, spokojnym ukladem i swietnym UX dla codziennej pracy.
+Uzytkownik chce, aby portal wygladal jak nowoczesny SaaS: czytelny, szybki, intuicyjny, z fluid animations, glass design, wysoka jakoscia typografii, spokojnym ukladem i swietnym UX dla codziennej pracy. To nie ma byc demo. Traktuj projekt jako produkt, ktory ma wejsc do realnego wdrozenia i byc dalej rozwijany.
+
+### Decyzje produktowe z wywiadu
+
+- Repozytorium ma byc publiczne.
+- Deployment docelowo prawdopodobnie na Vercel; przygotuj projekt tak, aby GitHub + Vercel preview/prod flow byl prosty do skonfigurowania.
+- Wszystkie glowne widoki wymagaja zarowno rebuildu wizualnego, jak i funkcjonalnego: login/start, formularz, ewidencja, dashboard, raporty i admin.
+- Aplikacja ma miec neutralny brand `Oceniator`, bez PeP/P24 jako glownego brandingu.
+- Motyw ma miec przelacznik jasny/ciemny. Nie zakladaj jednego narzuconego motywu.
+- KPI dla dyrektora i lidera sa jeszcze nieustalone; zaprojektuj dashboard modulowo, aby latwo bylo zmieniac zestaw metryk.
+- Lider nie powinien widziec porownan do innych liderow. Porownania moga byc dostepne tylko dla admina/dyrektora, jesli sa uzasadnione.
+- Oceniajacy moze edytowac karty po zapisie, ale historia modyfikacji po ocenie ma zostac odlozona jako osobny etap.
+- Eksport Excel ma byc prawdziwym `.xlsx`, nie tylko HTML zapisanym jako `.xls`.
+- Glass design ma byc subtelny i profesjonalny, nie futurystyczny ani krzykliwy.
+- Priorytetem jest maksymalnie funkcjonalny produkt, a nie makieta demo.
+
+### Inspiracje wizualne
+
+- Strona glowna ma czerpac z klimatu `https://joinspread.app/?ref=saaspo.com`: product-led SaaS, mocny pierwszy ekran, klarowna obietnica, widoczne elementy produktu, rytm sekcji oparty o realny workflow, szybkie CTA i konkretne stany produktu zamiast ogolnikow.
+- `https://saaspo.com/` ma sluzyc jako baza inspiracji dla SaaS UI. Przed pracami nad redesignem przejrzyj aktualne przyklady z kategorii zblizonych do analytics, customer support, CRM, data, automation i B2B.
+- Nie kopiuj 1:1. Wyciagnij zasady: przejrzysta hierarchia, mocny produkt w pierwszym widoku, gesty ale czytelny dashboard, dopracowana typografia, mikroruch i spojnosc komponentow.
 
 ### Aktualny stan techniczny
 
@@ -108,6 +129,8 @@ npm run smoke
 5. Wszystkie zmiany testuj przynajmniej przez `npm run build`, `npm run lint`, `npm run smoke`.
 6. Po zmianach UI uruchom aplikacje lokalnie i sprawdz ja w przegladarce na desktopie. Jesli przebudowujesz layout, sprawdz tez mniejszy viewport.
 7. Nie wprowadzaj przypadkowych refaktorow. `App.tsx` jest duzy, wiec mozna go dzielic, ale tylko wtedy, gdy zmniejsza to ryzyko i poprawia utrzymanie.
+8. Kazdy etap traktuj jak produkcyjny: dopracuj stany bledow, empty states, loading, walidacje i dostepnosc.
+9. Przygotuj pod Vercel, ale nie dodawaj tokenow ani plikow `.vercel/` z lokalnymi danymi projektu do repo.
 
 ### Priorytet 1: stabilizacja funkcjonalna
 
@@ -122,7 +145,9 @@ Sprawdz szczegolnie:
 - zapis szkicu,
 - zapis karty,
 - podglad i edycje statusu karty,
+- edycje karty przez oceniajacego po zapisie,
 - eksporty ewidencji,
+- prawdziwy eksport `.xlsx`,
 - raporty i dashboard,
 - panel admina: slowniki, specjalistow, cele, okresy, uzytkownikow,
 - brak bledow w konsoli.
@@ -177,11 +202,13 @@ Wymagania redesignu:
    - chart/list panels,
    - modals/drawers,
    - focus states.
+   - theme tokens dla light/dark mode i plynnego przelacznika.
 2. Zmien login na premium SaaS:
    - widoczna marka Oceniator,
    - szybkie wejscie do lokalnego demo,
    - jasne rozroznienie trybu Supabase/local,
-   - bez marketingowego hero, bardziej product-led.
+   - bez brandingu PeP/P24,
+   - product-led first screen inspirowany Spread: widoczna obietnica produktu, szybkie wejscie, realny podglad aplikacji.
 3. Zmien sidebar:
    - bardziej kompaktowy,
    - czytelne aktywne stany,
@@ -196,7 +223,8 @@ Wymagania redesignu:
    - dashboard operacyjny "co mam zrobic teraz",
    - szybkie akcje: nowa ocena, ewidencja, dashboard, admin,
    - ostatnie/najpilniejsze karty,
-   - KPI na obecny okres.
+   - KPI na obecny okres,
+   - nie tworz marketingowej landing page w miejscu aplikacji.
 6. Zmien formularz oceny:
    - lepszy progress i summary rail,
    - bardziej intuicyjne przechodzenie po sekcjach,
@@ -209,10 +237,13 @@ Wymagania redesignu:
    - filtry w toolbarze,
    - statusy i score badges,
    - szybki podglad/edycja w drawerze albo modal,
-   - eksporty jako menu akcji.
+   - eksporty jako menu akcji,
+   - prawdziwy eksport `.xlsx` przez biblioteke typu SheetJS/xlsx lub rownowazne rozwiazanie.
 8. Zmien dashboard:
    - modulowy grid,
-   - KPI, trend, ranking, ryzyka, slabe kryteria,
+   - KPI, trend, ryzyka, slabe kryteria,
+   - widok admin/dyrektor moze miec ranking liderow,
+   - widok lidera nie moze pokazywac porownan z innymi liderami,
    - panele drag/reorder lub przynajmniej zapamietywana kolejnosc,
    - czytelne empty states,
    - zadnych przypadkowych pseudo-metryk.
@@ -235,6 +266,7 @@ Dodaj subtelny motion system:
 - modal/drawer: 180-240ms z easingiem,
 - skeleton/loading states dla providerow,
 - toast/success po zapisie,
+- plynne przelaczanie light/dark theme bez migotania,
 - reduced motion fallback.
 
 Nie dodawaj animacji, ktore opozniaja prace lub utrudniaja czytanie tabel.
@@ -249,9 +281,20 @@ Zweryfikuj:
 - zachowanie aplikacji przy braku dostepu admina,
 - fallback lub komunikat, gdy Supabase jest niedostepny,
 - brak `dangerouslySetInnerHTML` z danymi uzytkownika,
-- poprawne escape przy eksporcie Excel HTML i druku.
+- poprawne escape przy druku i eksportach,
+- brak sekretow w publicznym repo.
 
-### Priorytet 6: testy
+### Priorytet 6: Vercel i wdrozenie
+
+Przygotuj projekt do wdrozenia na Vercel:
+
+- sprawdz, czy rootowe `npm run build` generuje produkcyjne `dist/`,
+- dodaj `vercel.json` tylko jesli jest faktycznie potrzebny dla poprawnego routingu/build output,
+- opisz w README konfiguracje env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_ENABLED`,
+- nie commituj `.vercel/` ani tokenow,
+- docelowo ustaw preview deployment dla PR i produkcje z galezi `main`.
+
+### Priorytet 7: testy
 
 Dodaj minimum:
 
@@ -263,7 +306,9 @@ Dodaj minimum:
   - utworzenie karty,
   - karta widoczna w ewidencji,
   - filtr lidera,
-  - viewer bez dostepu do edycji.
+  - viewer bez dostepu do edycji,
+  - oceniajacy moze edytowac wlasna karte po zapisie,
+  - eksport `.xlsx` tworzy poprawny plik.
 
 ### Kryteria akceptacji
 
@@ -275,35 +320,39 @@ Prace mozna uznac za gotowe, gdy:
 - UI nie ma nachodzacych elementow, overflow i nieczytelnych tabel,
 - portal wyglada jak dopracowany SaaS, a nie prototyp,
 - animacje sa plynne i nie przeszkadzaja,
+- light/dark switch dziala i ma czytelny kontrast,
+- eksport Excel generuje prawdziwe `.xlsx`,
 - README i SMOKE_CHECKS sa aktualne,
 - finalna odpowiedz zawiera liste zmian, testy i pozostale ryzyka.
 
-## Pytania do wlasciciela produktu
+## Odpowiedzi z wywiadu
 
-Odpowiedzi na te pytania pomoga doprecyzowac kolejny prompt i redesign:
+- Repo publiczne: tak.
+- Deployment: prawdopodobnie Vercel.
+- Zakres rebuildu: wszystkie glowne widoki wizualnie i funkcjonalnie.
+- Motyw: wymagany przelacznik.
+- Branding: neutralny `Oceniator`.
+- KPI dyrektora/lidera: do ustalenia pozniej.
+- Lider widzi porownania z innymi liderami: nie.
+- Edycja karty po zapisie przez oceniajacego: tak, historia modyfikacji jako pozniejszy etap.
+- Eksport Excel: prawdziwe `.xlsx`.
+- Inspiracje: `https://joinspread.app/?ref=saaspo.com` oraz `https://saaspo.com/`.
+- Glass design: subtelny i profesjonalny.
+- Priorytet demo vs produkt: budowac mozliwie kompletny produkt, nie makiete demo.
 
-1. Czy repo `Oceniator-V2` ma pozostac prywatne, czy docelowo publiczne?
-2. Czy nowa wersja ma byc deploymentem na GitHub Pages, Vercel, Supabase Hosting czy innym hostingu?
-3. Jaka jest docelowa grupa uzytkownikow: tylko wewnetrzny zespol jakosci, liderzy operacyjni, dyrekcja, czy rowniez zewnetrzni audytorzy?
-4. Ktory widok jest najwazniejszy w codziennej pracy: formularz oceny, ewidencja, dashboard czy panel admina?
-5. Czy portal powinien miec brand PeP/P24, neutralny brand Oceniator, czy mozliwosc white-label?
-6. Jakie kolory sa niedozwolone albo wymagane firmowo?
-7. Czy preferujesz jasny motyw jako domyslny, ciemny, czy automatyczny z przelacznikiem?
-8. Czy aplikacja musi dzialac wygodnie na mobile, czy wystarczy desktop/tablet plus komunikat dla malych ekranow?
-9. Jakie sa najwazniejsze KPI na dashboardzie dla dyrektora?
-10. Jakie sa najwazniejsze KPI dla lidera?
-11. Czy lider ma widziec tylko swoj zespol, czy porownania do innych liderow?
-12. Czy oceniajacy moze edytowac karty po zapisie, czy tylko admin/lider?
-13. Jak powinien wygladac workflow statusow kart: `Do weryfikacji`, `W weryfikacji`, `Zatwierdzona`, `Archiwum` - czy brakuje statusow?
-14. Czy potrzebna jest historia zmian i audyt: kto, kiedy, co zmienil?
-15. Czy formularze ocen sa finalne, czy kryteria/wagi maja byc w pelni edytowalne z panelu admina?
-16. Czy eksport Excel ma byc prawdziwym `.xlsx`, czy obecny HTML `.xls` jest wystarczajacy?
-17. Czy raporty PDF maja byc generowane w przegladarce, czy przez backend/Edge Function?
-18. Czy Supabase jest docelowym zrodlem prawdy, czy local demo ma pozostac rownie wazne?
-19. Czy mamy migrowac dane ze starego `legacy/localStorage` do nowych kluczy `oc_v2_*`?
-20. Jakie 3 aplikacje SaaS sa dobrymi inspiracjami wizualnymi dla Ciebie?
-21. Czy glass design ma byc subtelny i profesjonalny, czy bardziej futurystyczny?
-22. Czy chcesz animacje bardzo dyskretne, czy bardziej widowiskowe?
-23. Czy potrzebne sa powiadomienia/toasty i centrum aktywnosci?
-24. Czy aplikacja ma miec role/permission matrix konfigurowana w UI?
-25. Co musi byc gotowe jako pierwsze do demo?
+## Otwarte pytania do kolejnego doprecyzowania
+
+1. Jaka jest docelowa grupa uzytkownikow: tylko wewnetrzny zespol jakosci, liderzy operacyjni, dyrekcja, czy rowniez zewnetrzni audytorzy?
+2. Czy aplikacja musi dzialac wygodnie na mobile, czy wystarczy desktop/tablet plus komunikat dla malych ekranow?
+3. Jakie KPI maja byc najwazniejsze dla dyrektora?
+4. Jakie KPI maja byc najwazniejsze dla lidera?
+5. Jak powinien wygladac workflow statusow kart: `Do weryfikacji`, `W weryfikacji`, `Zatwierdzona`, `Archiwum` - czy brakuje statusow?
+6. Kto moze edytowac karty cudze, a kto tylko wlasne?
+7. Czy historia zmian i audyt ma byc pelnym logiem zmian pol, czy tylko informacja kto i kiedy edytowal?
+8. Czy formularze ocen sa finalne, czy kryteria/wagi maja byc w pelni edytowalne z panelu admina?
+9. Czy raporty PDF maja byc generowane w przegladarce, czy przez backend/Edge Function?
+10. Czy Supabase jest docelowym zrodlem prawdy, czy local demo ma pozostac rownie wazne?
+11. Czy migrowac dane ze starego `legacy/localStorage` do nowych kluczy `oc_v2_*`?
+12. Czy potrzebne sa powiadomienia/toasty i centrum aktywnosci?
+13. Czy aplikacja ma miec role/permission matrix konfigurowana w UI?
+14. Jaki zestaw funkcji jest minimalnym zakresem pierwszego produkcyjnego wdrozenia?
