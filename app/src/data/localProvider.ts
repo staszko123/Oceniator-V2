@@ -102,15 +102,27 @@ function normalizeAssessments(value: Assessment[]): Assessment[] {
     && typeof item.avgFinal === 'number'
     && item.snapshotScores
     && item.snapshotNotes
-  )).map((item) => ({
-    ...item,
-    status: item.status || 'submitted',
-    statusHistory: Array.isArray(item.statusHistory) ? item.statusHistory : [],
-    ids: Array.isArray(item.ids) ? item.ids : [],
-    gold: Array.isArray(item.gold) ? item.gold : [],
-    contactCount: Math.max(1, Math.min(6, Number(item.contactCount) || 1)),
-    leaderScope: item.leaderScope || item.oce || '',
-  }))
+  )).map((item) => {
+    const fallbackAt = item.createdAt || `${item.data || new Date().toISOString().slice(0, 10)}T09:00:00.000Z`
+    const fallbackHistory = Array.isArray(item.statusHistory) && item.statusHistory.length
+      ? item.statusHistory
+      : [{
+          status: item.status || 'submitted',
+          at: fallbackAt,
+          by: item.oce || 'system',
+          note: 'Utworzono kart\u0119 bazow\u0105',
+        }]
+
+    return {
+      ...item,
+      status: item.status || 'submitted',
+      statusHistory: fallbackHistory,
+      ids: Array.isArray(item.ids) ? item.ids : [],
+      gold: Array.isArray(item.gold) ? item.gold : [],
+      contactCount: Math.max(1, Math.min(6, Number(item.contactCount) || 1)),
+      leaderScope: item.leaderScope || item.oce || '',
+    }
+  })
 }
 
 export class LocalDataProvider implements DataProvider {

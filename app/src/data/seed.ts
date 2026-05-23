@@ -30,7 +30,6 @@ const defaultGoals: Goal = {
   minAvg: 92,
   greatShare: 60,
 }
-
 export function buildDemoAdmin(): AdminConfig {
   const specialists: Specialist[] = []
   let index = 1
@@ -128,7 +127,14 @@ export function buildDemoAssessments(admin: AdminConfig): Assessment[] {
         gold: Array.from({ length: contactCount }, () => 0),
         goldDesc: '',
         status: cardIndex % 4 === 0 ? 'review' : cardIndex % 5 === 0 ? 'approved' : 'submitted',
-        statusHistory: [],
+        statusHistory: [
+          {
+            status: cardIndex % 4 === 0 ? 'review' : cardIndex % 5 === 0 ? 'approved' : 'submitted',
+            at: `${date}T09:00:00.000Z`,
+            by: person.leader,
+            note: 'Utworzono kartÄ™ bazowÄ…',
+          },
+        ],
         createdAt: `${date}T09:00:00.000Z`,
         leaderScope: person.leader,
       })

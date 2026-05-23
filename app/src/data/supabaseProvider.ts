@@ -9,9 +9,10 @@ const supabaseConfig = {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lbXFteHFuZ3d0eG1obG13dWJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5ODk1MTMsImV4cCI6MjA5MzU2NTUxM30.upbHqVN4hIb5wF3rTUY7l91M1k6DL7s_60i1HePK-OE',
   enabled: import.meta.env.VITE_SUPABASE_ENABLED !== 'false',
 }
-
 function mapRow(row: Record<string, unknown>): Assessment {
   const notes = (row.notes || {}) as { general?: string; perContact?: Record<string, string[]> }
+  const fallbackAt = String(row.created_at || row.assessment_date || '')
+  const rawHistory = (row.status_history || []) as Assessment['statusHistory']
   return {
     id: String(row.id),
     type: row.type as Assessment['type'],
@@ -33,7 +34,12 @@ function mapRow(row: Record<string, unknown>): Assessment {
     gold: (row.gold || []) as number[],
     goldDesc: String(row.gold_desc || ''),
     status: (row.status || 'submitted') as Assessment['status'],
-    statusHistory: (row.status_history || []) as Assessment['statusHistory'],
+    statusHistory: rawHistory.length ? rawHistory : [{
+      status: (row.status || 'submitted') as Assessment['status'],
+      at: fallbackAt,
+      by: String(row.oce || 'system'),
+      note: 'Utworzono kart\u0119 bazow\u0105',
+    }],
     createdAt: String(row.created_at || ''),
     leaderScope: String(row.leader_scope || row.oce || ''),
   }
