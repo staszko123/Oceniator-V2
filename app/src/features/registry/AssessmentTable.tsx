@@ -41,6 +41,11 @@ export function AssessmentTable({
   canEditItem,
   onAdvance,
   canAdvanceItem,
+  selectable = false,
+  selectedIds = [],
+  allVisibleSelected = false,
+  onToggleSelect,
+  onToggleSelectAll,
 }: {
   assessments: Assessment[]
   compact?: boolean
@@ -50,14 +55,26 @@ export function AssessmentTable({
   canEditItem?: (assessment: Assessment) => boolean
   onAdvance?: (assessment: Assessment) => void
   canAdvanceItem?: (assessment: Assessment) => boolean
+  selectable?: boolean
+  selectedIds?: string[]
+  allVisibleSelected?: boolean
+  onToggleSelect?: (id: string) => void
+  onToggleSelectAll?: () => void
 }) {
   if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrów.</div>
   const hasActions = Boolean(onPreview || onPrint || onEdit || onAdvance)
+  const showSelection = selectable && !compact
+
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
+            {showSelection ? (
+              <th className="select-col">
+                <input checked={allVisibleSelected} onChange={() => onToggleSelectAll?.()} type="checkbox" aria-label="Zaznacz wszystkie widoczne karty" />
+              </th>
+            ) : null}
             <th>Specjalista</th>
             <th>Typ</th>
             <th>Okres</th>
@@ -72,8 +89,14 @@ export function AssessmentTable({
         <tbody>
           {assessments.map((item) => {
             const lastEvent = lastStatusEvent(item)
+            const isSelected = selectedIds.includes(item.id)
             return (
-              <tr key={item.id}>
+              <tr key={item.id} className={isSelected ? 'selected-row' : ''}>
+                {showSelection ? (
+                  <td className="select-col">
+                    <input checked={isSelected} onChange={() => onToggleSelect?.(item.id)} type="checkbox" aria-label={`Zaznacz kartę ${item.spec}`} />
+                  </td>
+                ) : null}
                 <td><strong>{item.spec}</strong><small>{item.dzial}</small></td>
                 <td><span className="type-badge">{typeIcon(item.type)} {TYPE_LABELS[item.type]}</span></td>
                 <td>{item.period}</td>

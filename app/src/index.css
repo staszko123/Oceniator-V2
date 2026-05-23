@@ -586,6 +586,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 }
 .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
 .data-table td { font-size: 13px; }
+.select-col {
+  width: 38px;
+  text-align: center;
+}
+.select-col input {
+  width: 16px;
+  height: 16px;
+}
+.selected-row {
+  background: rgba(15, 143, 135, 0.06);
+}
 .type-badge, .status, .dictionary-list span {
   display: inline-flex;
   align-items: center;
@@ -614,6 +625,61 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 }
 .table-meta strong { font-size: 12px; }
 .table-subline { max-width: 320px; }
+.registry-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.quick-filter-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quick-filter-group button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 850;
+}
+.quick-filter-group button.active {
+  border-color: rgba(15, 143, 135, .32);
+  background: #eefdfa;
+  color: var(--teal);
+}
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bulk-actions span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.queue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.queue-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 12px;
+  text-align: left;
+}
+.queue-card strong { font-size: 14px; }
+.queue-card span,
+.queue-card small { color: var(--muted); }
 .empty-state { padding: 34px; text-align: center; color: var(--muted); background: #fff; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .empty-state.compact { padding: 18px; font-size: 12px; }
 .table-actions { display: flex; gap: 6px; }

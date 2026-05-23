@@ -1,5 +1,5 @@
-﻿import { useMemo, useState } from 'react'
-import { Download, FileText, Save, Search, Upload, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Download, FileText, Save, Search, ShieldCheck, Upload, X } from 'lucide-react'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS } from '../../domain/defs'
 import { assessmentToDraft, calculateDraft, draftToAssessment, periodOf } from '../../domain/scoring'
 import { canEditAssessment as canEditAssessmentForUser } from '../../lib/security'
@@ -345,6 +345,7 @@ export default function RegistryView({
   const [status, setStatus] = useState<AssessmentStatus | 'all'>('all')
   const [period, setPeriod] = useState('all')
   const [changeFilter, setChangeFilter] = useState<'all' | 'recent' | 'edited' | 'decision'>('all')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selected, setSelected] = useState<Assessment | null>(null)
   const [editing, setEditing] = useState<Assessment | null>(null)
   const [notice, setNotice] = useState('')
@@ -367,6 +368,10 @@ export default function RegistryView({
   const editedCount = useMemo(() => assessments.filter(hasEditHistory).length, [assessments])
   const recentCount = useMemo(() => assessments.filter((item) => isRecentlyUpdated(item)).length, [assessments])
   const decisionCount = useMemo(() => assessments.filter((item) => item.status === 'submitted' || item.status === 'review').length, [assessments])
+  const decisionQueue = useMemo(() => rows.filter((item) => item.status === 'submitted' || item.status === 'review').slice(0, 5), [rows])
+  const visibleSelectedIds = useMemo(() => selectedIds.filter((id) => rows.some((item) => item.id === id)), [rows, selectedIds])
+  const selectedRows = useMemo(() => rows.filter((item) => visibleSelectedIds.includes(item.id)), [rows, visibleSelectedIds])
+  const allVisibleSelected = rows.length > 0 && rows.every((item) => visibleSelectedIds.includes(item.id))
 
   function canEditRow(item: Assessment) {
     return canEditAssessmentForUser(user, item)
@@ -374,6 +379,19 @@ export default function RegistryView({
 
   function canAdvanceRow(item: Assessment) {
     return canAdvanceStatuses && (user.role !== 'leader' || item.leaderScope === user.leaderScope)
+  }
+
+  const selectedAdvanceable = selectedRows.filter(canAdvanceRow)
+
+  function toggleSelect(id: string) {
+    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
+  }
+
+  function toggleSelectAllVisible() {
+    setSelectedIds((current) => {
+      if (allVisibleSelected) return current.filter((id) => !rows.some((item) => item.id === id))
+      return [...new Set([...current, ...rows.map((item) => item.id)])]
+    })
   }
 
   async function advance(item: Assessment) {
@@ -405,6 +423,38 @@ export default function RegistryView({
       setNotice(`Status zmieniony na: ${statusLabels[nextStatus]}.`)
     } catch (error) {
       setNotice(readableError(error, 'Nie udało się zmienić statusu.'))
+    }
+  }
+
+  async function advanceSelected() {
+    if (!selectedAdvanceable.length) {
+      setNotice('Zaznacz co najmniej jedną kartę możliwą do przesunięcia.')
+      return
+    }
+    const next: Record<AssessmentStatus, AssessmentStatus> = {
+      submitted: 'review',
+      review: 'approved',
+      approved: 'archived',
+      archived: 'submitted',
+    }
+    try {
+      await Promise.all(selectedAdvanceable.map((item) => onUpdate({
+        ...item,
+        status: next[item.status],
+        statusHistory: [
+          ...(item.statusHistory || []),
+          {
+            status: next[item.status],
+            at: new Date().toISOString(),
+            by: user.fullName || user.email,
+            note: `Masowa zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[next[item.status]]}`,
+          },
+        ],
+      })))
+      setSelectedIds([])
+      setNotice(`Przesunięto ${selectedAdvanceable.length} kart.`)
+    } catch (error) {
+      setNotice(readableError(error, 'Nie udało się wykonać masowej zmiany statusu.'))
     }
   }
 
@@ -490,6 +540,36 @@ export default function RegistryView({
         <div className="status-chip">Do decyzji: {decisionCount}</div>
       </section>
       <section className="data-panel">
+        <div className="section-title"><span>Kolejka decyzji</span><small>najbliższe karty do przejrzenia</small></div>
+        <div className="registry-queue-head">
+          <div className="quick-filter-group">
+            <button className={changeFilter === 'decision' ? 'active' : ''} type="button" onClick={() => setChangeFilter('decision')}>Pokaż do decyzji</button>
+            <button className={changeFilter === 'recent' ? 'active' : ''} type="button" onClick={() => setChangeFilter('recent')}>Ostatnie 72h</button>
+            <button className={changeFilter === 'edited' ? 'active' : ''} type="button" onClick={() => setChangeFilter('edited')}>Edytowane</button>
+            <button className={changeFilter === 'all' ? 'active' : ''} type="button" onClick={() => setChangeFilter('all')}>Wszystkie</button>
+          </div>
+          {canAdvanceStatuses ? (
+            <div className="bulk-actions">
+              <span>{visibleSelectedIds.length} zaznaczonych</span>
+              <button className="ghost-btn" disabled={!rows.length} type="button" onClick={toggleSelectAllVisible}>Zaznacz widoczne</button>
+              <button className="ghost-btn" disabled={!visibleSelectedIds.length} type="button" onClick={() => setSelectedIds((current) => current.filter((id) => !visibleSelectedIds.includes(id)))}>Wyczyść wybór</button>
+              <button className="primary-btn" disabled={!selectedAdvanceable.length} type="button" onClick={() => void advanceSelected()}><ShieldCheck size={15} /> Przesuń status</button>
+            </div>
+          ) : null}
+        </div>
+        {decisionQueue.length ? (
+          <div className="queue-grid">
+            {decisionQueue.map((item) => (
+              <button className="queue-card" key={item.id} type="button" onClick={() => setSelected(item)}>
+                <strong>{item.spec}</strong>
+                <span>{statusLabels[item.status]} • {item.period}</span>
+                <small>{item.avgFinal}% • {item.oce || 'brak oceniającego'}</small>
+              </button>
+            ))}
+          </div>
+        ) : <div className="empty-state compact-empty">Brak kart w kolejce decyzji dla aktualnego filtra.</div>}
+      </section>
+      <section className="data-panel">
         <div className="section-title"><span>Ewidencja kart</span><small>{notice || `${rows.length} pozycji`}</small></div>
         <AssessmentTable
           assessments={rows}
@@ -499,6 +579,11 @@ export default function RegistryView({
           canEditItem={canEditRow}
           onAdvance={canAdvanceStatuses ? (item) => void advance(item) : undefined}
           canAdvanceItem={canAdvanceRow}
+          selectable={canAdvanceStatuses}
+          selectedIds={visibleSelectedIds}
+          allVisibleSelected={allVisibleSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAllVisible}
         />
         <div className="row-action-strip">
           {canAdvanceStatuses ? rows.filter(canAdvanceRow).slice(0, 6).map((item) => (
