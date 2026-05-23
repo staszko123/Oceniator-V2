@@ -20,6 +20,35 @@ function readableError(error: unknown, fallback: string): string {
   return fallback
 }
 
+function countFilledNotes(notes: Assessment['snapshotNotes']): number {
+  return Object.values(notes || {}).reduce((sum, items) => sum + items.filter((item) => item.trim()).length, 0)
+}
+
+function countNonDefaultScores(scores: Assessment['snapshotScores']): number {
+  return Object.values(scores || {}).reduce((sum, rows) => (
+    sum + rows.reduce((rowSum, row) => rowSum + row.filter((value) => value !== 1).length, 0)
+  ), 0)
+}
+
+function summarizeAssessmentChanges(previous: Assessment, next: Assessment): string[] {
+  const changes: string[] = []
+  if (previous.spec !== next.spec) changes.push(`specjalista: ${previous.spec || '-'} -> ${next.spec || '-'}`)
+  if (previous.stand !== next.stand) changes.push(`stanowisko: ${previous.stand || '-'} -> ${next.stand || '-'}`)
+  if (previous.dzial !== next.dzial) changes.push(`dział: ${previous.dzial || '-'} -> ${next.dzial || '-'}`)
+  if (previous.data !== next.data) changes.push(`data oceny: ${previous.data} -> ${next.data}`)
+  if ((previous.notes || '') !== (next.notes || '')) changes.push('zaktualizowano podsumowanie końcowe')
+  if ((previous.goldDesc || '') !== (next.goldDesc || '')) changes.push('zaktualizowano opis złotych punktów')
+  if (previous.avgFinal !== next.avgFinal) changes.push(`wynik końcowy: ${previous.avgFinal}% -> ${next.avgFinal}%`)
+  if (previous.contactCount !== next.contactCount) changes.push(`liczba kontaktów: ${previous.contactCount} -> ${next.contactCount}`)
+  if (JSON.stringify(previous.ids) !== JSON.stringify(next.ids)) changes.push('zmieniono identyfikatory kontaktów')
+  if (JSON.stringify(previous.gold) !== JSON.stringify(next.gold)) changes.push('zmieniono złote punkty')
+  const scoreDelta = Math.abs(countNonDefaultScores(next.snapshotScores) - countNonDefaultScores(previous.snapshotScores))
+  const noteDelta = Math.abs(countFilledNotes(next.snapshotNotes) - countFilledNotes(previous.snapshotNotes))
+  if (JSON.stringify(previous.snapshotScores) !== JSON.stringify(next.snapshotScores)) changes.push(`zaktualizowano scoring (${scoreDelta || 'wiele'} pól)`)
+  if (JSON.stringify(previous.snapshotNotes) !== JSON.stringify(next.snapshotNotes)) changes.push(`zaktualizowano uwagi sekcyjne (${noteDelta || 'wiele'} pól)`)
+  return changes
+}
+
 function canCreate(user: UserProfile): boolean {
   return ['admin', 'director', 'leader', 'assessor'].includes(user.role)
 }
@@ -54,14 +83,14 @@ function AssessmentPreviewModal({
         <div className="preview-meta-grid">
           <section>
             <h4>Podsumowanie oceny</h4>
-            <p>{assessment.notes || 'Brak opisu koncowego dla tej karty.'}</p>
+            <p>{assessment.notes || 'Brak opisu końcowego dla tej karty.'}</p>
           </section>
           <section>
-            <h4>Zakres materialu</h4>
+            <h4>Zakres materiału</h4>
             <div className="preview-pill-row">
-              {assessment.ids.length ? assessment.ids.map((item) => <span key={item}>{item}</span>) : <span>Brak identyfikatorow kontaktu</span>}
+              {assessment.ids.length ? assessment.ids.map((item) => <span key={item}>{item}</span>) : <span>Brak identyfikatorów kontaktu</span>}
             </div>
-            <small>{assessment.goldDesc || 'Bez dodatkowych zlotych punktow.'}</small>
+            <small>{assessment.goldDesc || 'Bez dodatkowych złotych punktów.'}</small>
           </section>
         </div>
         <div className="preview-sections">
@@ -90,7 +119,7 @@ function AssessmentPreviewModal({
               <span>{new Date(item.at).toLocaleString('pl-PL')} • {item.by || 'system'}</span>
               <small>{item.note}</small>
             </div>
-          )) : <p className="hint-text">Brak zapisanej historii statusow dla tej karty.</p>}
+          )) : <p className="hint-text">Brak zapisanej historii statusów dla tej karty.</p>}
         </div>
         <footer className="modal-footer">
           <button className="ghost-btn" type="button" onClick={() => onPrint(assessment)}><FileText size={16} /> Drukuj / PDF</button>
@@ -115,8 +144,10 @@ function AssessmentEditModal({
   const [draft, setDraft] = useState(() => assessmentToDraft(assessment))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [changeReason, setChangeReason] = useState('')
   const def = ASSESSMENT_DEFS[draft.type]
   const calculated = useMemo(() => calculateDraft(draft), [draft])
+  const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(assessmentToDraft(assessment)), [assessment, draft])
 
   function setScore(sectionKey: string, criterionIndex: number, contactIndex: number, value: ScoreValue) {
     const scores = structuredClone(draft.scores)
@@ -131,13 +162,21 @@ function AssessmentEditModal({
   }
 
   async function save() {
+    if (!isDirty) {
+      setError('Brak zmian do zapisania.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
       const recalculated = draftToAssessment(draft, assessment.leaderScope || draft.assessor)
-      const historyNote = assessment.oce === (user.fullName || user.email)
-        ? 'Edytowano karte przez oceniajacego'
-        : 'Edytowano karte przez osobe z uprawnieniami'
+      const diffSummary = summarizeAssessmentChanges(assessment, recalculated)
+      const historyPrefix = assessment.oce === (user.fullName || user.email)
+        ? 'Edytowano kartę przez oceniającego'
+        : 'Edytowano kartę przez osobę z uprawnieniami'
+      const historyParts = [historyPrefix]
+      if (changeReason.trim()) historyParts.push(`Powód: ${changeReason.trim()}`)
+      if (diffSummary.length) historyParts.push(`Zakres: ${diffSummary.join('; ')}`)
       await onSave({
         ...recalculated,
         id: assessment.id,
@@ -148,7 +187,7 @@ function AssessmentEditModal({
             status: assessment.status,
             at: new Date().toISOString(),
             by: user.fullName || user.email,
-            note: historyNote,
+            note: historyParts.join('. '),
           },
         ],
         createdAt: assessment.createdAt,
@@ -167,7 +206,7 @@ function AssessmentEditModal({
       <section className="modal-card edit-modal">
         <header className="modal-header">
           <div>
-            <h3>Edytuj karte</h3>
+            <h3>Edytuj kartę</h3>
             <p>{assessment.spec} • wynik po zmianach {calculated.avgFinal}%</p>
           </div>
           <button type="button" onClick={onClose}><X size={18} /></button>
@@ -253,7 +292,7 @@ function AssessmentEditModal({
             ))}
           </div>
           <label>
-            <span>Opis zlotych punktow</span>
+            <span>Opis złotych punktów</span>
             <textarea value={draft.goldDescription} onChange={(event) => setDraft({ ...draft, goldDescription: event.target.value })} />
           </label>
         </div>
@@ -261,9 +300,13 @@ function AssessmentEditModal({
           <span>Podsumowanie</span>
           <textarea value={draft.summary} onChange={(event) => setDraft({ ...draft, summary: event.target.value })} />
         </label>
+        <label className="summary-editor">
+          <span>Powód zmiany / notatka audytowa</span>
+          <textarea value={changeReason} onChange={(event) => setChangeReason(event.target.value)} placeholder="Np. korekta scoringu po odwołaniu lub uzupełnienie identyfikatorów..." />
+        </label>
         <footer className="modal-footer">
           <button className="ghost-btn" type="button" onClick={onClose}>Anuluj</button>
-          <button className="primary-btn" type="button" disabled={busy} onClick={save}><Save size={16} /> Zapisz zmiany</button>
+          <button className="primary-btn" type="button" disabled={busy || !isDirty} onClick={save}><Save size={16} /> Zapisz zmiany</button>
         </footer>
       </section>
     </div>
@@ -309,7 +352,7 @@ export default function RegistryView({
 
   async function advance(item: Assessment) {
     if (!canAdvanceRow(item)) {
-      setNotice('Ta rola nie moze zmieniac statusu tej karty.')
+      setNotice('Ta rola nie może zmieniać statusu tej karty.')
       return
     }
     const next: Record<AssessmentStatus, AssessmentStatus> = {
@@ -325,18 +368,23 @@ export default function RegistryView({
         status: nextStatus,
         statusHistory: [
           ...(item.statusHistory || []),
-          { status: nextStatus, at: new Date().toISOString(), by: user.fullName || user.email, note: 'Zmiana statusu z ewidencji' },
+          {
+            status: nextStatus,
+            at: new Date().toISOString(),
+            by: user.fullName || user.email,
+            note: `Zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[nextStatus]}`,
+          },
         ],
       })
       setNotice(`Status zmieniony na: ${statusLabels[nextStatus]}.`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się zmienic statusu.'))
+      setNotice(readableError(error, 'Nie udało się zmienić statusu.'))
     }
   }
 
   function openEditor(item: Assessment) {
     if (!canEditRow(item)) {
-      setNotice('Nie masz uprawnien do edycji tej karty.')
+      setNotice('Nie masz uprawnień do edycji tej karty.')
       return
     }
     setEditing(item)
@@ -345,20 +393,20 @@ export default function RegistryView({
   async function importJson(file: File | undefined) {
     if (!file) return
     if (!canMutate) {
-      setNotice('Import jest zablokowany dla roli podgladu.')
+      setNotice('Import jest zablokowany dla roli podglądu.')
       return
     }
     setNotice('')
     try {
       const text = await file.text()
       const parsed = JSON.parse(text) as Assessment[]
-      if (!Array.isArray(parsed)) throw new Error('Plik JSON musi zawierac tablice kart.')
+      if (!Array.isArray(parsed)) throw new Error('Plik JSON musi zawierać tablicę kart.')
       const valid = parsed.filter((item) => item && item.id && item.type && item.spec && item.snapshotScores)
       if (!valid.length) throw new Error('Nie znaleziono poprawnych kart do importu.')
       await onBulkImport(valid)
       setNotice(`Zaimportowano ${valid.length} kart.`)
     } catch (error) {
-      setNotice(readableError(error, 'Import nie powiodl sie.'))
+      setNotice(readableError(error, 'Import nie powiódł się.'))
     }
   }
 
@@ -369,7 +417,7 @@ export default function RegistryView({
       if (kind === 'json') exportJson(rows)
       setNotice(`Eksport ${kind.toUpperCase()} przygotowany dla ${rows.length} pozycji.`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się przygotowac eksportu.'))
+      setNotice(readableError(error, 'Nie udało się przygotować eksportu.'))
     }
   }
 
@@ -380,7 +428,7 @@ export default function RegistryView({
   return (
     <main className="screen">
       <section className="toolbar-panel">
-        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj specjalisty, dzialu lub oceniajacego" /></label>
+        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj specjalisty, działu lub oceniającego" /></label>
         <select value={type} onChange={(event) => setType(event.target.value as AssessmentType | 'all')}>
           <option value="all">Wszystkie typy</option>
           <option value="r">Rozmowy</option>
@@ -417,9 +465,9 @@ export default function RegistryView({
         <div className="row-action-strip">
           {canAdvanceStatuses ? rows.filter(canAdvanceRow).slice(0, 6).map((item) => (
             <button key={item.id} className="ghost-btn" type="button" onClick={() => advance(item)}>
-              {item.spec}: {statusLabels[item.status]} â†’
+              {item.spec}: {statusLabels[item.status]} {'->'}
             </button>
-          )) : <span className="hint-text">Tryb tylko do odczytu: podglad i eksporty pozostaja dostepne.</span>}
+          )) : <span className="hint-text">Tryb tylko do odczytu: podgląd i eksporty pozostają dostępne.</span>}
         </div>
       </section>
       {selected ? <AssessmentPreviewModal assessment={selected} onClose={() => setSelected(null)} onPrint={printRow} /> : null}
