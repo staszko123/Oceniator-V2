@@ -153,9 +153,9 @@ export default function DashboardView({
 
   function exportDashboardCsv() {
     const summary = [
-      ['Metryka', 'Wartosc'],
-      ['Sredni wynik', `${avg || 0}%`],
-      ['Cel sredniej', `${goals.minAvg}%`],
+      ['Metryka', 'Wartość'],
+      ['Średni wynik', `${avg || 0}%`],
+      ['Cel średniej', `${goals.minAvg}%`],
       ['Bardzo dobry', `${greatShare}%`],
       ['Karty aktywne', active.length],
       ['Poniżej standardu', belowCount],
@@ -186,7 +186,7 @@ export default function DashboardView({
   }
 
   function dashboardDiagnostics() {
-    let storage = 'dostepny'
+    let storage = 'dostępny'
     try {
       localStorage.setItem('oc_v2_diag_probe', '1')
       localStorage.removeItem('oc_v2_diag_probe')
@@ -230,7 +230,7 @@ export default function DashboardView({
     }
     if (panel === 'typeMix') {
       return (
-        <DashboardWidget panel={panel} title="Rozklad wg typu" subtitle="udzial w aktywnym filtrze" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Rozkład wg typu" subtitle="udział w aktywnym filtrze" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="type-orbit">
             {byType.map(({ type, rows }, index) => {
               const value = active.length ? Math.round(rows.length / active.length * 100) : 0
@@ -307,7 +307,7 @@ export default function DashboardView({
       <section className="dashboard-hero">
         <div className="dashboard-hero-copy">
           <div className="section-title"><span>Dashboard jakości</span><small>{active.length} kart w aktywnym filtrze</small></div>
-          <h1>Interaktywny pulpit wynikow, celow i ryzyk zespolu.</h1>
+          <h1>Interaktywny pulpit wyników, celów i ryzyk zespołu.</h1>
           <p className="hint-text">Przeciągaj sekcje za uchwyt, ukrywaj mniej potrzebne widgety i przełączaj gęstość układu. Preferencje zapiszą się lokalnie.</p>
         </div>
         <div className="quality-ring" style={{ ['--score' as string]: `${avg || 0}%` }}>
@@ -349,7 +349,7 @@ export default function DashboardView({
         </section>
       ) : null}
       <section className="dashboard-config">
-        <div className="section-title"><span>Konfiguracja widzetow</span><small>kolejnosc i widocznosc</small></div>
+        <div className="section-title"><span>Konfiguracja widgetów</span><small>kolejność i widoczność</small></div>
         <div className="widget-config-list">
           {prefs.order.map((panel, index) => {
             const isHidden = prefs.hidden.includes(panel)
@@ -360,8 +360,8 @@ export default function DashboardView({
                   {dashboardPanelLabels[panel]}
                 </button>
                 <div>
-                  <button type="button" disabled={index === 0} onClick={() => shiftPanel(panel, -1)} title="Przesun wyzej"><ChevronUp size={15} /></button>
-                  <button type="button" disabled={index === prefs.order.length - 1} onClick={() => shiftPanel(panel, 1)} title="Przesun nizej"><ChevronDown size={15} /></button>
+                  <button type="button" disabled={index === 0} onClick={() => shiftPanel(panel, -1)} title="Przesuń wyżej"><ChevronUp size={15} /></button>
+                  <button type="button" disabled={index === prefs.order.length - 1} onClick={() => shiftPanel(panel, 1)} title="Przesuń niżej"><ChevronDown size={15} /></button>
                 </div>
               </div>
             )
@@ -369,8 +369,8 @@ export default function DashboardView({
         </div>
       </section>
       <section className="dashboard-grid kpi-grid">
-        <div className="metric-panel premium"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
-        <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}% udzialu</small></div>
+        <div className="metric-panel premium"><span>Średni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
+        <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}% udziału</small></div>
         <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
         <div className="metric-panel premium"><span>Poniżej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
       </section>
@@ -379,8 +379,8 @@ export default function DashboardView({
           <section className="empty-dashboard">
             <Settings size={34} />
             <h3>Wszystkie widgety są ukryte</h3>
-            <p>Przywroc wybrane panele w konfiguracji albo zresetuj caly uklad dashboardu.</p>
-            <button className="primary-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Przywroc domyslny uklad</button>
+            <p>Przywróć wybrane panele w konfiguracji albo zresetuj cały układ dashboardu.</p>
+            <button className="primary-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Przywróć domyślny układ</button>
           </section>
         ) : visiblePanels.map((panel) => renderPanel(panel))}
       </div>

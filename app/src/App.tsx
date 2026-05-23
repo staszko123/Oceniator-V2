@@ -1,9 +1,10 @@
 ﻿import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { BarChart3, ClipboardCheck, Database, FileBarChart, LayoutDashboard, LogOut,  MonitorCog, Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sun, UserRound, Users } from 'lucide-react'
+import { BarChart3, ClipboardCheck, Database, FileBarChart, LayoutDashboard,  Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sun, Users } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { buildDemoAdmin } from './data/seed'
 import { createProvider } from './data/supabaseProvider'
 import EvaluationView from './features/evaluation/EvaluationView'
+import AppShell from './features/shell/AppShell'
 import StartView from './features/start/StartView'
 import { AssessmentTable } from './features/registry/AssessmentTable'
 import RegistryView from './features/registry/RegistryView'
@@ -214,93 +215,6 @@ function LoginScreen({
   )
 }
 
-function AppShell({
-  user,
-  providerMode,
-  view,
-  setView,
-  onViewIntent,
-  children,
-  onLogout,
-  systemNotice,
-}: {
-  user: UserProfile
-  providerMode: DataProvider['mode']
-  view: ViewKey
-  setView: (view: ViewKey) => void
-  onViewIntent?: (view: ViewKey) => void
-  children: React.ReactNode
-  onLogout: () => void
-  systemNotice?: string
-}) {
-  const visibleNavItems = availableNavItems(user)
-  const activeTitle = visibleNavItems.find((item) => item.key === view)?.label || 'Oceniator'
-  const { theme, toggleTheme } = useTheme()
-
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand-block">
-          <span className="logo-box" />
-          <div>
-            <strong>Oceniator</strong>
-            <small>{'System jako\u015Bci'}</small>
-          </div>
-        </div>
-        <nav className="side-nav">
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.key}
-                className={view === item.key ? 'active' : ''}
-                onClick={() => setView(item.key)}
-                onMouseEnter={() => onViewIntent?.(item.key)}
-                onFocus={() => onViewIntent?.(item.key)}
-                type="button"
-              >
-                <Icon size={17} />
-                {item.label}
-              </button>
-            )
-          })}
-        </nav>
-        <div className="sidebar-footer">
-          <button className="theme-toggle theme-toggle-wide" type="button" onClick={toggleTheme}>
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            <span>{theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'}</span>
-          </button>
-          <div className="mode-chip"><Database size={14} /> {providerMode === 'supabase' ? 'Supabase' : 'Demo lokalne'}</div>
-        </div>
-      </aside>
-      <section className="workspace">
-        <header className="topbar">
-          <div>
-            <h2>{activeTitle}</h2>
-            <p>{user.fullName} • {user.role}</p>
-          </div>
-          <div className="user-pill">
-            <UserRound size={15} />
-            <span>{user.email}</span>
-            <button className="topbar-theme" type="button" onClick={toggleTheme} title={'Prze\u0142\u0105cz motyw'}>
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button type="button" onClick={onLogout}><LogOut size={15} /> Wyloguj</button>
-          </div>
-        </header>
-        {systemNotice ? <div className="system-notice">{systemNotice}</div> : null}
-        {children}
-      </section>
-      <div className="desktop-guard">
-        <MonitorCog size={44} />
-        <h1>{'Aplikacja wymaga wi\u0119kszego ekranu'}</h1>
-        <p>{'Oceniator jest projektowany pod desktop. U\u017Cyj szeroko\u015Bci minimum 1280 px.'}</p>
-      </div>
-    </div>
-  )
-}
-
-
 function App() {
   const [provider, setProvider] = useState<DataProvider>(() => createProvider())
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -453,10 +367,11 @@ function App() {
   }
 
   const activeDraft = drafts[activeType] || createDraft(activeType)
-  const effectiveView = availableNavItems(user).some((item) => item.key === view) ? view : 'start'
+  const visibleNavItems = availableNavItems(user)
+  const effectiveView = visibleNavItems.some((item) => item.key === view) ? view : 'start'
 
   return (
-    <AppShell user={user} providerMode={provider.mode} view={effectiveView} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
+    <AppShell user={user} providerMode={provider.mode} view={effectiveView} navItems={visibleNavItems} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
       {effectiveView === 'start' ? (
         <StartView
           user={user}

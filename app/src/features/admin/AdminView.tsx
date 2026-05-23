@@ -126,7 +126,7 @@ export default function AdminView({
     try {
       await onAdminChange(next)
       setDraftAdmin(next)
-      setNotice(`Zapisano konfiguracje ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
+      setNotice(`Zapisano konfigurację ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
     } catch (error) {
       setNotice(readableError(error, 'Nie udało się zapisać konfiguracji.'))
     }
@@ -136,9 +136,9 @@ export default function AdminView({
     if (!selectedUser) return
     try {
       await onUserSave(selectedUser)
-      setNotice(`Zapisano uzytkownika ${selectedUser.email || selectedUser.login}`)
+      setNotice(`Zapisano użytkownika ${selectedUser.email || selectedUser.login}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się zapisać uzytkownika.'))
+      setNotice(readableError(error, 'Nie udało się zapisać użytkownika.'))
     }
   }
 
@@ -148,7 +148,7 @@ export default function AdminView({
       ...newUser,
       id: newUser.id || newUser.login || newUser.email,
       email: newUser.email || `${newUser.login}@local`,
-      fullName: newUser.fullName || newUser.email || newUser.login || 'Nowy uzytkownik',
+      fullName: newUser.fullName || newUser.email || newUser.login || 'Nowy użytkownik',
       password: newUser.password || 'start123',
       source: user.source,
     }
@@ -157,9 +157,9 @@ export default function AdminView({
       setDraftUsers((current) => [saved, ...current])
       setSelectedUserId(saved.id)
       setNewUser({ ...newUser, id: '', email: '', login: '', fullName: '', password: '', role: 'viewer', leaderScope: '', isActive: true })
-      setNotice(`Dodano uzytkownika ${saved.email || saved.login}`)
+      setNotice(`Dodano użytkownika ${saved.email || saved.login}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się utworzyc uzytkownika.'))
+      setNotice(readableError(error, 'Nie udało się utworzyć użytkownika.'))
     }
   }
 
@@ -227,23 +227,23 @@ export default function AdminView({
     <main className="screen admin-screen">
       <section className="admin-hero data-panel">
         <div>
-          <div className="section-title"><span>Panel administratora</span><small>{notice || 'Konfiguracja slownikow i celow'}</small></div>
-          <p className="hint-text">Zmiany w tym widoku zasilaja formularz oceny, zakres liderów oraz raporty. Zapis jest jawny, żeby uniknac przypadkowych zmian slownikow.</p>
+          <div className="section-title"><span>Panel administratora</span><small>{notice || 'Konfiguracja słowników i celów'}</small></div>
+          <p className="hint-text">Zmiany w tym widoku zasilają formularz oceny, zakres liderów oraz raporty. Zapis jest jawny, żeby uniknąć przypadkowych zmian słowników.</p>
         </div>
-        <button className="primary-btn" onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfiguracje</button>
+        <button className="primary-btn" onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfigurację</button>
       </section>
       <section className="data-panel">
         <div className="section-title"><span>Cele jakościowe</span><small>progi i wolumeny</small></div>
         <div className="field-grid two">
-          <label><span>Minimum sredniej</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
-          <label><span>Udzial bardzo dobrych</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
+          <label><span>Minimum średniej</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
+          <label><span>Udział bardzo dobrych</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
           <label><span>Rozmowy / okres</span><input type="number" value={draftAdmin.goals.callsPerPeriod} onChange={(event) => updateGoals('callsPerPeriod', Number(event.target.value))} /></label>
           <label><span>Maile / okres</span><input type="number" value={draftAdmin.goals.mailsPerPeriod} onChange={(event) => updateGoals('mailsPerPeriod', Number(event.target.value))} /></label>
           <label><span>Systemy / okres</span><input type="number" value={draftAdmin.goals.systemsPerPeriod} onChange={(event) => updateGoals('systemsPerPeriod', Number(event.target.value))} /></label>
         </div>
       </section>
       <section className="data-panel dictionary-panel">
-        <div className="section-title"><span>Słowniki</span><small>liderzy, dzialy, stanowiska</small></div>
+        <div className="section-title"><span>Słowniki</span><small>liderzy, działy, stanowiska</small></div>
         <div className="dictionary-columns">
           <DictionaryEditor
             title="Liderzy"
@@ -274,7 +274,7 @@ export default function AdminView({
       <section className="data-panel specialist-admin">
         <div className="section-title">
           <span>Specjaliści</span>
-          <small>{draftAdmin.specialists.filter((item) => item.active).length} aktywnych / {draftAdmin.specialists.length} lacznie</small>
+          <small>{draftAdmin.specialists.filter((item) => item.active).length} aktywnych / {draftAdmin.specialists.length} łącznie</small>
         </div>
         <div className="specialist-layout">
           <div className="specialist-list">
@@ -329,15 +329,15 @@ export default function AdminView({
                   <label><span>Login lokalny</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
                   <label><span>Imię i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
                   <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-                  <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+                  <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pełny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
                   <label><span>Hasło lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
                 </div>
                 <div className="admin-inline-actions">
                   <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> Konto aktywne</label>
-                  <button className="primary-btn" type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz uzytkownika</button>
+                  <button className="primary-btn" type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz użytkownika</button>
                 </div>
               </>
-            ) : <div className="empty-state">Brak uzytkownikow.</div>}
+            ) : <div className="empty-state">Brak użytkowników.</div>}
           </div>
         </div>
         <div className="new-user-panel">
@@ -348,9 +348,9 @@ export default function AdminView({
             <label><span>Imię i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
             <label><span>Hasło startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
             <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-            <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+            <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pełny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
           </div>
-          <button className="ghost-btn" type="button" onClick={createNewUser}><Plus size={16} /> Utworz konto</button>
+          <button className="ghost-btn" type="button" onClick={createNewUser}><Plus size={16} /> Utwórz konto</button>
         </div>
       </section>
       <section className="data-panel periods-panel">
