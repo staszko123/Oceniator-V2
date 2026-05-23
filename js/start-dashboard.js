@@ -40,7 +40,7 @@ export function initStartDashboard(){
       } else {
         activityList.innerHTML = `
           <div class="activity-empty">
-            <div class="activity-empty-icon">📝</div>
+            <div class="activity-empty-icon">${activitySvg('clipboard')}</div>
             <div class="activity-empty-text">Brak ostatnich ocen</div>
             <div class="activity-empty-subtext">Rozpocznij pracę, aby zobaczyć historię</div>
           </div>
@@ -51,11 +51,21 @@ export function initStartDashboard(){
 
   function getActivityIcon(type){
     switch(type){
-      case 'rozmowy': return '📞';
-      case 'maile': return '✉️';
-      case 'systemy': return '🖥️';
-      default: return '📋';
+      case 'rozmowy': return activitySvg('phone');
+      case 'maile': return activitySvg('mail');
+      case 'systemy': return activitySvg('monitor');
+      default: return activitySvg('clipboard');
     }
+  }
+
+  function activitySvg(name){
+    const paths={
+      phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.3 19.3 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"/>',
+      mail:'<path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/>',
+      monitor:'<path d="M4 5h16v11H4z"/><path d="M9 21h6M12 16v5"/>',
+      clipboard:'<path d="M9 4h6l1 2h3v15H5V6h3Z"/><path d="M9 4a3 3 0 0 1 6 0"/><path d="M9 11h6M9 15h4"/>'
+    };
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+(paths[name]||paths.clipboard)+'</svg>';
   }
 
   function formatDate(dateStr){

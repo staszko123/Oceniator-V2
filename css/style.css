@@ -1611,7 +1611,12 @@ html,body{
   .quick-access {
     padding: 20px;
   }
-}
-  .start-footer{flex-direction:column}
-}
 
+  .start-footer {
+    padding: 16px 20px;
+  }
+
+  .footer-content {
+    align-items: flex-start;
+  }
+}

@@ -71,6 +71,7 @@ function chartAvailable(target,message){
   add('login-mobile-css','css/login-mobile.css');
   add('spec-profile-css','css/spec-profile.css');
   add('skills-css','css/skills.css');
+  add('premium-rebuild-css','css/premium-rebuild.css');
 })();
 
 function enterApp(tab){switchTab(tab||'rozmowy');}
@@ -102,3 +103,4 @@ import('./specialist-search.js').then(function(mod){if(mod&&mod.initSpecialistSe
 import('./spec-profile.js').then(function(mod){if(mod&&mod.initSpecProfile) mod.initSpecProfile();});
 import('./start-dashboard.js').then(function(mod){if(mod&&mod.initStartDashboard) mod.initStartDashboard();}).catch(function(err){console.error('Błąd start dashboard',err);});
 import('./copyright.js').then(function(mod){if(mod&&mod.initCopyright) mod.initCopyright();});
+import('./premium-shell.js').then(function(mod){if(mod&&mod.initPremiumShell) mod.initPremiumShell();}).catch(function(err){console.error('Błąd premium shell',err);});

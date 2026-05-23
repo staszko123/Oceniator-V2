@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F766E">
+  <title>System Oceny Jakości | PeP &amp; P24</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css?v=20260505-profile-debug">
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- SHAREPOINT MODAL -->
+<div class="modal-overlay" id="sp-modal">
+  <div class="modal">
+    <h3>🔗 SharePoint / OneDrive</h3>
+    <p>Podaj URL pliku Excel Online. Po dodaniu karty otworzy się plik w nowej karcie z danymi gotowymi do wklejenia (Ctrl+V).</p>
+    <label>URL pliku Excel Online</label>
+    <input type="url" id="sp-url" placeholder="https://firma.sharepoint.com/:x:/r/sites/...">
+    <label>Nazwa arkusza (opcjonalnie)</label>
+    <input type="text" id="sp-sheet" placeholder="np. Ewidencja 2025">
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('sp-modal')">Anuluj</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSpConfig()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <h3>📥 Import danych ewidencji</h3>
+    <p>Wczytaj wcześniej wyeksportowany plik JSON z danymi ewidencji. Istniejące dane mogą zostać zastąpione lub połączone.</p>
+    <div class="import-area" id="import-drop" onclick="document.getElementById('import-file').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <div style="font-size:28px;margin-bottom:8px">📥</div>
+      <div>Kliknij lub przeciągnij plik <strong>.json</strong> lub <strong>.csv</strong></div>
+      <input type="file" id="import-file" accept=".json,.csv" onchange="handleImportFile(event)">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('import-modal')">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ENTRY MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal" style="max-width:400px">
+    <h3>✏️ Edytuj notatkę</h3>
+    <p>Możesz edytować uwagi ogólne do tej karty. Oceny punktowe są zablokowane po zapisaniu.</p>
+    <label>Uwagi ogólne / podsumowanie</label>
+    <textarea id="edit-notes" rows="5" placeholder="Uwagi..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('edit-modal')">Anuluj</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEditNotes()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCORE EDIT MODAL -->
+<div class="modal-overlay" id="score-edit-modal" onclick="if(event.target===this)closeModal('score-edit-modal')">
+  <div class="modal se-modal">
+    <h3>🎯 Edycja ocen</h3>
+    <div id="score-edit-body"></div>
+    <div style="margin-top:14px">
+      <label style="display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:5px">Uwagi ogólne</label>
+      <textarea id="score-edit-gnotes" rows="3" placeholder="Uwagi ogólne / podsumowanie..."></textarea>
+    </div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('score-edit-modal')">Anuluj</button>
+      <button class="btn btn-primary btn-sm" onclick="saveScoreEdit()">💾 Zapisz zmiany</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="sb-hdr">
+      <div class="sb-logo">📋</div>
+      <div class="sb-brand"><div class="sb-title">Ocena Jakości</div><div class="sb-sub">PeP &amp; P24</div></div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-item on" id="sbi-start" onclick="switchTab('start',this)"><span class="sb-icon">🏠</span><span class="sb-label">Start</span><span class="sb-tip">Start</span></div>
+      <div class="sb-sec-lbl">Formularze</div>
+      <div class="sb-item" id="sbi-rozmowy" onclick="switchTab('rozmowy',this)"><span class="sb-icon">📞</span><span class="sb-label">Ocena Rozmów</span><span class="sb-tip">Ocena Rozmów</span></div>
+      <div class="sb-item" id="sbi-maile" onclick="switchTab('maile',this)"><span class="sb-icon">✉️</span><span class="sb-label">Ocena Maili</span><span class="sb-tip">Ocena Maili</span></div>
+      <div class="sb-item" id="sbi-systemy" onclick="switchTab('systemy',this)"><span class="sb-icon">🖥</span><span class="sb-label">Działania w Systemach</span><span class="sb-tip">Działania w Systemach</span></div>
+      <div class="sb-sec-lbl">Analityka</div>
+      <div class="sb-item leader-only" id="sbi-myteam" onclick="switchTab('myteam',this)" style="display:none"><span class="sb-icon">👥</span><span class="sb-label">Mój Zespół</span><span class="sb-tip">Mój Zespół</span></div>
+      <div class="sb-item" id="sbi-dashboard" onclick="switchTab('dashboard',this)"><span class="sb-icon">📈</span><span class="sb-label">Dashboard</span><span class="sb-tip">Dashboard</span></div>
+      <div class="sb-item" id="sbi-ewidencja" onclick="switchTab('ewidencja',this)"><span class="sb-icon">📋</span><span class="sb-label">Ewidencja</span><span class="sb-badge" id="ew-badge">0</span><span class="sb-tip">Ewidencja kart</span></div>
+      <div class="sb-item" id="sbi-raporty" onclick="switchTab('raporty',this)"><span class="sb-icon">📊</span><span class="sb-label">Raporty</span><span class="sb-tip">Generowanie raportów CSV</span></div>
+      <div class="sb-sec-lbl">Administracja</div>
+      <div class="sb-item" id="sbi-admin" onclick="switchTab('admin',this)"><span class="sb-icon">⚙️</span><span class="sb-label">Panel Admina</span><span class="sb-tip">Panel administracyjny</span></div>
+    </div>
+    <div class="sb-footer">
+      <button class="sb-fbtn" onclick="toggleTheme()"><span class="sb-icon" id="theme-icon">🌙</span><span class="sb-label">Motyw</span></button>
+      <button class="sb-fbtn" onclick="openModal('sp-modal')"><span class="sb-icon">🔗</span><span class="sb-label">SharePoint</span></button>
+      <button class="sb-fbtn" onclick="confirmReset()"><span class="sb-icon">↺</span><span class="sb-label">Wyczyść formularz</span></button>
+      <button class="sb-cbtn" onclick="toggleSidebar()"><span id="sb-chev">◀</span></button>
+    </div>
+  </nav>
+  <div class="main-wrap">
+    <div class="page-bar">
+      <div class="page-bar-title" id="page-bar-title">Start</div>
+      <div class="role-switcher" id="role-switcher" data-role="admin">
+        <span class="role-sw-icon" id="role-sw-icon">⚙️</span>
+        <select class="role-sw-sel" id="role-sw-sel" onchange="admSetRole(this.value)">
+          <option value="admin">Administrator</option>
+          <option value="director">Dyrektor</option>
+          <option value="leader">Lider</option>
+          <option value="assessor">Oceniający</option>
+          <option value="viewer">Podgląd</option>
+        </select>
+        <span class="role-sw-arrow">▾</span>
+      </div>
+    </div>
+    <main class="main">
+      <div id="tab-start"     class="panel on">
+        <section class="start-screen" id="start-screen" aria-label="Ekran startowy">
+          <div class="start-header">
+            <div class="start-welcome">
+              <div class="start-welcome-icon">🎯</div>
+              <div class="start-welcome-content">
+                <h1 class="start-welcome-title">Witaj w Oceniatorze!</h1>
+                <p class="start-welcome-subtitle">System do kompleksowej oceny jakości obsługi klienta</p>
+              </div>
+            </div>
+            <div class="start-quick-stats" id="start-quick-stats">
+              <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="stat-today">0</div>
+                  <div class="stat-label">Ocen dziś</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="stat-avg">0%</div>
+                  <div class="stat-label">Średnia ocena</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="stat-total">0</div>
+                  <div class="stat-label">Wszystkie karty</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-main">
+            <div class="start-actions-section">
+              <h2 class="section-title">Rozpocznij pracę</h2>
+              <p class="section-subtitle">Wybierz typ oceny lub przejrzyj istniejące dane</p>
+              <div class="start-action-buttons">
+                <button class="action-btn primary" onclick="enterApp('rozmowy')">
+                  <div class="action-icon">📞</div>
+                  <div class="action-content">
+                    <div class="action-title">Nowa ocena rozmowy</div>
+                    <div class="action-desc">Rozpocznij ocenę jakości kontaktu telefonicznego</div>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+                <button class="action-btn secondary" onclick="enterApp('maile')">
+                  <div class="action-icon">✉️</div>
+                  <div class="action-content">
+                    <div class="action-title">Ocena maili</div>
+                    <div class="action-desc">Sprawdź jakość odpowiedzi pisemnych</div>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+                <button class="action-btn secondary" onclick="enterApp('systemy')">
+                  <div class="action-icon">🖥️</div>
+                  <div class="action-content">
+                    <div class="action-title">Działania w systemach</div>
+                    <div class="action-desc">Oceń poprawność operacji</div>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="start-sidebar">
+              <div class="recent-activity" id="recent-activity">
+                <h3 class="activity-title">Ostatnie aktywności</h3>
+                <div class="activity-list" id="activity-list">
+                  <div class="activity-empty">
+                    <div class="activity-empty-icon">📝</div>
+                    <div class="activity-empty-text">Brak ostatnich ocen</div>
+                    <div class="activity-empty-subtext">Rozpocznij pracę, aby zobaczyć historię</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="quick-access">
+                <h3 class="quick-title">Szybki dostęp</h3>
+                <div class="quick-links">
+                  <button class="quick-link" onclick="enterApp('ewidencja')">
+                    <span class="quick-icon">📋</span>
+                    <span class="quick-text">Ewidencja</span>
+                  </button>
+                  <button class="quick-link" onclick="enterApp('dashboard')">
+                    <span class="quick-icon">📊</span>
+                    <span class="quick-text">Dashboard</span>
+                  </button>
+                  <button class="quick-link" onclick="enterApp('raporty')">
+                    <span class="quick-icon">📈</span>
+                    <span class="quick-text">Raporty</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="start-footer">
+            <div class="footer-content">
+              <div class="footer-icon">🔒</div>
+              <div class="footer-text">
+                <strong>Bezpieczne i lokalne</strong>
+                <span>Wszystkie dane są przechowywane wyłącznie w Twojej przeglądarce</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div id="tab-rozmowy"   class="panel"><div class="wrap" id="wrap-r"></div></div>
+      <div id="tab-maile"     class="panel"><div class="wrap" id="wrap-m"></div></div>
+      <div id="tab-systemy"   class="panel"><div class="wrap" id="wrap-s"></div></div>
+      <div id="tab-myteam"    class="panel"><div class="wrap" id="wrap-myteam"></div></div>
+      <div id="tab-dashboard" class="panel"><div class="wrap" id="wrap-dash"></div></div>
+      <div id="tab-ewidencja" class="panel"><div class="wrap" id="wrap-ew"></div></div>
+      <div id="tab-raporty"   class="panel"><div class="wrap" id="wrap-raporty"></div></div>
+      <div id="tab-admin"     class="panel"><div class="wrap" id="wrap-admin"></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- JS — load order: defs/state before calc, all modules before main -->
+<script src="js/supabase-config.js?v=20260505-profile-debug"></script>
+<script src="js/dataStore.js?v=20260505-profile-debug"></script>
+<script src="js/defs.js?v=20260505-profile-debug"></script>
+<script src="js/state.js?v=20260505-profile-debug"></script>
+<script src="js/calc.js?v=20260505-profile-debug"></script>
+<script src="js/draft.js?v=20260505-profile-debug"></script>
+<script src="js/ui.js?v=20260505-profile-debug"></script>
+<script src="js/forms.js?v=20260505-profile-debug"></script>
+<script src="js/ewidencja.js?v=20260505-profile-debug"></script>
+<script src="js/dashboard.js?v=20260505-profile-debug"></script>
+<script src="js/my-team.js?v=20260505-profile-debug"></script>
+<script src="js/raporty.js?v=20260505-profile-debug"></script>
+<script src="js/admin.js?v=20260505-profile-debug"></script>
+<script src="js/seed.js?v=20260505-profile-debug"></script>
+<script src="js/main.js?v=20260505-profile-debug"></script>
+
+</body>
+</html>

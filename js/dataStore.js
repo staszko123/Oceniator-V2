@@ -495,15 +495,17 @@ var DataStore = (function(){
     loadRegistry: function(){
       // W trybie Supabase zwracamy pusty fallback; dane pojawią się asynchronicznie
       if(remoteEnabled()){
-        fetchRegistryFromSupabase().then(function(remote){
-          if(!remote) return;
-          if(window.registry !== undefined && typeof normalizeRegistry === 'function'){
-            window.registry = remote;
-            normalizeRegistry();
-            if(typeof renderEw === 'function') renderEw();
-            if(typeof updateBadge === 'function') updateBadge();
-          }
-        });
+        if(window.currentUserData){
+          fetchRegistryFromSupabase().then(function(remote){
+            if(!remote) return;
+            if(window.registry !== undefined && typeof normalizeRegistry === 'function'){
+              window.registry = remote;
+              normalizeRegistry();
+              if(typeof renderEw === 'function') renderEw();
+              if(typeof updateBadge === 'function') updateBadge();
+            }
+          });
+        }
         return [];
       }
       // W trybie lokalnym czytaj z localStorage
@@ -521,14 +523,16 @@ var DataStore = (function(){
     loadAdmin: function(fallback){
       // W trybie Supabase zwracamy fallback; dane pobieramy asynchronicznie z bazy
       if(remoteEnabled()){
-        fetchAdminFromSupabase().then(function(remote){
-          if(!remote) return;
-          // W trybie zdalnym dane z Supabase całkowicie zastępują lokalne
-          if(window.adminData !== undefined){
-            Object.assign(window.adminData, remote);
-            if(typeof normalizeAdminData === 'function') normalizeAdminData();
-          }
-        });
+        if(window.currentUserData){
+          fetchAdminFromSupabase().then(function(remote){
+            if(!remote) return;
+            // W trybie zdalnym dane z Supabase całkowicie zastępują lokalne
+            if(window.adminData !== undefined){
+              Object.assign(window.adminData, remote);
+              if(typeof normalizeAdminData === 'function') normalizeAdminData();
+            }
+          });
+        }
         return fallback || null;
       }
       // W trybie lokalnym czytaj z localStorage
