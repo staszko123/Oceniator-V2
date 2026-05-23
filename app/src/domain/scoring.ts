@@ -71,6 +71,19 @@ export function createDraft(type: AssessmentType): AssessmentDraft {
   }
 }
 
+export function draftHasContent(draft: AssessmentDraft): boolean {
+  if (draft.specialist.trim()) return true
+  if (draft.position.trim()) return true
+  if (draft.department.trim()) return true
+  if (draft.assessor.trim()) return true
+  if (draft.summary.trim()) return true
+  if (draft.goldDescription.trim()) return true
+  if (draft.contactIds.some((item) => item.trim())) return true
+  if (draft.gold.some((item) => item > 0)) return true
+  if (Object.values(draft.notes).some((items) => items.some((item) => item.trim()))) return true
+  return Object.values(draft.scores).some((rows) => rows.some((row) => row.some((value) => value !== 1)))
+}
+
 export function resizeDraft(draft: AssessmentDraft, contactCount: number): AssessmentDraft {
   const next = Math.max(1, Math.min(6, contactCount))
   const scores = emptyScores(draft.type, next)

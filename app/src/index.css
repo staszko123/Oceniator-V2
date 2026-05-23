@@ -308,6 +308,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 }
 .hero-panel h1 { margin: 18px 0 22px; max-width: 760px; font-size: 34px; line-height: 1.12; letter-spacing: 0; }
 .quick-actions { display: flex; gap: 10px; }
+.hero-inline-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+}
+.hero-inline-note span,
+.hero-inline-note strong {
+  font-size: 12px;
+}
+.hero-inline-note strong { color: var(--text); }
+.dark .hero-inline-note { background: rgba(17, 28, 47, 0.52); }
 .metric-panel { padding: 18px; }
 .metric-panel span, .section-title small { color: var(--muted); font-size: 12px; font-weight: 700; }
 .metric-panel strong { display: block; margin: 10px 0 4px; color: var(--text); font-size: 38px; line-height: 1; }
@@ -315,6 +332,46 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
 .section-title span { color: var(--text); font-size: 15px; font-weight: 900; }
 .data-panel, .chart-panel { padding: 18px; }
+.draft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.draft-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.draft-card-top,
+.draft-card-meta,
+.draft-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.draft-card strong {
+  font-size: 15px;
+  line-height: 1.3;
+}
+.draft-card p {
+  margin: 0;
+  min-height: 40px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.draft-card-top small,
+.draft-card-meta span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.draft-card-actions button { min-width: 132px; }
 
 .form-screen {
   display: grid;
@@ -1054,6 +1111,47 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
 }
 .preview-grid span { display: block; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
 .preview-grid strong { display: inline-flex; margin-top: 6px; font-size: 13px; }
+.preview-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+.preview-meta-grid section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--surface-2);
+}
+.preview-meta-grid h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.preview-meta-grid p,
+.preview-meta-grid small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.preview-pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.preview-pill-row span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+}
 .preview-sections, .edit-sections { display: grid; gap: 14px; padding: 0 20px 20px; }
 .preview-sections section, .edit-sections section {
   border: 1px solid var(--line);

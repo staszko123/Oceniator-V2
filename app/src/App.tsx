@@ -36,9 +36,10 @@ import {
   X,
 } from 'lucide-react'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS, TYPE_LABELS } from './domain/defs'
-import { assessmentToDraft, calculateDraft, createDraft, draftToAssessment, periodOf, ratingLabel, resizeDraft } from './domain/scoring'
+import { assessmentToDraft, calculateDraft, createDraft, draftHasContent, draftToAssessment, periodOf, ratingLabel, resizeDraft } from './domain/scoring'
 import { buildDemoAdmin } from './data/seed'
 import { createProvider } from './data/supabaseProvider'
+import { canEditAssessment as canEditAssessmentForUser } from './lib/security'
 import type {
   AdminConfig,
   Assessment,
@@ -417,31 +418,78 @@ function AppShell({
 function StartView({
   user,
   assessments,
+  drafts,
   setView,
+  onResumeDraft,
+  onClearDraft,
 }: {
   user: UserProfile
   assessments: Assessment[]
+  drafts: Record<AssessmentType, AssessmentDraft | undefined>
   setView: (view: ViewKey) => void
+  onResumeDraft: (type: AssessmentType) => void
+  onClearDraft: (type: AssessmentType) => void
 }) {
   const active = assessments.filter((item) => item.status !== 'archived')
   const avg = active.length ? Math.round(active.reduce((acc, item) => acc + item.avgFinal, 0) / active.length) : 0
   const review = active.filter((item) => item.status === 'review').length
+  const savedDrafts = (Object.entries(drafts) as Array<[AssessmentType, AssessmentDraft | undefined]>)
+    .filter((entry): entry is [AssessmentType, AssessmentDraft] => Boolean(entry[1] && draftHasContent(entry[1])))
+    .sort(([, left], [, right]) => (right.savedAt || '').localeCompare(left.savedAt || ''))
 
   return (
     <main className="screen">
       <section className="start-grid">
         <div className="hero-panel">
-        <div className="section-title"><span>Dzisiejszy pulpit</span><small>{new Date().toLocaleDateString('pl-PL')}</small></div>
-        <h1>Wybierz workflow i pracuj z jednym przypietym panelem decyzyjnym.</h1>
-        <div className="quick-actions">
+          <div className="section-title"><span>Dzisiejszy pulpit</span><small>{new Date().toLocaleDateString('pl-PL')}</small></div>
+          <h1>Wybierz workflow i pracuj z jednym przypietym panelem decyzyjnym.</h1>
+          <div className="quick-actions">
             {canCreate(user) ? <button className="primary-btn" onClick={() => setView('form')} type="button"><Plus size={16} /> Nowa ocena</button> : null}
             <button className="ghost-btn" onClick={() => setView('registry')} type="button"><ClipboardCheck size={16} /> Ewidencja</button>
             <button className="ghost-btn" onClick={() => setView('reports')} type="button"><FileText size={16} /> Raport</button>
           </div>
+          {savedDrafts[0] ? (
+            <div className="hero-inline-note">
+              <span>Ostatni szkic: {TYPE_LABELS[savedDrafts[0][0]]}</span>
+              <strong>{savedDrafts[0][1].specialist || 'bez wybranego specjalisty'}</strong>
+              <button className="ghost-btn" type="button" onClick={() => onResumeDraft(savedDrafts[0][0])}>
+                Wznow szkic
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className="metric-panel"><span>Karty aktywne</span><strong>{active.length}</strong><small>dla zakresu: {user.role}</small></div>
         <div className="metric-panel"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel minimum 92%</small></div>
         <div className="metric-panel"><span>W weryfikacji</span><strong>{review}</strong><small>wymagaja decyzji</small></div>
+      </section>
+      <section className="data-panel">
+        <div className="section-title"><span>Szkice robocze</span><small>{savedDrafts.length ? `${savedDrafts.length} zapisane` : 'brak aktywnych szkicow'}</small></div>
+        {savedDrafts.length ? (
+          <div className="draft-grid">
+            {savedDrafts.map(([type, draft]) => (
+              <article className="draft-card" key={type}>
+                <div className="draft-card-top">
+                  <span className="type-badge">{typeIcon(type)} {TYPE_LABELS[type]}</span>
+                  <small>{draft.savedAt ? new Date(draft.savedAt).toLocaleString('pl-PL') : 'Zapis lokalny'}</small>
+                </div>
+                <strong>{draft.specialist || 'Szkic bez wybranego specjalisty'}</strong>
+                <p>{draft.summary || `${draft.contactCount} kontakt(y), okres ${draft.period || '-'}`}</p>
+                <div className="draft-card-meta">
+                  <span>{draft.position || 'Brak stanowiska'}</span>
+                  <span>{draft.department || 'Brak dzialu'}</span>
+                </div>
+                <div className="draft-card-actions">
+                  <button className="primary-btn" type="button" onClick={() => onResumeDraft(type)}>
+                    <RotateCcw size={15} /> Wznow szkic
+                  </button>
+                  <button className="ghost-btn" type="button" onClick={() => onClearDraft(type)}>
+                    <Trash2 size={15} /> Wyczysc
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : <div className="empty-state">Brak zapisanych szkicow. Formularz zapisuje postep lokalnie przy kazdej zmianie.</div>}
       </section>
       <section className="data-panel">
         <div className="section-title"><span>Ostatnie karty</span><small>Top 8</small></div>
@@ -559,27 +607,31 @@ function EvaluationView({
   user,
   admin,
   draft,
+  onSelectType,
   onDraftChange,
   onSaveAssessment,
 }: {
   user: UserProfile
   admin: AdminConfig
   draft: AssessmentDraft
+  onSelectType: (type: AssessmentType) => void
   onDraftChange: (draft: AssessmentDraft) => void
   onSaveAssessment: (draft: AssessmentDraft) => Promise<void>
 }) {
-  const [type, setType] = useState<AssessmentType>(draft.type)
-  const [saveState, setSaveState] = useState('')
+  const [notice, setNotice] = useState('')
   const def = ASSESSMENT_DEFS[draft.type]
   const calculated = useMemo(() => calculateDraft(draft), [draft])
   const specialists = useMemo(() => {
     if (user.role === 'admin' || user.role === 'director') return admin.specialists.filter((item) => item.active)
     return admin.specialists.filter((item) => item.active && item.leader === user.leaderScope)
   }, [admin.specialists, user])
+  const draftSaveState = draft.savedAt
+    ? `Szkic lokalny zapisany o ${new Date(draft.savedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`
+    : 'Zmiany sa zapisywane lokalnie po kazdej edycji.'
 
   function update(next: AssessmentDraft) {
-    onDraftChange({ ...next, savedAt: new Date().toISOString() })
-    setSaveState(`Szkic zapisany ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
+    if (notice) setNotice('')
+    onDraftChange(next)
   }
 
   function updateField(field: keyof AssessmentDraft, value: AssessmentDraft[keyof AssessmentDraft]) {
@@ -593,7 +645,7 @@ function EvaluationView({
       specialist: name,
       position: person?.position || draft.position,
       department: person?.department || draft.department,
-      assessor: person?.leader || draft.assessor || user.leaderScope,
+      assessor: draft.assessor || user.fullName || user.email,
     })
   }
 
@@ -611,18 +663,21 @@ function EvaluationView({
 
   async function submit() {
     if (!draft.specialist.trim()) {
-      setSaveState('Wybierz specjaliste przed zapisem.')
+      setNotice('Wybierz specjaliste przed zapisem.')
       return
     }
     if (!draft.contactIds.some(Boolean)) {
-      setSaveState('Uzupelnij co najmniej jeden identyfikator kontaktu.')
+      setNotice('Uzupelnij co najmniej jeden identyfikator kontaktu.')
       return
     }
     try {
-      await onSaveAssessment(draft)
-      setSaveState('Karta dodana do ewidencji.')
+      await onSaveAssessment({
+        ...draft,
+        assessor: draft.assessor || user.fullName || user.email,
+      })
+      setNotice('Karta dodana do ewidencji.')
     } catch (error) {
-      setSaveState(readableError(error, 'Nie udalo sie zapisac karty.'))
+      setNotice(readableError(error, 'Nie udalo sie zapisac karty.'))
     }
   }
 
@@ -635,8 +690,7 @@ function EvaluationView({
               key={item}
               className={draft.type === item ? 'active' : ''}
               onClick={() => {
-                setType(item)
-                if (item !== draft.type) onDraftChange(createDraft(item))
+                if (item !== draft.type) onSelectType(item)
               }}
               type="button"
             >
@@ -783,9 +837,9 @@ function EvaluationView({
       </section>
       <aside className="right-rail">
         <section className="rail-card">
-          <div className="section-title"><span>Akcje</span><small>{saveState}</small></div>
+          <div className="section-title"><span>Akcje</span><small>{notice || draftSaveState}</small></div>
           <button className="primary-btn wide" onClick={submit} disabled={!canCreate(user)} type="button"><Save size={16} /> Dodaj karte</button>
-          <button className="ghost-btn wide" onClick={() => update(createDraft(type))} type="button"><Trash2 size={16} /> Wyczysc szkic</button>
+          <button className="ghost-btn wide" onClick={() => update(createDraft(draft.type))} type="button"><Trash2 size={16} /> Wyczysc szkic</button>
         </section>
         <section className="rail-card result-card">
           <div className="section-title"><span>Wynik koncowy</span><small>{ratingLabel(calculated.rating)}</small></div>
@@ -813,14 +867,18 @@ function AssessmentTable({
   onPreview,
   onPrint,
   onEdit,
+  canEditItem,
   onAdvance,
+  canAdvanceItem,
 }: {
   assessments: Assessment[]
   compact?: boolean
   onPreview?: (assessment: Assessment) => void
   onPrint?: (assessment: Assessment) => void
   onEdit?: (assessment: Assessment) => void
+  canEditItem?: (assessment: Assessment) => boolean
   onAdvance?: (assessment: Assessment) => void
+  canAdvanceItem?: (assessment: Assessment) => boolean
 }) {
   if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrow.</div>
   const hasActions = Boolean(onPreview || onPrint || onEdit || onAdvance)
@@ -854,8 +912,8 @@ function AssessmentTable({
                   <div className="table-actions">
                     {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podglad"><Eye size={15} /></button> : null}
                     {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
-                    {onEdit ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
-                    {onAdvance ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}
+                    {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
+                    {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}
                   </div>
                 </td>
               ) : null}
@@ -893,6 +951,19 @@ function AssessmentPreviewModal({
           <div><span>Oceniajacy</span><strong>{assessment.oce || '-'}</strong></div>
           <div><span>Data</span><strong>{assessment.data}</strong></div>
           <div><span>Wynik</span><strong className={scoreClass(assessment.avgFinal)}>{assessment.avgFinal}%</strong></div>
+        </div>
+        <div className="preview-meta-grid">
+          <section>
+            <h4>Podsumowanie oceny</h4>
+            <p>{assessment.notes || 'Brak opisu koncowego dla tej karty.'}</p>
+          </section>
+          <section>
+            <h4>Zakres materialu</h4>
+            <div className="preview-pill-row">
+              {assessment.ids.length ? assessment.ids.map((item) => <span key={item}>{item}</span>) : <span>Brak identyfikatorow kontaktu</span>}
+            </div>
+            <small>{assessment.goldDesc || 'Bez dodatkowych zlotych punktow.'}</small>
+          </section>
         </div>
         <div className="preview-sections">
           {def.sections.map((section) => (
@@ -933,10 +1004,12 @@ function AssessmentPreviewModal({
 
 function AssessmentEditModal({
   assessment,
+  user,
   onClose,
   onSave,
 }: {
   assessment: Assessment
+  user: UserProfile
   onClose: () => void
   onSave: (assessment: Assessment) => Promise<void>
 }) {
@@ -963,11 +1036,22 @@ function AssessmentEditModal({
     setError('')
     try {
       const recalculated = draftToAssessment(draft, assessment.leaderScope || draft.assessor)
+      const historyNote = assessment.oce === (user.fullName || user.email)
+        ? 'Edytowano karte przez oceniajacego'
+        : 'Edytowano karte przez osobe z uprawnieniami'
       await onSave({
         ...recalculated,
         id: assessment.id,
         status: assessment.status,
-        statusHistory: assessment.statusHistory || [],
+        statusHistory: [
+          ...(assessment.statusHistory || []),
+          {
+            status: assessment.status,
+            at: new Date().toISOString(),
+            by: user.fullName || user.email,
+            note: historyNote,
+          },
+        ],
         createdAt: assessment.createdAt,
         leaderScope: assessment.leaderScope,
       })
@@ -1106,6 +1190,7 @@ function RegistryView({
   const [editing, setEditing] = useState<Assessment | null>(null)
   const [notice, setNotice] = useState('')
   const canMutate = canCreate(user)
+  const canAdvanceStatuses = user.role === 'admin' || user.role === 'director' || user.role === 'leader'
   const rows = useMemo(() => assessments.filter((item) => {
     const matchesQuery = `${item.spec} ${item.dzial} ${item.oce}`.toLowerCase().includes(query.toLowerCase())
     return matchesQuery
@@ -1115,9 +1200,17 @@ function RegistryView({
   }), [assessments, period, query, status, type])
   const periods = useMemo(() => uniqueSorted(assessments.map((item) => item.period)), [assessments])
 
+  function canEditRow(item: Assessment) {
+    return canEditAssessmentForUser(user, item)
+  }
+
+  function canAdvanceRow(item: Assessment) {
+    return canAdvanceStatuses && (user.role !== 'leader' || item.leaderScope === user.leaderScope)
+  }
+
   async function advance(item: Assessment) {
-    if (!canMutate) {
-      setNotice('Ta rola ma tylko dostep do odczytu.')
+    if (!canAdvanceRow(item)) {
+      setNotice('Ta rola nie moze zmieniac statusu tej karty.')
       return
     }
     const next: Record<AssessmentStatus, AssessmentStatus> = {
@@ -1140,6 +1233,14 @@ function RegistryView({
     } catch (error) {
       setNotice(readableError(error, 'Nie udalo sie zmienic statusu.'))
     }
+  }
+
+  function openEditor(item: Assessment) {
+    if (!canEditRow(item)) {
+      setNotice('Nie masz uprawnien do edycji tej karty.')
+      return
+    }
+    setEditing(item)
   }
 
   async function importJson(file: File | undefined) {
@@ -1209,11 +1310,13 @@ function RegistryView({
           assessments={rows}
           onPreview={setSelected}
           onPrint={printRow}
-          onEdit={canMutate ? setEditing : undefined}
-          onAdvance={canMutate ? (item) => void advance(item) : undefined}
+          onEdit={canMutate ? openEditor : undefined}
+          canEditItem={canEditRow}
+          onAdvance={canAdvanceStatuses ? (item) => void advance(item) : undefined}
+          canAdvanceItem={canAdvanceRow}
         />
         <div className="row-action-strip">
-          {canMutate ? rows.slice(0, 6).map((item) => (
+          {canAdvanceStatuses ? rows.filter(canAdvanceRow).slice(0, 6).map((item) => (
             <button key={item.id} className="ghost-btn" type="button" onClick={() => advance(item)}>
               {item.spec}: {statusLabels[item.status]} →
             </button>
@@ -1221,7 +1324,7 @@ function RegistryView({
         </div>
       </section>
       {selected ? <AssessmentPreviewModal assessment={selected} onClose={() => setSelected(null)} onPrint={printRow} /> : null}
-      {editing ? <AssessmentEditModal assessment={editing} onClose={() => setEditing(null)} onSave={onUpdate} /> : null}
+      {editing ? <AssessmentEditModal assessment={editing} user={user} onClose={() => setEditing(null)} onSave={onUpdate} /> : null}
     </main>
   )
 }
@@ -2285,7 +2388,10 @@ function App() {
 
   async function updateDraft(draft: AssessmentDraft) {
     setActiveType(draft.type)
-    const next = { ...drafts, [draft.type]: draft }
+    const nextDraft = draftHasContent(draft)
+      ? { ...draft, savedAt: new Date().toISOString() }
+      : undefined
+    const next = { ...drafts, [draft.type]: nextDraft }
     setDrafts(next)
     await provider.saveDrafts(next)
   }
@@ -2294,12 +2400,23 @@ function App() {
     if (!user) return
     const assessment = draftToAssessment(draft, user.leaderScope || draft.assessor)
     await provider.saveAssessment(assessment)
-    const nextDrafts = { ...drafts, [draft.type]: createDraft(draft.type) }
+    const nextDrafts = { ...drafts, [draft.type]: undefined }
     setDrafts(nextDrafts)
     await provider.saveDrafts(nextDrafts)
     const all = await provider.loadAssessments()
     setAssessments(scopedAssessments(all, user))
     setView('registry')
+  }
+
+  async function clearDraft(type: AssessmentType) {
+    const nextDrafts = { ...drafts, [type]: undefined }
+    setDrafts(nextDrafts)
+    await provider.saveDrafts(nextDrafts)
+  }
+
+  function resumeDraft(type: AssessmentType) {
+    setActiveType(type)
+    setView('form')
   }
 
   async function updateAssessment(assessment: Assessment) {
@@ -2359,12 +2476,22 @@ function App() {
 
   return (
     <AppShell user={user} providerMode={provider.mode} view={effectiveView} setView={setView} onLogout={logout} systemNotice={bootError}>
-      {effectiveView === 'start' ? <StartView user={user} assessments={assessments} setView={setView} /> : null}
+      {effectiveView === 'start' ? (
+        <StartView
+          user={user}
+          assessments={assessments}
+          drafts={drafts}
+          setView={setView}
+          onResumeDraft={resumeDraft}
+          onClearDraft={(type) => void clearDraft(type)}
+        />
+      ) : null}
       {effectiveView === 'form' && canCreate(user) ? (
         <EvaluationView
           user={user}
           admin={admin}
           draft={activeDraft}
+          onSelectType={setActiveType}
           onDraftChange={updateDraft}
           onSaveAssessment={saveAssessment}
         />
