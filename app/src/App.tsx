@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   BarChart3,
   ChevronDown,
@@ -39,18 +39,19 @@ import { ASSESSMENT_DEFS, SCORE_OPTIONS, TYPE_LABELS } from './domain/defs'
 import { assessmentToDraft, calculateDraft, createDraft, draftHasContent, draftToAssessment, periodOf, ratingLabel, resizeDraft } from './domain/scoring'
 import { buildDemoAdmin } from './data/seed'
 import { createProvider } from './data/supabaseProvider'
+import { AnalyticsFilterBar } from './features/analytics/shared'
+import { applyAnalyticsFilters, defaultAnalyticsFilters, uniqueSorted, type AnalyticsFilters } from './features/analytics/filters'
+import { SpecialistProfileModal } from './features/specialists/profile'
 import { canEditAssessment as canEditAssessmentForUser } from './lib/security'
 import type {
   AdminConfig,
   Assessment,
   AssessmentDraft,
-  AssessmentPeriod,
   AssessmentStatus,
   AssessmentType,
   DataProvider,
   ManagedUser,
   ScoreValue,
-  Specialist,
   UserProfile,
 } from './domain/types'
 import { useTheme } from './lib/theme'
@@ -77,13 +78,13 @@ const statusLabels: Record<AssessmentStatus, string> = {
   archived: 'Archiwum',
 }
 
-const roleLabels: Record<UserProfile['role'], string> = {
-  admin: 'Administrator',
-  director: 'Dyrektor',
-  leader: 'Lider',
-  assessor: 'Oceniajacy',
-  viewer: 'Podglad',
-}
+const ReportsView = lazy(() => import('./features/reports/ReportsView'))
+const AdminView = lazy(() => import('./features/admin/AdminView'))
+const lazyViewFallback = (
+  <main className="screen">
+    <div className="empty-state">Ladowanie widoku...</div>
+  </main>
+)
 
 function canCreate(user: UserProfile): boolean {
   return ['admin', 'director', 'leader', 'assessor'].includes(user.role)
@@ -206,32 +207,6 @@ function buildDraftSummary(draft: AssessmentDraft): string {
   return parts.join('\n\n')
 }
 
-function specialistProfileData(assessments: Assessment[], specialist: string) {
-  const rows = assessments
-    .filter((item) => item.spec === specialist)
-    .sort((a, b) => a.data.localeCompare(b.data))
-  const recent = [...rows].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 6)
-  const trend = rows.slice(-6).map((item) => ({
-    id: item.id,
-    label: item.period || item.data,
-    date: item.data,
-    score: item.avgFinal,
-    type: item.type,
-    status: item.status,
-  }))
-  const weakAreas = weakestCriteria(rows).slice(0, 4)
-  const avg = rows.length ? Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length) : 0
-  const great = rows.filter((item) => item.rating === 'great').length
-  const below = rows.filter((item) => item.rating === 'below').length
-  const review = rows.filter((item) => item.status === 'review' || item.status === 'submitted').length
-  const momentum = trend.length > 1 ? trend[trend.length - 1].score - trend[0].score : 0
-  const recommendation = weakAreas[0]?.avg && weakAreas[0].avg < 82
-    ? `Najwiekszy potencjal poprawy jest w obszarze: ${weakAreas[0].label}.`
-    : 'Profil jest stabilny. Warto utrzymac rytm informacji zwrotnej i monitorowac ostatnie oceny.'
-
-  return { rows, recent, trend, weakAreas, avg, great, below, review, momentum, recommendation }
-}
-
 function downloadFile(fileName: string, mime: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }))
   const link = document.createElement('a')
@@ -299,121 +274,6 @@ async function exportExcel(rows: Assessment[]) {
   writeFile(workbook, 'oceniator-ewidencja.xlsx')
 }
 
-type ReportMode = 'detail' | 'summary' | 'trend'
-type ReportTable = {
-  title: string
-  description: string
-  fileName: string
-  columns: string[]
-  rows: Array<Array<string | number>>
-}
-
-function buildCsv(columns: string[], rows: Array<Array<string | number>>) {
-  return `\uFEFF${[columns, ...rows].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
-}
-
-function exportTableCsv(table: ReportTable) {
-  downloadFile(`${table.fileName}.csv`, 'text/csv;charset=utf-8', buildCsv(table.columns, table.rows))
-}
-
-async function exportTableExcel(table: ReportTable) {
-  const { utils, writeFile } = await import('xlsx')
-  const worksheet = utils.aoa_to_sheet([table.columns, ...table.rows])
-  worksheet['!cols'] = table.columns.map((label) => ({ wch: Math.max(14, Math.min(36, label.length + 6)) }))
-  const workbook = utils.book_new()
-  utils.book_append_sheet(workbook, worksheet, table.title.slice(0, 31))
-  writeFile(workbook, `${table.fileName}.xlsx`)
-}
-
-function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTable {
-  if (mode === 'detail') {
-    return {
-      title: 'Raport szczegolowy',
-      description: 'Jeden wiersz na karte z podstawowymi polami operacyjnymi.',
-      fileName: 'oceniator-raport-szczegolowy',
-      columns: ['Data', 'Okres', 'Typ', 'Specjalista', 'Lider', 'Dzial', 'Stanowisko', 'Wynik', 'Ocena', 'Status', 'Kontakty'],
-      rows: [...rows]
-        .sort((a, b) => b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt))
-        .map((item) => [
-          item.data,
-          item.period,
-          TYPE_LABELS[item.type],
-          item.spec,
-          item.oce || item.leaderScope,
-          item.dzial,
-          item.stand,
-          `${item.avgFinal}%`,
-          ratingLabel(item.rating),
-          statusLabels[item.status],
-          item.contactCount,
-        ]),
-    }
-  }
-
-  if (mode === 'summary') {
-    const buckets = new Map<string, Assessment[]>()
-    rows.forEach((item) => {
-      buckets.set(item.spec, [...(buckets.get(item.spec) || []), item])
-    })
-    return {
-      title: 'Raport specjalistow',
-      description: 'Agregacja wynikow per specjalista wraz z rozkladem ocen.',
-      fileName: 'oceniator-raport-specjalisci',
-      columns: ['Specjalista', 'Lider', 'Dzial', 'Stanowisko', 'Kart', 'Srednia', 'Min', 'Max', 'Bardzo dobry', 'Dobry', 'Ponizej standardu', 'Ostatnia karta'],
-      rows: [...buckets.entries()]
-        .map(([specialist, specialistRows]) => {
-          const scores = specialistRows.map((item) => item.avgFinal)
-          const average = Math.round(scores.reduce((acc, value) => acc + value, 0) / scores.length)
-          const last = [...specialistRows].sort((a, b) => b.data.localeCompare(a.data))[0]
-          return [
-            specialist,
-            last?.oce || last?.leaderScope || '',
-            last?.dzial || '',
-            last?.stand || '',
-            specialistRows.length,
-            `${average}%`,
-            `${Math.min(...scores)}%`,
-            `${Math.max(...scores)}%`,
-            specialistRows.filter((item) => item.rating === 'great').length,
-            specialistRows.filter((item) => item.rating === 'good').length,
-            specialistRows.filter((item) => item.rating === 'below').length,
-            last?.data || '',
-          ]
-        })
-        .sort((left, right) => Number(String(left[5]).replace('%', '')) - Number(String(right[5]).replace('%', ''))),
-    }
-  }
-
-  const trendBuckets = new Map<string, Assessment[]>()
-  rows.forEach((item) => {
-    const key = `${item.spec}__${item.period}`
-    trendBuckets.set(key, [...(trendBuckets.get(key) || []), item])
-  })
-  return {
-    title: 'Raport trendow',
-    description: 'Zestawienie wynikow per specjalista i okres rozliczeniowy.',
-    fileName: 'oceniator-raport-trendy',
-    columns: ['Specjalista', 'Okres', 'Lider', 'Dzial', 'Kart', 'Srednia', 'Bardzo dobry', 'Ponizej standardu', 'Do decyzji'],
-    rows: [...trendBuckets.entries()]
-      .map(([, trendRows]) => {
-        const last = [...trendRows].sort((a, b) => b.data.localeCompare(a.data))[0]
-        const avg = Math.round(trendRows.reduce((acc, item) => acc + item.avgFinal, 0) / trendRows.length)
-        return [
-          last?.spec || '',
-          last?.period || '',
-          last?.oce || last?.leaderScope || '',
-          last?.dzial || '',
-          trendRows.length,
-          `${avg}%`,
-          trendRows.filter((item) => item.rating === 'great').length,
-          trendRows.filter((item) => item.rating === 'below').length,
-          trendRows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
-        ]
-      })
-      .sort((left, right) => String(left[1]).localeCompare(String(right[1]), 'pl') || String(left[0]).localeCompare(String(right[0]), 'pl')),
-  }
-}
-
 function printAssessment(assessment: Assessment): boolean {
   const def = ASSESSMENT_DEFS[assessment.type]
   const sections = def.sections.map((section) => {
@@ -451,96 +311,6 @@ function printAssessment(assessment: Assessment): boolean {
     ${sections}
     <div class="notes"><strong>Podsumowanie:</strong><br>${esc(assessment.notes || 'Brak uwag.')}</div>
   </div></body></html>`
-
-  const win = window.open('', '_blank')
-  if (!win) return false
-  win.document.write(html)
-  win.document.close()
-  return true
-}
-
-function printSpecialistProfileReport(specialist: string, assessments: Assessment[]): boolean {
-  const profile = specialistProfileData(assessments, specialist)
-  if (!profile.rows.length) return false
-
-  const trendRows = profile.trend.map((item) => `
-    <tr>
-      <td>${esc(item.date)}</td>
-      <td>${esc(TYPE_LABELS[item.type])}</td>
-      <td>${esc(item.label)}</td>
-      <td>${item.score}%</td>
-      <td>${esc(statusLabels[item.status])}</td>
-    </tr>
-  `).join('')
-
-  const weakRows = profile.weakAreas.length
-    ? profile.weakAreas.map((item) => `
-      <tr>
-        <td>${esc(item.label)}</td>
-        <td>${item.avg}%</td>
-        <td>${item.count}</td>
-      </tr>
-    `).join('')
-    : '<tr><td colspan="3">Brak wystarczajacej liczby danych.</td></tr>'
-
-  const recentRows = profile.recent.map((item) => `
-    <tr>
-      <td>${esc(item.data)}</td>
-      <td>${esc(TYPE_LABELS[item.type])}</td>
-      <td>${item.avgFinal}%</td>
-      <td>${esc(statusLabels[item.status])}</td>
-      <td>${esc(item.notes || 'Brak podsumowania koncowego.')}</td>
-    </tr>
-  `).join('')
-
-  const html = `<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${esc(specialist)} - profil jakosciowy</title>
-    <style>
-      body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#0f172a;background:#fff}
-      header{background:#0b1c32;color:#fff;padding:20px;border-radius:10px;margin-bottom:18px}
-      h1,h2,h3{margin:0}
-      h2{font-size:18px;margin:0 0 10px}
-      p{line-height:1.55}
-      .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
-      .kpi{border:1px solid #d7e2ee;border-radius:10px;padding:14px}
-      .kpi span{display:block;font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase}
-      .kpi strong{display:block;margin-top:8px;font-size:28px}
-      section{margin-bottom:18px}
-      table{width:100%;border-collapse:collapse}
-      th,td{border:1px solid #d7e2ee;padding:10px;text-align:left;vertical-align:top;font-size:12px}
-      th{background:#f8fafc;color:#475569;text-transform:uppercase;font-size:11px}
-      .note{padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #d7e2ee}
-      .no-print{position:sticky;top:0;background:#07111f;padding:10px;text-align:right;margin:-24px -24px 24px}
-      .no-print button{background:#0f8f87;color:#fff;border:0;border-radius:6px;padding:9px 14px;font-weight:700;cursor:pointer}
-      @media print{.no-print{display:none}}
-    </style></head><body>
-    <div class="no-print"><button onclick="window.print()">Drukuj / Zapisz PDF</button></div>
-    <header>
-      <h1>${esc(specialist)}</h1>
-      <p>Profil jakosciowy specjalisty na podstawie ${profile.rows.length} kart. Sredni wynik: ${profile.avg}%. Do decyzji: ${profile.review}. Ponizej standardu: ${profile.below}.</p>
-    </header>
-    <div class="kpis">
-      <div class="kpi"><span>Sredni wynik</span><strong>${profile.avg}%</strong></div>
-      <div class="kpi"><span>Liczba kart</span><strong>${profile.rows.length}</strong></div>
-      <div class="kpi"><span>Bardzo dobry</span><strong>${profile.great}</strong></div>
-      <div class="kpi"><span>Ponizej standardu</span><strong>${profile.below}</strong></div>
-    </div>
-    <section>
-      <h2>Rekomendacja</h2>
-      <div class="note">${esc(profile.recommendation)}</div>
-    </section>
-    <section>
-      <h2>Trend ostatnich ocen</h2>
-      <table><thead><tr><th>Data</th><th>Typ</th><th>Okres</th><th>Wynik</th><th>Status</th></tr></thead><tbody>${trendRows}</tbody></table>
-    </section>
-    <section>
-      <h2>Obszary do poprawy</h2>
-      <table><thead><tr><th>Kryterium</th><th>Srednia</th><th>Liczba ocen czastkowych</th></tr></thead><tbody>${weakRows}</tbody></table>
-    </section>
-    <section>
-      <h2>Ostatnie oceny</h2>
-      <table><thead><tr><th>Data</th><th>Typ</th><th>Wynik</th><th>Status</th><th>Podsumowanie</th></tr></thead><tbody>${recentRows}</tbody></table>
-    </section>
-    </body></html>`
 
   const win = window.open('', '_blank')
   if (!win) return false
@@ -799,101 +569,6 @@ function StartView({
         <AssessmentTable assessments={active.slice(0, 8)} compact />
       </section>
     </main>
-  )
-}
-
-function SpecialistProfileModal({
-  specialist,
-  assessments,
-  onClose,
-}: {
-  specialist: string
-  assessments: Assessment[]
-  onClose: () => void
-}) {
-  const profile = useMemo(() => specialistProfileData(assessments, specialist), [assessments, specialist])
-  const [printNotice, setPrintNotice] = useState('')
-
-  if (!profile.rows.length) return null
-
-  return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal-card preview-modal specialist-profile-modal">
-        <header className="modal-header">
-          <div>
-            <h3>{specialist}</h3>
-            <p>Profil jakosciowy specjalisty oparty o zapisane karty.</p>
-          </div>
-          <button type="button" onClick={onClose}><X size={18} /></button>
-        </header>
-        <div className="specialist-kpi-grid">
-          <div><span>Sredni wynik</span><strong className={scoreClass(profile.avg)}>{profile.avg}%</strong></div>
-          <div><span>Liczba kart</span><strong>{profile.rows.length}</strong></div>
-          <div><span>Ponizej standardu</span><strong>{profile.below}</strong></div>
-          <div><span>Kolejka decyzji</span><strong>{profile.review}</strong></div>
-        </div>
-        <div className="specialist-profile-grid">
-          <section className="specialist-profile-panel">
-            <div className="section-title"><span>Trend ostatnich ocen</span><small>{profile.momentum >= 0 ? `+${profile.momentum}` : profile.momentum} pp</small></div>
-            <div className="specialist-trend-bars">
-              {profile.trend.map((item) => (
-                <div className="specialist-trend-bar" key={item.id}>
-                  <div className="specialist-trend-meta">
-                    <strong>{item.score}%</strong>
-                    <small>{TYPE_LABELS[item.type]}</small>
-                  </div>
-                  <div className="specialist-trend-track"><i style={{ height: `${Math.max(12, item.score)}%` }} /></div>
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="specialist-profile-panel">
-            <div className="section-title"><span>Obszary do poprawy</span><small>{profile.weakAreas.length} pozycji</small></div>
-            <div className="weak-list enhanced">
-              {profile.weakAreas.length ? profile.weakAreas.map((item) => (
-                <div className="weak-item" key={item.label}>
-                  <span>{item.label}</span>
-                  <strong className={scoreClass(item.avg)}>{item.avg}%</strong>
-                  <small>{item.count} ocen czastkowych</small>
-                </div>
-              )) : <div className="empty-state compact">Brak wystarczajacej liczby danych do wskazania slabych kryteriow.</div>}
-            </div>
-            <p className="hint-text specialist-profile-reco">{profile.recommendation}</p>
-          </section>
-        </div>
-        <section className="specialist-profile-panel specialist-profile-full">
-          <div className="section-title"><span>Ostatnie oceny</span><small>{profile.recent.length} najnowszych kart</small></div>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead><tr><th>Data</th><th>Typ</th><th>Wynik</th><th>Status</th><th>Podsumowanie</th></tr></thead>
-              <tbody>
-                {profile.recent.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.data}</td>
-                    <td>{TYPE_LABELS[item.type]}</td>
-                    <td><span className={scoreClass(item.avgFinal)}>{item.avgFinal}%</span></td>
-                    <td><span className={`status ${item.status}`}>{statusLabels[item.status]}</span></td>
-                    <td><small>{item.notes || 'Brak podsumowania koncowego.'}</small></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <footer className="modal-footer">
-          {printNotice ? <span className="hint-text">{printNotice}</span> : null}
-          <button
-            className="ghost-btn"
-            type="button"
-            onClick={() => setPrintNotice(printSpecialistProfileReport(specialist, assessments) ? '' : 'Przegladarka zablokowala okno drukowania/PDF.')}
-          >
-            <FileText size={16} /> Drukuj / PDF
-          </button>
-          <button className="primary-btn" type="button" onClick={onClose}>Zamknij</button>
-        </footer>
-      </section>
-    </div>
   )
 }
 
@@ -1787,13 +1462,6 @@ function RegistryView({
   )
 }
 
-type AnalyticsFilters = {
-  period: string
-  type: AssessmentType | 'all'
-  leader: string
-  specialist: string
-}
-
 type DashboardPanelKey = 'trend' | 'typeMix' | 'sections' | 'leaders' | 'weak' | 'lowScores'
 type DashboardDensity = 'comfortable' | 'compact'
 type DashboardLayout = 'grid' | 'focus'
@@ -1833,72 +1501,6 @@ function writeDashboardPrefs(prefs: DashboardPrefs) {
   } catch {
     // UI preferences are optional.
   }
-}
-
-function defaultAnalyticsFilters(): AnalyticsFilters {
-  return { period: 'all', type: 'all', leader: 'all', specialist: 'all' }
-}
-
-function uniqueSorted(values: string[]): string[] {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pl'))
-}
-
-function applyAnalyticsFilters(rows: Assessment[], filters: AnalyticsFilters): Assessment[] {
-  return rows.filter((item) => (
-    item.status !== 'archived'
-    && (filters.period === 'all' || item.period === filters.period)
-    && (filters.type === 'all' || item.type === filters.type)
-    && (filters.leader === 'all' || item.oce === filters.leader || item.leaderScope === filters.leader)
-    && (filters.specialist === 'all' || item.spec === filters.specialist)
-  ))
-}
-
-function AnalyticsFilterBar({
-  assessments,
-  filters,
-  onChange,
-}: {
-  assessments: Assessment[]
-  filters: AnalyticsFilters
-  onChange: (filters: AnalyticsFilters) => void
-}) {
-  const periods = uniqueSorted(assessments.map((item) => item.period))
-  const leaders = uniqueSorted(assessments.map((item) => item.oce || item.leaderScope))
-  const specialists = uniqueSorted(assessments.map((item) => item.spec))
-
-  return (
-    <section className="analytics-filters">
-      <label>
-        <span>Okres</span>
-        <select value={filters.period} onChange={(event) => onChange({ ...filters, period: event.target.value })}>
-          <option value="all">Wszystkie</option>
-          {periods.map((period) => <option key={period} value={period}>{period}</option>)}
-        </select>
-      </label>
-      <label>
-        <span>Typ</span>
-        <select value={filters.type} onChange={(event) => onChange({ ...filters, type: event.target.value as AssessmentType | 'all' })}>
-          <option value="all">Wszystkie</option>
-          {(Object.keys(TYPE_LABELS) as AssessmentType[]).map((type) => <option key={type} value={type}>{TYPE_LABELS[type]}</option>)}
-        </select>
-      </label>
-      <label>
-        <span>Lider</span>
-        <select value={filters.leader} onChange={(event) => onChange({ ...filters, leader: event.target.value })}>
-          <option value="all">Wszyscy</option>
-          {leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}
-        </select>
-      </label>
-      <label>
-        <span>Specjalista</span>
-        <select value={filters.specialist} onChange={(event) => onChange({ ...filters, specialist: event.target.value })}>
-          <option value="all">Wszyscy</option>
-          {specialists.map((specialist) => <option key={specialist} value={specialist}>{specialist}</option>)}
-        </select>
-      </label>
-      <button className="ghost-btn" type="button" onClick={() => onChange(defaultAnalyticsFilters())}>Reset</button>
-    </section>
-  )
 }
 
 function sectionAverage(assessment: Assessment, sectionKey: string): number {
@@ -2335,520 +1937,6 @@ function DashboardWidget({
   )
 }
 
-function ReportsView({ assessments }: { assessments: Assessment[] }) {
-  const [filters, setFilters] = useState<AnalyticsFilters>(() => defaultAnalyticsFilters())
-  const [mode, setMode] = useState<ReportMode>('summary')
-  const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
-  const [notice, setNotice] = useState('')
-  const filtered = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
-  const byLeader = useMemo(() => {
-    const map = new Map<string, Assessment[]>()
-    filtered.forEach((item) => {
-      const key = item.oce || item.leaderScope || 'Brak'
-      map.set(key, [...(map.get(key) || []), item])
-    })
-    return [...map.entries()].map(([leader, rows]) => ({
-      leader,
-      count: rows.length,
-      avg: Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length),
-      great: rows.filter((item) => item.rating === 'great').length,
-      below: rows.filter((item) => item.rating === 'below').length,
-      review: rows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
-    })).sort((a, b) => b.avg - a.avg)
-  }, [filtered])
-
-  const bySpecialist = useMemo(() => {
-    const map = new Map<string, Assessment[]>()
-    filtered.forEach((item) => {
-      map.set(item.spec, [...(map.get(item.spec) || []), item])
-    })
-    return [...map.entries()].map(([specialist, rows]) => ({
-      specialist,
-      leader: rows[0]?.oce || rows[0]?.leaderScope || '',
-      count: rows.length,
-      avg: Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length),
-      lastDate: [...rows].sort((a, b) => b.data.localeCompare(a.data))[0]?.data || '',
-    })).sort((a, b) => a.avg - b.avg).slice(0, 20)
-  }, [filtered])
-  const reportTable = useMemo(() => buildReportTable(filtered, mode), [filtered, mode])
-  const reportPreviewRows = reportTable.rows.slice(0, 24)
-  const activeAvg = filtered.length ? Math.round(filtered.reduce((acc, item) => acc + item.avgFinal, 0) / filtered.length) : 0
-  const activeBelow = filtered.filter((item) => item.rating === 'below').length
-  const activeGreat = filtered.filter((item) => item.rating === 'great').length
-  const activeReview = filtered.filter((item) => item.status === 'review' || item.status === 'submitted').length
-
-  return (
-    <main className="screen">
-      <AnalyticsFilterBar assessments={assessments} filters={filters} onChange={setFilters} />
-      <section className="data-panel">
-        <div className="section-title">
-          <span>Builder raportow</span>
-          <small>{filtered.length} kart po filtrach</small>
-        </div>
-        <div className="report-mode-group">
-          <button className={mode === 'detail' ? 'active' : ''} type="button" onClick={() => setMode('detail')}>
-            <FileText size={15} /> Szczegolowy
-          </button>
-          <button className={mode === 'summary' ? 'active' : ''} type="button" onClick={() => setMode('summary')}>
-            <Users size={15} /> Specjalisci
-          </button>
-          <button className={mode === 'trend' ? 'active' : ''} type="button" onClick={() => setMode('trend')}>
-            <TrendingUp size={15} /> Trendy
-          </button>
-        </div>
-        <div className="report-actions">
-          <button className="ghost-btn" type="button" onClick={() => exportTableCsv(reportTable)}><Download size={16} /> Eksport CSV</button>
-          <button className="ghost-btn" type="button" onClick={() => void exportTableExcel(reportTable)}><Download size={16} /> Eksport XLSX</button>
-          <button className="ghost-btn" type="button" onClick={() => exportJson(filtered)}><Download size={16} /> Karty JSON</button>
-          {filters.specialist !== 'all' ? (
-            <button
-              className="ghost-btn"
-              type="button"
-              onClick={() => setNotice(printSpecialistProfileReport(filters.specialist, filtered) ? '' : 'Przegladarka zablokowala okno drukowania/PDF.')}
-            >
-              <FileText size={16} /> Raport PDF specjalisty
-            </button>
-          ) : null}
-        </div>
-        {notice ? <p className="hint-text">{notice}</p> : null}
-        <div className="report-kpi-grid">
-          <div className="metric-panel"><span>Sredni wynik</span><strong>{activeAvg || '-'}%</strong><small>w aktywnym filtrze</small></div>
-          <div className="metric-panel"><span>Bardzo dobry</span><strong>{activeGreat}</strong><small>kart z ocena wysoka</small></div>
-          <div className="metric-panel"><span>Ponizej standardu</span><strong>{activeBelow}</strong><small>wymagaja reakcji</small></div>
-          <div className="metric-panel"><span>Do decyzji</span><strong>{activeReview}</strong><small>submitted lub review</small></div>
-        </div>
-        <div className="report-preview-panel">
-          <div className="section-title"><span>{reportTable.title}</span><small>{reportTable.rows.length} wierszy wynikowych</small></div>
-          <p className="hint-text">{reportTable.description}</p>
-          {reportTable.rows.length ? (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>{reportTable.columns.map((column) => <th key={column}>{column}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {reportPreviewRows.map((row, index) => (
-                    <tr key={`${reportTable.fileName}-${index}`}>
-                      {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : <div className="empty-state">Brak danych dla aktualnego zestawu filtrow.</div>}
-          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pelny zakres pobierzesz z eksportu.</p> : null}
-        </div>
-      </section>
-      <section className="data-panel">
-        <div className="section-title">
-          <span>Raport liderow</span>
-          <small>agregacja w biezacym filtrze</small>
-        </div>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead><tr><th>Lider</th><th>Karty</th><th>Srednia</th><th>Bardzo dobry</th><th>Ponizej standardu</th><th>Do decyzji</th></tr></thead>
-            <tbody>
-              {byLeader.map((item) => (
-                <tr key={item.leader}>
-                  <td><strong>{item.leader}</strong></td>
-                  <td>{item.count}</td>
-                  <td><span className={scoreClass(item.avg)}>{item.avg}%</span></td>
-                  <td>{item.great}</td>
-                  <td>{item.below}</td>
-                  <td>{item.review}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section className="data-panel">
-        <div className="section-title"><span>Specjalisci do uwagi</span><small>najslabsze srednie w filtrze</small></div>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
-            <tbody>
-              {bySpecialist.map((item) => (
-                <tr key={item.specialist}>
-                  <td><strong>{item.specialist}</strong></td>
-                  <td>{item.leader}</td>
-                  <td>{item.count}</td>
-                  <td><span className={scoreClass(item.avg)}>{item.avg}%</span></td>
-                  <td>{item.lastDate}</td>
-                  <td>
-                    <button className="ghost-btn table-inline-btn" type="button" onClick={() => setSelectedSpecialistProfile(item.specialist)}>
-                      <Eye size={15} /> Profil
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      {selectedSpecialistProfile ? (
-        <SpecialistProfileModal
-          specialist={selectedSpecialistProfile}
-          assessments={filtered}
-          onClose={() => setSelectedSpecialistProfile(null)}
-        />
-      ) : null}
-    </main>
-  )
-}
-
-function emptySpecialist(admin: AdminConfig): Specialist {
-  return {
-    id: crypto.randomUUID(),
-    name: '',
-    leader: admin.leaders[0] || '',
-    department: admin.departments[0] || '',
-    position: admin.positions[0] || '',
-    active: true,
-  }
-}
-
-function normalizeDictionary(values: string[]): string[] {
-  return [...new Set(values.map((item) => item.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pl'))
-}
-
-function AdminView({
-  user,
-  admin,
-  users,
-  onAdminChange,
-  onUserSave,
-  onUserCreate,
-}: {
-  user: UserProfile
-  admin: AdminConfig
-  users: ManagedUser[]
-  onAdminChange: (admin: AdminConfig) => Promise<void>
-  onUserSave: (user: ManagedUser) => Promise<void>
-  onUserCreate: (user: ManagedUser) => Promise<ManagedUser>
-}) {
-  const [draftAdmin, setDraftAdmin] = useState(admin)
-  const [selectedSpecialistId, setSelectedSpecialistId] = useState(admin.specialists[0]?.id || '')
-  const [draftUsers, setDraftUsers] = useState(users)
-  const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
-  const [newUser, setNewUser] = useState<ManagedUser>({
-    id: '',
-    email: '',
-    login: '',
-    fullName: '',
-    role: 'viewer',
-    leaderScope: '',
-    isActive: true,
-    source: user.source,
-    password: '',
-  })
-  const [newLeader, setNewLeader] = useState('')
-  const [newDepartment, setNewDepartment] = useState('')
-  const [newPosition, setNewPosition] = useState('')
-  const [notice, setNotice] = useState('')
-
-  const selectedSpecialist = draftAdmin.specialists.find((item) => item.id === selectedSpecialistId) || draftAdmin.specialists[0] || emptySpecialist(draftAdmin)
-  const selectedUser = draftUsers.find((item) => item.id === selectedUserId) || draftUsers[0]
-
-  if (!canAdmin(user)) {
-    return (
-      <main className="screen">
-        <div className="empty-state">Brak dostepu do panelu admina dla tej roli.</div>
-      </main>
-    )
-  }
-
-  async function saveGoals() {
-    const next = {
-      ...draftAdmin,
-      leaders: normalizeDictionary(draftAdmin.leaders),
-      departments: normalizeDictionary(draftAdmin.departments),
-      positions: normalizeDictionary(draftAdmin.positions),
-      specialists: draftAdmin.specialists
-        .filter((item) => item.name.trim())
-        .map((item) => ({ ...item, name: item.name.trim() }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'pl')),
-    }
-    try {
-      await onAdminChange(next)
-      setDraftAdmin(next)
-      setNotice(`Zapisano konfiguracje ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
-    } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zapisac konfiguracji.'))
-    }
-  }
-
-  async function saveSelectedUser() {
-    if (!selectedUser) return
-    try {
-      await onUserSave(selectedUser)
-      setNotice(`Zapisano uzytkownika ${selectedUser.email || selectedUser.login}`)
-    } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zapisac uzytkownika.'))
-    }
-  }
-
-  async function createNewUser() {
-    if (!newUser.email && !newUser.login) return
-    const created = {
-      ...newUser,
-      id: newUser.id || newUser.login || newUser.email,
-      email: newUser.email || `${newUser.login}@local`,
-      fullName: newUser.fullName || newUser.email || newUser.login || 'Nowy uzytkownik',
-      password: newUser.password || 'start123',
-      source: user.source,
-    }
-    try {
-      const saved = await onUserCreate(created)
-      setDraftUsers([saved, ...draftUsers])
-      setSelectedUserId(saved.id)
-      setNewUser({ ...newUser, id: '', email: '', login: '', fullName: '', password: '', role: 'viewer', leaderScope: '', isActive: true })
-      setNotice(`Dodano uzytkownika ${saved.email || saved.login}`)
-    } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie utworzyc uzytkownika.'))
-    }
-  }
-
-  function updateUserDraft(id: string, patch: Partial<ManagedUser>) {
-    setDraftUsers(draftUsers.map((item) => (item.id === id ? { ...item, ...patch } : item)))
-  }
-
-  function updateGoals(field: keyof AdminConfig['goals'], value: number) {
-    setDraftAdmin({ ...draftAdmin, goals: { ...draftAdmin.goals, [field]: value } })
-  }
-
-  function addDictionary(kind: 'leaders' | 'departments' | 'positions', value: string, clear: () => void) {
-    const name = value.trim()
-    if (!name) return
-    setDraftAdmin({ ...draftAdmin, [kind]: normalizeDictionary([...draftAdmin[kind], name]) })
-    clear()
-  }
-
-  function removeDictionary(kind: 'leaders' | 'departments' | 'positions', value: string) {
-    setDraftAdmin({
-      ...draftAdmin,
-      [kind]: draftAdmin[kind].filter((item) => item !== value),
-    })
-  }
-
-  function updateSpecialist(id: string, patch: Partial<Specialist>) {
-    setDraftAdmin({
-      ...draftAdmin,
-      specialists: draftAdmin.specialists.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    })
-  }
-
-  function addSpecialist() {
-    const specialist = emptySpecialist(draftAdmin)
-    setDraftAdmin({ ...draftAdmin, specialists: [specialist, ...draftAdmin.specialists] })
-    setSelectedSpecialistId(specialist.id)
-  }
-
-  function removeSpecialist(id: string) {
-    const next = draftAdmin.specialists.filter((item) => item.id !== id)
-    setDraftAdmin({ ...draftAdmin, specialists: next })
-    setSelectedSpecialistId(next[0]?.id || '')
-  }
-
-  function updatePeriod(index: number, patch: Partial<AssessmentPeriod>) {
-    setDraftAdmin({
-      ...draftAdmin,
-      periods: draftAdmin.periods.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
-    })
-  }
-
-  function addPeriod() {
-    const number = draftAdmin.periods.length + 1
-    setDraftAdmin({
-      ...draftAdmin,
-      periods: [...draftAdmin.periods, { code: `P${number}`, name: `P${number}`, from: '01-01', to: '12-31' }],
-    })
-  }
-
-  function removePeriod(index: number) {
-    setDraftAdmin({ ...draftAdmin, periods: draftAdmin.periods.filter((_, itemIndex) => itemIndex !== index) })
-  }
-
-  return (
-    <main className="screen admin-screen">
-      <section className="admin-hero data-panel">
-        <div>
-          <div className="section-title"><span>Panel admina</span><small>{notice || 'Konfiguracja slownikow i celow'}</small></div>
-          <p className="hint-text">Zmiany w tym widoku zasilaja formularz oceny, zakres liderow oraz raporty. Zapis jest jawny, zeby uniknac przypadkowych zmian slownikow.</p>
-        </div>
-        <button className="primary-btn" onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfiguracje</button>
-      </section>
-      <section className="data-panel">
-        <div className="section-title"><span>Cele jakosciowe</span><small>progi i wolumeny</small></div>
-        <div className="field-grid two">
-          <label><span>Minimum sredniej</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
-          <label><span>Udzial bardzo dobrych</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
-          <label><span>Rozmowy / okres</span><input type="number" value={draftAdmin.goals.callsPerPeriod} onChange={(event) => updateGoals('callsPerPeriod', Number(event.target.value))} /></label>
-          <label><span>Maile / okres</span><input type="number" value={draftAdmin.goals.mailsPerPeriod} onChange={(event) => updateGoals('mailsPerPeriod', Number(event.target.value))} /></label>
-          <label><span>Systemy / okres</span><input type="number" value={draftAdmin.goals.systemsPerPeriod} onChange={(event) => updateGoals('systemsPerPeriod', Number(event.target.value))} /></label>
-        </div>
-      </section>
-      <section className="data-panel dictionary-panel">
-        <div className="section-title"><span>Slowniki</span><small>liderzy, dzialy, stanowiska</small></div>
-        <div className="dictionary-columns">
-          <DictionaryEditor
-            title="Liderzy"
-            values={draftAdmin.leaders}
-            value={newLeader}
-            onValue={setNewLeader}
-            onAdd={() => addDictionary('leaders', newLeader, () => setNewLeader(''))}
-            onRemove={(value) => removeDictionary('leaders', value)}
-          />
-          <DictionaryEditor
-            title="Dzialy"
-            values={draftAdmin.departments}
-            value={newDepartment}
-            onValue={setNewDepartment}
-            onAdd={() => addDictionary('departments', newDepartment, () => setNewDepartment(''))}
-            onRemove={(value) => removeDictionary('departments', value)}
-          />
-          <DictionaryEditor
-            title="Stanowiska"
-            values={draftAdmin.positions}
-            value={newPosition}
-            onValue={setNewPosition}
-            onAdd={() => addDictionary('positions', newPosition, () => setNewPosition(''))}
-            onRemove={(value) => removeDictionary('positions', value)}
-          />
-        </div>
-      </section>
-      <section className="data-panel specialist-admin">
-        <div className="section-title">
-          <span>Specjalisci</span>
-          <small>{draftAdmin.specialists.filter((item) => item.active).length} aktywnych / {draftAdmin.specialists.length} lacznie</small>
-        </div>
-        <div className="specialist-layout">
-          <div className="specialist-list">
-            <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> Dodaj specjaliste</button>
-            {draftAdmin.specialists.map((specialist) => (
-              <button
-                key={specialist.id}
-                className={specialist.id === selectedSpecialist.id ? 'active' : ''}
-                type="button"
-                onClick={() => setSelectedSpecialistId(specialist.id)}
-              >
-                <strong>{specialist.name || 'Nowy specjalista'}</strong>
-                <small>{specialist.leader || 'Bez lidera'} · {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
-              </button>
-            ))}
-          </div>
-          <div className="specialist-editor">
-            <div className="field-grid two">
-              <label><span>Imie i nazwisko</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
-              <label><span>Lider</span><select value={selectedSpecialist.leader} onChange={(event) => updateSpecialist(selectedSpecialist.id, { leader: event.target.value })}>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-              <label><span>Dzial</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
-              <label><span>Stanowisko</span><select value={selectedSpecialist.position} onChange={(event) => updateSpecialist(selectedSpecialist.id, { position: event.target.value })}>{draftAdmin.positions.map((position) => <option key={position} value={position}>{position}</option>)}</select></label>
-            </div>
-            <div className="admin-inline-actions">
-              <label className="toggle-line"><input type="checkbox" checked={selectedSpecialist.active} onChange={(event) => updateSpecialist(selectedSpecialist.id, { active: event.target.checked })} /> Aktywny specjalista</label>
-              <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> Usun z listy</button>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="data-panel user-admin">
-        <div className="section-title"><span>Uzytkownicy i role</span><small>{draftUsers.length} kont</small></div>
-        <div className="user-layout">
-          <div className="user-list">
-            {draftUsers.map((account) => (
-              <button
-                key={account.id}
-                className={account.id === selectedUser?.id ? 'active' : ''}
-                type="button"
-                onClick={() => setSelectedUserId(account.id)}
-              >
-                <strong>{account.fullName || account.email || account.login}</strong>
-                <small>{roleLabels[account.role]} · {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
-              </button>
-            ))}
-          </div>
-          <div className="user-editor">
-            {selectedUser ? (
-              <>
-                <div className="field-grid two">
-                  <label><span>Email</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
-                  <label><span>Login lokalny</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
-                  <label><span>Imie i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
-                  <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-                  <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-                  <label><span>Haslo lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
-                </div>
-                <div className="admin-inline-actions">
-                  <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> Konto aktywne</label>
-                  <button className="primary-btn" type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz uzytkownika</button>
-                </div>
-              </>
-            ) : <div className="empty-state">Brak uzytkownikow.</div>}
-          </div>
-        </div>
-        <div className="new-user-panel">
-          <div className="section-title"><span>Nowe konto</span><small>{user.source === 'supabase' ? 'tworzone przez Edge Function' : 'konto lokalne demo'}</small></div>
-          <div className="field-grid">
-            <label><span>Email</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
-            <label><span>Login lokalny</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
-            <label><span>Imie i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
-            <label><span>Haslo startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
-            <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-            <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-          </div>
-          <button className="ghost-btn" type="button" onClick={createNewUser}><Plus size={16} /> Utworz konto</button>
-        </div>
-      </section>
-      <section className="data-panel periods-panel">
-        <div className="section-title"><span>Okresy rozliczeniowe</span><small>{draftAdmin.periods.length} okresy</small></div>
-        <div className="period-grid">
-          {draftAdmin.periods.map((period, index) => (
-            <div className="period-row" key={`${period.code}-${index}`}>
-              <input value={period.code} onChange={(event) => updatePeriod(index, { code: event.target.value })} />
-              <input value={period.name} onChange={(event) => updatePeriod(index, { name: event.target.value })} />
-              <input value={period.from} onChange={(event) => updatePeriod(index, { from: event.target.value })} />
-              <input value={period.to} onChange={(event) => updatePeriod(index, { to: event.target.value })} />
-              <button type="button" onClick={() => removePeriod(index)}><Trash2 size={15} /></button>
-            </div>
-          ))}
-        </div>
-        <button className="ghost-btn" type="button" onClick={addPeriod}><Plus size={16} /> Dodaj okres</button>
-      </section>
-    </main>
-  )
-}
-
-function DictionaryEditor({
-  title,
-  values,
-  value,
-  onValue,
-  onAdd,
-  onRemove,
-}: {
-  title: string
-  values: string[]
-  value: string
-  onValue: (value: string) => void
-  onAdd: () => void
-  onRemove: (value: string) => void
-}) {
-  return (
-    <div className="dictionary-editor">
-      <h3>{title}</h3>
-      <div className="dictionary-add">
-        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder="Nowa wartosc" />
-        <button type="button" onClick={onAdd}><Plus size={15} /></button>
-      </div>
-      <div className="dictionary-list">
-        {values.map((item) => (
-          <span key={item}><Users size={14} /> {item}<button type="button" onClick={() => onRemove(item)}><X size={12} /></button></span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function App() {
   const [provider, setProvider] = useState<DataProvider>(() => createProvider())
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -3028,16 +2116,23 @@ function App() {
       {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={setView} /> : null}
       {effectiveView === 'registry' ? <RegistryView assessments={assessments} user={user} onUpdate={updateAssessment} onBulkImport={bulkImportAssessments} /> : null}
       {effectiveView === 'dashboard' ? <DashboardView assessments={assessments} goals={admin.goals} /> : null}
-      {effectiveView === 'reports' ? <ReportsView assessments={assessments} /> : null}
+      {effectiveView === 'reports' ? (
+        <Suspense fallback={lazyViewFallback}>
+          <ReportsView assessments={assessments} />
+        </Suspense>
+      ) : null}
       {effectiveView === 'admin' && canAdmin(user) ? (
-        <AdminView
-          user={user}
-          admin={admin}
-          users={users}
-          onAdminChange={updateAdmin}
-          onUserSave={saveManagedUser}
-          onUserCreate={createManagedUser}
-        />
+        <Suspense fallback={lazyViewFallback}>
+          <AdminView
+            key={`${users.map((item) => item.id).join('|')}::${admin.specialists.map((item) => item.id).join('|')}::${admin.periods.map((item) => item.code).join('|')}`}
+            user={user}
+            admin={admin}
+            users={users}
+            onAdminChange={updateAdmin}
+            onUserSave={saveManagedUser}
+            onUserCreate={createManagedUser}
+          />
+        </Suspense>
       ) : null}
     </AppShell>
   )
