@@ -1,4 +1,4 @@
-import { TYPE_LABELS } from '../../domain/defs'
+﻿import { TYPE_LABELS } from '../../domain/defs'
 import { ratingLabel } from '../../domain/scoring'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
 
@@ -54,7 +54,7 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
       title: 'Raport szczegolowy',
       description: 'Jeden wiersz na karte z podstawowymi polami operacyjnymi.',
       fileName: 'oceniator-raport-szczegolowy',
-      columns: ['Data', 'Okres', 'Typ', 'Specjalista', 'Lider', 'Dzial', 'Stanowisko', 'Wynik', 'Ocena', 'Status', 'Kontakty'],
+      columns: ['Data', 'Okres', 'Typ', 'Specjalista', 'Lider', 'Dział', 'Stanowisko', 'Wynik', 'Ocena', 'Status', 'Kontakty'],
       rows: [...rows]
         .sort((a, b) => b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt))
         .map((item) => [
@@ -79,10 +79,10 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
       buckets.set(item.spec, [...(buckets.get(item.spec) || []), item])
     })
     return {
-      title: 'Raport specjalistow',
-      description: 'Agregacja wynikow per specjalista wraz z rozkladem ocen.',
+      title: 'Raport specjalistów',
+      description: 'Agregacja wyników per specjalista wraz z rozkładem ocen.',
       fileName: 'oceniator-raport-specjalisci',
-      columns: ['Specjalista', 'Lider', 'Dzial', 'Stanowisko', 'Kart', 'Srednia', 'Min', 'Max', 'Bardzo dobry', 'Dobry', 'Ponizej standardu', 'Ostatnia karta'],
+      columns: ['Specjalista', 'Lider', 'Dział', 'Stanowisko', 'Kart', 'Średnia', 'Min', 'Max', 'Bardzo dobry', 'Dobry', 'Poniżej standardu', 'Ostatnia karta'],
       rows: [...buckets.entries()]
         .map(([specialist, specialistRows]) => {
           const scores = specialistRows.map((item) => item.avgFinal)
@@ -116,7 +116,7 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
     title: 'Raport trendow',
     description: 'Zestawienie wynikow per specjalista i okres rozliczeniowy.',
     fileName: 'oceniator-raport-trendy',
-    columns: ['Specjalista', 'Okres', 'Lider', 'Dzial', 'Kart', 'Srednia', 'Bardzo dobry', 'Ponizej standardu', 'Do decyzji'],
+    columns: ['Specjalista', 'Okres', 'Lider', 'Dział', 'Kart', 'Średnia', 'Bardzo dobry', 'Poniżej standardu', 'Do decyzji'],
     rows: [...trendBuckets.entries()]
       .map(([, trendRows]) => {
         const last = [...trendRows].sort((a, b) => b.data.localeCompare(a.data))[0]

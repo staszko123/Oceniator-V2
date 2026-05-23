@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { Download, Eye, FileText, TrendingUp, Users } from 'lucide-react'
 import { AnalyticsFilterBar } from '../analytics/shared'
 import { applyAnalyticsFilters, defaultAnalyticsFilters } from '../analytics/filters'
@@ -81,10 +81,10 @@ export default function ReportsView({ assessments }: { assessments: Assessment[]
         </div>
         <div className="report-mode-group">
           <button className={mode === 'detail' ? 'active' : ''} type="button" onClick={() => setMode('detail')}>
-            <FileText size={15} /> Szczegolowy
+            <FileText size={15} /> Szczegółowy
           </button>
           <button className={mode === 'summary' ? 'active' : ''} type="button" onClick={() => setMode('summary')}>
-            <Users size={15} /> Specjalisci
+            <Users size={15} /> Specjaliści
           </button>
           <button className={mode === 'trend' ? 'active' : ''} type="button" onClick={() => setMode('trend')}>
             <TrendingUp size={15} /> Trendy
@@ -98,7 +98,7 @@ export default function ReportsView({ assessments }: { assessments: Assessment[]
             <button
               className="ghost-btn"
               type="button"
-              onClick={() => setNotice(printSpecialistProfileReport(filters.specialist, filtered) ? '' : 'Przegladarka zablokowala okno drukowania/PDF.')}
+              onClick={() => setNotice(printSpecialistProfileReport(filters.specialist, filtered) ? '' : 'Przeglądarka zablokowała okno drukowania/PDF.')}
             >
               <FileText size={16} /> Raport PDF specjalisty
             </button>
@@ -107,8 +107,8 @@ export default function ReportsView({ assessments }: { assessments: Assessment[]
         {notice ? <p className="hint-text">{notice}</p> : null}
         <div className="report-kpi-grid">
           <div className="metric-panel"><span>Sredni wynik</span><strong>{activeAvg || '-'}%</strong><small>w aktywnym filtrze</small></div>
-          <div className="metric-panel"><span>Bardzo dobry</span><strong>{activeGreat}</strong><small>kart z ocena wysoka</small></div>
-          <div className="metric-panel"><span>Ponizej standardu</span><strong>{activeBelow}</strong><small>wymagaja reakcji</small></div>
+          <div className="metric-panel"><span>Bardzo dobry</span><strong>{activeGreat}</strong><small>kart z oceną wysoką</small></div>
+          <div className="metric-panel"><span>Poniżej standardu</span><strong>{activeBelow}</strong><small>wymagają reakcji</small></div>
           <div className="metric-panel"><span>Do decyzji</span><strong>{activeReview}</strong><small>submitted lub review</small></div>
         </div>
         <div className="report-preview-panel">
@@ -129,18 +129,18 @@ export default function ReportsView({ assessments }: { assessments: Assessment[]
                 </tbody>
               </table>
             </div>
-          ) : <div className="empty-state">Brak danych dla aktualnego zestawu filtrow.</div>}
-          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pelny zakres pobierzesz z eksportu.</p> : null}
+          ) : <div className="empty-state">Brak danych dla aktualnego zestawu filtrów.</div>}
+          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pełny zakres pobierzesz z eksportu.</p> : null}
         </div>
       </section>
       <section className="data-panel">
         <div className="section-title">
-          <span>Raport liderow</span>
-          <small>agregacja w biezacym filtrze</small>
+          <span>Raport liderów</span>
+          <small>agregacja w bieżącym filtrze</small>
         </div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Lider</th><th>Karty</th><th>Srednia</th><th>Bardzo dobry</th><th>Ponizej standardu</th><th>Do decyzji</th></tr></thead>
+            <thead><tr><th>Lider</th><th>Karty</th><th>Średnia</th><th>Bardzo dobry</th><th>Poniżej standardu</th><th>Do decyzji</th></tr></thead>
             <tbody>
               {byLeader.map((item) => (
                 <tr key={item.leader}>
@@ -157,10 +157,10 @@ export default function ReportsView({ assessments }: { assessments: Assessment[]
         </div>
       </section>
       <section className="data-panel">
-        <div className="section-title"><span>Specjalisci do uwagi</span><small>najslabsze srednie w filtrze</small></div>
+        <div className="section-title"><span>Specjaliści do uwagi</span><small>najsłabsze średnie w filtrze</small></div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
+            <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Średnia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
             <tbody>
               {bySpecialist.map((item) => (
                 <tr key={item.specialist}>

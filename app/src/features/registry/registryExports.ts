@@ -1,4 +1,4 @@
-import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+﻿import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import { ratingLabel } from '../../domain/scoring'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
 
@@ -31,7 +31,7 @@ function downloadFile(fileName: string, mime: string, content: string) {
 }
 
 export function exportCsv(rows: Assessment[]) {
-  const header = ['Specjalista', 'Stanowisko', 'Dzial', 'Typ', 'Okres', 'Data', 'Oceniajacy', 'Wynik', 'Ocena', 'Status']
+  const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status']
   const body = rows.map((item) => [
     item.spec,
     item.stand,
@@ -54,15 +54,15 @@ export function exportJson(rows: Assessment[]) {
 
 export async function exportExcel(rows: Assessment[]) {
   const { utils, writeFile } = await import('xlsx')
-  const header = ['Specjalista', 'Stanowisko', 'Dzial', 'Typ', 'Okres', 'Data', 'Oceniajacy', 'Wynik', 'Ocena', 'Status']
+  const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status']
   const tableRows = rows.map((item) => ({
     Specjalista: item.spec,
     Stanowisko: item.stand,
-    Dzial: item.dzial,
+    Dział: item.dzial,
     Typ: TYPE_LABELS[item.type],
     Okres: item.period,
     Data: item.data,
-    Oceniajacy: item.oce,
+    Oceniający: item.oce,
     Wynik: item.avgFinal,
     Ocena: ratingLabel(item.rating),
     Status: statusLabels[item.status],
@@ -111,12 +111,12 @@ export function printAssessment(assessment: Assessment): boolean {
     .nopr{position:sticky;top:0;background:#07111f;padding:10px;text-align:right}.nopr button{background:#0f8f87;color:#fff;border:0;border-radius:6px;padding:9px 14px;font-weight:700}
     @media print{.nopr{display:none}.page{padding:12mm}header{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
   </style></head><body><div class="nopr"><button onclick="window.print()">Drukuj / Zapisz PDF</button></div><div class="page">
-    <header><div><h1>${esc(def.name)}</h1><small>System Oceny Jakosci PeP & P24</small></div><div class="result">${assessment.avgFinal}%</div></header>
+    <header><div><h1>${esc(def.name)}</h1><small>System Oceny Jakości PeP & P24</small></div><div class="result">${assessment.avgFinal}%</div></header>
     <div class="meta">
       <div><span>Specjalista</span><strong>${esc(assessment.spec)}</strong></div>
       <div><span>Stanowisko</span><strong>${esc(assessment.stand)}</strong></div>
-      <div><span>Dzial</span><strong>${esc(assessment.dzial)}</strong></div>
-      <div><span>Oceniajacy</span><strong>${esc(assessment.oce)}</strong></div>
+      <div><span>Dział</span><strong>${esc(assessment.dzial)}</strong></div>
+      <div><span>Oceniający</span><strong>${esc(assessment.oce)}</strong></div>
       <div><span>Data</span><strong>${esc(assessment.data)}</strong></div>
     </div>
     ${sections}

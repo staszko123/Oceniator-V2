@@ -1,4 +1,4 @@
-import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+﻿import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import type { Assessment } from '../../domain/types'
 
 export type DashboardPanelKey = 'trend' | 'typeMix' | 'sections' | 'leaders' | 'weak' | 'lowScores'
@@ -9,9 +9,9 @@ export type DashboardPrefs = { order: DashboardPanelKey[]; hidden: DashboardPane
 export const dashboardPanelLabels: Record<DashboardPanelKey, string> = {
   trend: 'Trend okresowy',
   typeMix: 'Rozklad typow',
-  sections: 'Sekcje jakosci',
-  leaders: 'Ranking liderow',
-  weak: 'Slabe kryteria',
+  sections: 'Sekcje jakości',
+  leaders: 'Ranking liderów',
+  weak: 'Słabe kryteria',
   lowScores: 'Najpilniejsze karty',
 }
 
@@ -57,7 +57,7 @@ export function sectionBreakdown(rows: Assessment[]) {
   rows.forEach((assessment) => {
     ASSESSMENT_DEFS[assessment.type].sections.forEach((section) => {
       const key = `${assessment.type}-${section.key}`
-      const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} · ${section.label}`, sum: 0, count: 0 }
+      const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} • ${section.label}`, sum: 0, count: 0 }
       current.sum += sectionAverage(assessment, section.key)
       current.count += 1
       buckets.set(key, current)
@@ -77,7 +77,7 @@ export function weakestCriteria(rows: Assessment[]) {
         const values = (assessment.snapshotScores[section.key]?.[criterionIndex] || []).filter((value) => value !== 'nd') as number[]
         if (!values.length) return
         const key = `${assessment.type}-${section.key}-${criterionIndex}`
-        const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} · ${criterion.name}`, sum: 0, count: 0 }
+        const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} • ${criterion.name}`, sum: 0, count: 0 }
         current.sum += values.reduce((acc, value) => acc + value, 0)
         current.count += values.length
         buckets.set(key, current)

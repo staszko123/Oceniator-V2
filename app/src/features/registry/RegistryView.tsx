@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { Download, FileText, Save, Search, Upload, X } from 'lucide-react'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS } from '../../domain/defs'
 import { assessmentToDraft, calculateDraft, draftToAssessment, periodOf } from '../../domain/scoring'
@@ -40,14 +40,14 @@ function AssessmentPreviewModal({
         <header className="modal-header">
           <div>
             <h3>{def.name}</h3>
-            <p>{assessment.spec} · {assessment.period} · {statusLabels[assessment.status]}</p>
+            <p>{assessment.spec} • {assessment.period} • {statusLabels[assessment.status]}</p>
           </div>
           <button type="button" onClick={onClose}><X size={18} /></button>
         </header>
         <div className="preview-grid">
           <div><span>Stanowisko</span><strong>{assessment.stand || '-'}</strong></div>
-          <div><span>Dzial</span><strong>{assessment.dzial || '-'}</strong></div>
-          <div><span>Oceniajacy</span><strong>{assessment.oce || '-'}</strong></div>
+          <div><span>Dział</span><strong>{assessment.dzial || '-'}</strong></div>
+          <div><span>Oceniający</span><strong>{assessment.oce || '-'}</strong></div>
           <div><span>Data</span><strong>{assessment.data}</strong></div>
           <div><span>Wynik</span><strong className={scoreClass(assessment.avgFinal)}>{assessment.avgFinal}%</strong></div>
         </div>
@@ -87,7 +87,7 @@ function AssessmentPreviewModal({
           {(assessment.statusHistory || []).length ? assessment.statusHistory.map((item, index) => (
             <div className="timeline-item" key={`${item.status}-${item.at}-${index}`}>
               <strong>{statusLabels[item.status]}</strong>
-              <span>{new Date(item.at).toLocaleString('pl-PL')} · {item.by || 'system'}</span>
+              <span>{new Date(item.at).toLocaleString('pl-PL')} • {item.by || 'system'}</span>
               <small>{item.note}</small>
             </div>
           )) : <p className="hint-text">Brak zapisanej historii statusow dla tej karty.</p>}
@@ -156,7 +156,7 @@ function AssessmentEditModal({
       })
       onClose()
     } catch (err) {
-      setError(readableError(err, 'Nie udalo sie zapisac zmian w karcie.'))
+      setError(readableError(err, 'Nie udało się zapisać zmian w karcie.'))
     } finally {
       setBusy(false)
     }
@@ -168,7 +168,7 @@ function AssessmentEditModal({
         <header className="modal-header">
           <div>
             <h3>Edytuj karte</h3>
-            <p>{assessment.spec} · wynik po zmianach {calculated.avgFinal}%</p>
+            <p>{assessment.spec} • wynik po zmianach {calculated.avgFinal}%</p>
           </div>
           <button type="button" onClick={onClose}><X size={18} /></button>
         </header>
@@ -177,7 +177,7 @@ function AssessmentEditModal({
           <label><span>Specjalista</span><input value={draft.specialist} onChange={(event) => setDraft({ ...draft, specialist: event.target.value })} /></label>
           <label><span>Data</span><input type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value, period: periodOf(event.target.value) })} /></label>
           <label><span>Stanowisko</span><input value={draft.position} onChange={(event) => setDraft({ ...draft, position: event.target.value })} /></label>
-          <label><span>Dzial</span><input value={draft.department} onChange={(event) => setDraft({ ...draft, department: event.target.value })} /></label>
+          <label><span>Dział</span><input value={draft.department} onChange={(event) => setDraft({ ...draft, department: event.target.value })} /></label>
         </div>
         <div className="edit-contact-grid" style={{ gridTemplateColumns: `repeat(${draft.contactCount}, minmax(0, 1fr))` }}>
           {draft.contactIds.map((contactId, index) => (
@@ -330,7 +330,7 @@ export default function RegistryView({
       })
       setNotice(`Status zmieniony na: ${statusLabels[nextStatus]}.`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zmienic statusu.'))
+      setNotice(readableError(error, 'Nie udało się zmienic statusu.'))
     }
   }
 
@@ -369,12 +369,12 @@ export default function RegistryView({
       if (kind === 'json') exportJson(rows)
       setNotice(`Eksport ${kind.toUpperCase()} przygotowany dla ${rows.length} pozycji.`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie przygotowac eksportu.'))
+      setNotice(readableError(error, 'Nie udało się przygotowac eksportu.'))
     }
   }
 
   function printRow(item: Assessment) {
-    if (!printAssessment(item)) setNotice('Przegladarka zablokowala nowe okno drukowania/PDF.')
+    if (!printAssessment(item)) setNotice('Przeglądarka zablokowała nowe okno drukowania/PDF.')
   }
 
   return (
@@ -417,7 +417,7 @@ export default function RegistryView({
         <div className="row-action-strip">
           {canAdvanceStatuses ? rows.filter(canAdvanceRow).slice(0, 6).map((item) => (
             <button key={item.id} className="ghost-btn" type="button" onClick={() => advance(item)}>
-              {item.spec}: {statusLabels[item.status]} →
+              {item.spec}: {statusLabels[item.status]} â†’
             </button>
           )) : <span className="hint-text">Tryb tylko do odczytu: podglad i eksporty pozostaja dostepne.</span>}
         </div>

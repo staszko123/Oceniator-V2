@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDashboard, Maximize2, RotateCcw, Settings, TrendingUp, Trophy } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, AssessmentType } from '../../domain/types'
@@ -60,7 +60,7 @@ function DashboardWidget({
       onDrop={() => onDrop(panel)}
     >
       <div className="widget-head">
-        <button className="drag-handle" type="button" title="Przeciagnij panel"><GripVertical size={16} /></button>
+        <button className="drag-handle" type="button" title="Przeciągnij panel"><GripVertical size={16} /></button>
         <div className="section-title"><span>{title}</span><small>{subtitle}</small></div>
         <button className="widget-icon-btn" type="button" onClick={() => onHide(panel)} title="Ukryj panel"><EyeOff size={15} /></button>
       </div>
@@ -158,16 +158,16 @@ export default function DashboardView({
       ['Cel sredniej', `${goals.minAvg}%`],
       ['Bardzo dobry', `${greatShare}%`],
       ['Karty aktywne', active.length],
-      ['Ponizej standardu', belowCount],
+      ['Poniżej standardu', belowCount],
       ['Kolejka decyzyjna', reviewCount],
       ['Filtr okresu', filters.period],
       ['Filtr typu', filters.type],
       ['Filtr lidera', filters.leader],
       ['Filtr specjalisty', filters.specialist],
     ]
-    const trendRows = [['Okres', 'Karty', 'Srednia', 'Ponizej standardu', 'Do decyzji'], ...trend.map((item) => [item.period, item.count, `${item.avg}%`, item.below, item.review])]
-    const leaderRows = [['Lider', 'Karty', 'Srednia', 'Ponizej standardu', 'Do decyzji'], ...leaders.map((item) => [item.leader, item.count, `${item.avg}%`, item.below, item.review])]
-    const weakRows = [['Kryterium', 'Srednia', 'Liczba ocen'], ...weak.map((item) => [item.label, `${item.avg}%`, item.count])]
+    const trendRows = [['Okres', 'Karty', 'Średnia', 'Poniżej standardu', 'Do decyzji'], ...trend.map((item) => [item.period, item.count, `${item.avg}%`, item.below, item.review])]
+    const leaderRows = [['Lider', 'Karty', 'Średnia', 'Poniżej standardu', 'Do decyzji'], ...leaders.map((item) => [item.leader, item.count, `${item.avg}%`, item.below, item.review])]
+    const weakRows = [['Kryterium', 'Średnia', 'Liczba ocen'], ...weak.map((item) => [item.label, `${item.avg}%`, item.count])]
     const blocks = [
       ['Podsumowanie dashboardu'],
       ...summary,
@@ -175,10 +175,10 @@ export default function DashboardView({
       ['Trend okresowy'],
       ...trendRows,
       [],
-      ['Ranking liderow'],
+      ['Ranking liderów'],
       ...leaderRows,
       [],
-      ['Slabe kryteria'],
+      ['Słabe kryteria'],
       ...weakRows,
     ]
     const csv = `\uFEFF${blocks.map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
@@ -197,8 +197,8 @@ export default function DashboardView({
       ['Tryb danych', assessments.length ? 'aktywny' : 'brak kart'],
       ['Karty po filtrze', String(active.length)],
       ['Wszystkie karty w zakresie', String(assessments.length)],
-      ['Widoczne widzety', String(visiblePanels.length)],
-      ['Ukryte widzety', String(prefs.hidden.length)],
+      ['Widoczne widgety', String(visiblePanels.length)],
+      ['Ukryte widgety', String(prefs.hidden.length)],
       ['LocalStorage', storage],
     ]
   }
@@ -220,7 +220,7 @@ export default function DashboardView({
                 </div>
                 <div className="trend-label">
                   <span>{item.period}</span>
-                  <small>{item.below} nisko · {item.review} decyzji</small>
+                  <small>{item.below} nisko • {item.review} decyzji</small>
                 </div>
               </div>
             ))}
@@ -251,7 +251,7 @@ export default function DashboardView({
     }
     if (panel === 'sections') {
       return (
-        <DashboardWidget panel={panel} title="Sekcje jakosci" subtitle="od najslabszej" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Sekcje jakości" subtitle="od najsłabszej" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           {sections.slice(0, 8).map((item, index) => (
             <div className="bar-row rich" key={item.label} style={{ ['--row-index' as string]: index }}>
               <span>{item.label}</span>
@@ -264,7 +264,7 @@ export default function DashboardView({
     }
     if (panel === 'weak') {
       return (
-        <DashboardWidget panel={panel} title="Slabe kryteria" subtitle="kolejka coachingowa" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Słabe kryteria" subtitle="kolejka coachingowa" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="weak-list enhanced">
             {weak.map((item) => (
               <div className="weak-item" key={item.label}>
@@ -279,14 +279,14 @@ export default function DashboardView({
     }
     if (panel === 'leaders') {
       return (
-        <DashboardWidget panel={panel} title="Ranking liderow" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Ranking liderów" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="leader-board">
             {leaders.map((item, index) => (
               <div className="leader-row" key={item.leader}>
                 <div className="leader-rank">{index < 3 ? <Trophy size={15} /> : index + 1}</div>
                 <div>
                   <strong>{item.leader}</strong>
-                  <span>{item.count} kart · {item.review} do decyzji · {item.below} nisko</span>
+                  <span>{item.count} kart • {item.review} do decyzji • {item.below} nisko</span>
                 </div>
                 <span className={scoreClass(item.avg)}>{item.avg}%</span>
               </div>
@@ -306,9 +306,9 @@ export default function DashboardView({
     <main className={`screen dashboard-screen density-${prefs.density} layout-${prefs.layout}`}>
       <section className="dashboard-hero">
         <div className="dashboard-hero-copy">
-          <div className="section-title"><span>Dashboard jakosci</span><small>{active.length} kart w aktywnym filtrze</small></div>
+          <div className="section-title"><span>Dashboard jakości</span><small>{active.length} kart w aktywnym filtrze</small></div>
           <h1>Interaktywny pulpit wynikow, celow i ryzyk zespolu.</h1>
-          <p className="hint-text">Przeciagaj sekcje za uchwyt, ukrywaj mniej potrzebne widzety i przelaczaj gestosc ukladu. Preferencje zapisza sie lokalnie.</p>
+          <p className="hint-text">Przeciągaj sekcje za uchwyt, ukrywaj mniej potrzebne widgety i przełączaj gęstość układu. Preferencje zapiszą się lokalnie.</p>
         </div>
         <div className="quality-ring" style={{ ['--score' as string]: `${avg || 0}%` }}>
           <div>
@@ -372,13 +372,13 @@ export default function DashboardView({
         <div className="metric-panel premium"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
         <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}% udzialu</small></div>
         <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
-        <div className="metric-panel premium"><span>Ponizej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
+        <div className="metric-panel premium"><span>Poniżej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
       </section>
       <div className="analytics-grid movable-grid">
         {allPanelsHidden ? (
           <section className="empty-dashboard">
             <Settings size={34} />
-            <h3>Wszystkie widzety sa ukryte</h3>
+            <h3>Wszystkie widgety są ukryte</h3>
             <p>Przywroc wybrane panele w konfiguracji albo zresetuj caly uklad dashboardu.</p>
             <button className="primary-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Przywroc domyslny uklad</button>
           </section>

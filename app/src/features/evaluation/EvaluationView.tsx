@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { FileText, Mail, MonitorCog, PhoneCall, Save, ShieldCheck, Trash2 } from 'lucide-react'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS, TYPE_LABELS } from '../../domain/defs'
 import { calculateDraft, createDraft, periodOf, ratingLabel, resizeDraft } from '../../domain/scoring'
@@ -52,7 +52,7 @@ export default function EvaluationView({
   }, [admin.specialists, user])
   const draftSaveState = draft.savedAt
     ? `Szkic lokalny zapisany o ${new Date(draft.savedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`
-    : 'Zmiany sa zapisywane lokalnie po kazdej edycji.'
+    : 'Zmiany są zapisywane lokalnie po każdej edycji.'
 
   function update(next: AssessmentDraft) {
     if (notice) setNotice('')
@@ -97,7 +97,7 @@ export default function EvaluationView({
     setAssistantResult({
       status: 'ok',
       title: 'Generator podsumowania',
-      summary: 'Wygenerowano robocze podsumowanie na podstawie sekcji i wynikow.',
+      summary: 'Wygenerowano robocze podsumowanie na podstawie sekcji i wyników.',
       warnings: [],
       suggestions: ['Przejrzyj tekst przed zapisem i dopasuj go do realnego feedbacku dla specjalisty.'],
     })
@@ -105,11 +105,11 @@ export default function EvaluationView({
 
   async function submit() {
     if (!draft.specialist.trim()) {
-      setNotice('Wybierz specjaliste przed zapisem.')
+      setNotice('Wybierz specjalistę przed zapisem.')
       return
     }
     if (!draft.contactIds.some(Boolean)) {
-      setNotice('Uzupelnij co najmniej jeden identyfikator kontaktu.')
+      setNotice('Uzupełnij co najmniej jeden identyfikator kontaktu.')
       return
     }
     try {
@@ -119,7 +119,7 @@ export default function EvaluationView({
       })
       setNotice('Karta dodana do ewidencji.')
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zapisac karty.'))
+      setNotice(readableError(error, 'Nie udało się zapisać karty.'))
     }
   }
 
@@ -144,7 +144,7 @@ export default function EvaluationView({
           <div className="field-grid">
             <label>
               <span>Specjalista</span>
-              <input list="specialists" value={draft.specialist} onChange={(event) => selectSpecialist(event.target.value)} placeholder="Zacznij wpisywac..." />
+              <input list="specialists" value={draft.specialist} onChange={(event) => selectSpecialist(event.target.value)} placeholder="Zacznij wpisywać..." />
               <datalist id="specialists">
                 {specialists.map((item) => <option key={item.id} value={item.name} />)}
               </datalist>
@@ -162,7 +162,7 @@ export default function EvaluationView({
               <input value={draft.position} onChange={(event) => updateField('position', event.target.value)} />
             </label>
             <label>
-              <span>Dzial</span>
+              <span>Dział</span>
               <input value={draft.department} onChange={(event) => updateField('department', event.target.value)} />
             </label>
           </div>
@@ -251,7 +251,7 @@ export default function EvaluationView({
         <section className="form-card">
           <div className="field-grid two">
             <label>
-              <span>Zlote punkty</span>
+              <span>Złote punkty</span>
               <div className="gold-row">
                 {draft.gold.map((value, index) => (
                   <select
@@ -272,7 +272,7 @@ export default function EvaluationView({
             </label>
             <label>
               <span>Opis / podsumowanie</span>
-              <textarea value={draft.summary} onChange={(event) => updateField('summary', event.target.value)} placeholder="Wnioski i plan dzialania..." />
+              <textarea value={draft.summary} onChange={(event) => updateField('summary', event.target.value)} placeholder="Wnioski i plan działania..." />
             </label>
           </div>
         </section>
@@ -280,13 +280,13 @@ export default function EvaluationView({
       <aside className="right-rail">
         <section className="rail-card">
           <div className="section-title"><span>Akcje</span><small>{notice || draftSaveState}</small></div>
-          <button className="primary-btn wide" onClick={submit} disabled={!canCreate(user)} type="button"><Save size={16} /> Dodaj karte</button>
-          <button className="ghost-btn wide" onClick={() => update(createDraft(draft.type))} type="button"><Trash2 size={16} /> Wyczysc szkic</button>
+          <button className="primary-btn wide" onClick={submit} disabled={!canCreate(user)} type="button"><Save size={16} /> Dodaj kartę</button>
+          <button className="ghost-btn wide" onClick={() => update(createDraft(draft.type))} type="button"><Trash2 size={16} /> Wyczyść szkic</button>
         </section>
         <section className="rail-card assistant-card">
           <div className="section-title"><span>Asystent oceny</span><small>inspiracja z legacy, przebudowana pod v2</small></div>
           <div className="assistant-actions">
-            <button className="ghost-btn wide" type="button" onClick={runDraftGuard}><ShieldCheck size={16} /> Sprawdz karte</button>
+            <button className="ghost-btn wide" type="button" onClick={runDraftGuard}><ShieldCheck size={16} /> Sprawdź kartę</button>
             <button className="ghost-btn wide" type="button" onClick={generateSummary}><FileText size={16} /> Wygeneruj podsumowanie</button>
           </div>
           {assistantResult ? (
@@ -310,7 +310,7 @@ export default function EvaluationView({
                 </div>
               ) : null}
             </div>
-          ) : <p className="hint-text">Uzyj kontroli jakosci przed zapisem albo wygeneruj pierwsza wersje komentarza koncowego.</p>}
+          ) : <p className="hint-text">Użyj kontroli jakości przed zapisem albo wygeneruj pierwsza wersje komentarza koncowego.</p>}
         </section>
         <section className="rail-card result-card">
           <div className="section-title"><span>Wynik koncowy</span><small>{ratingLabel(calculated.rating)}</small></div>

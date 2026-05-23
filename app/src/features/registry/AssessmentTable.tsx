@@ -34,7 +34,7 @@ export function AssessmentTable({
   onAdvance?: (assessment: Assessment) => void
   canAdvanceItem?: (assessment: Assessment) => boolean
 }) {
-  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrow.</div>
+  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrów.</div>
   const hasActions = Boolean(onPreview || onPrint || onEdit || onAdvance)
   return (
     <div className="table-wrap">
@@ -45,7 +45,7 @@ export function AssessmentTable({
             <th>Typ</th>
             <th>Okres</th>
             <th>Data</th>
-            {!compact ? <th>Oceniajacy</th> : null}
+            {!compact ? <th>Oceniający</th> : null}
             <th>Wynik</th>
             <th>Status</th>
             {hasActions ? <th>Akcje</th> : null}
@@ -64,7 +64,7 @@ export function AssessmentTable({
               {hasActions ? (
                 <td>
                   <div className="table-actions">
-                    {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podglad"><Eye size={15} /></button> : null}
+                    {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podgląd"><Eye size={15} /></button> : null}
                     {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
                     {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
                     {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}

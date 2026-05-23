@@ -1,4 +1,4 @@
-import { ASSESSMENT_DEFS } from '../../domain/defs'
+﻿import { ASSESSMENT_DEFS } from '../../domain/defs'
 import { calculateDraft, ratingLabel } from '../../domain/scoring'
 import type { AssessmentDraft } from '../../domain/types'
 
@@ -32,23 +32,23 @@ export function reviewDraftQuality(draft: AssessmentDraft): DraftAssistantResult
 
   if (!draft.specialist.trim()) warnings.push('Brakuje wybranego specjalisty.')
   if (!draft.date) warnings.push('Brakuje daty oceny.')
-  if (!filledIds.length) warnings.push('Uzupelnij przynajmniej jeden identyfikator kontaktu.')
+  if (!filledIds.length) warnings.push('Uzupełnij przynajmniej jeden identyfikator kontaktu.')
   if (filledIds.length && filledIds.length < draft.contactCount) {
-    suggestions.push('Nie wszystkie pola kontaktow sa uzupelnione. Sprawdz, czy liczba kontaktow zgadza sie z karta.')
+    suggestions.push('Nie wszystkie pola kontaktów są uzupełnione. Sprawdź, czy liczba kontaktów zgadza się z kartą.')
   }
   if (lowScores > 0 && noteCount === 0 && !draft.summary.trim()) {
-    warnings.push('W karcie sa obnizone oceny, ale brakuje komentarzy sekcyjnych lub podsumowania.')
+    warnings.push('W karcie są obniżone oceny, ale brakuje komentarzy sekcyjnych lub podsumowania.')
   }
   if (hasGold && !draft.goldDescription.trim()) {
-    warnings.push('Dodano zlote punkty bez opisu sytuacji.')
+    warnings.push('Dodano złote punkty bez opisu sytuacji.')
   }
   if (finalScore >= 92 && !draft.summary.trim()) {
-    suggestions.push('Przy bardzo dobrym wyniku warto dodac krotkie podsumowanie, zeby karta byla czytelna w ewidencji.')
+    suggestions.push('Przy bardzo dobrym wyniku warto dodać krótkie podsumowanie, żeby karta była czytelna w ewidencji.')
   }
 
   return {
     status: warnings.length ? 'warning' : 'ok',
-    title: 'Kontrola jakosci karty',
+    title: 'Kontrola jakości karty',
     summary: warnings.length
       ? `Wykryto ${warnings.length} ryzyk przed zapisem.`
       : 'Karta nie ma widocznych ryzyk przed zapisem.',
@@ -66,10 +66,10 @@ export function buildDraftSummary(draft: AssessmentDraft): string {
     const intro = score >= 92
       ? `${cleanSectionLabel(section.label)} jest na wysokim poziomie.`
       : score >= 82
-        ? `${cleanSectionLabel(section.label)} jest na dobrym poziomie, ale widac miejsce na doszlifowanie.`
-        : `${cleanSectionLabel(section.label)} wymaga poprawy i doprecyzowania dalszych dzialan.`
+        ? `${cleanSectionLabel(section.label)} jest na dobrym poziomie, ale widać miejsce na doszlifowanie.`
+        : `${cleanSectionLabel(section.label)} wymaga poprawy i doprecyzowania dalszych działań.`
     return `${intro} Wynik sekcji: ${score}%.${notes ? ` Uwagi: ${notes}` : ''}`
   })
-  parts.push(`Wynik koncowy wynosi ${calculated.avgFinal}%. Ocena: ${ratingLabel(calculated.rating)}.`)
+  parts.push(`Wynik końcowy wynosi ${calculated.avgFinal}%. Ocena: ${ratingLabel(calculated.rating)}.`)
   return parts.join('\n\n')
 }

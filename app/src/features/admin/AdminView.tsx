@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Save, Trash2, Users, X } from 'lucide-react'
 import type { AdminConfig, AssessmentPeriod, ManagedUser, Specialist, UserProfile } from '../../domain/types'
 
@@ -6,8 +6,8 @@ const roleLabels: Record<UserProfile['role'], string> = {
   admin: 'Administrator',
   director: 'Dyrektor',
   leader: 'Lider',
-  assessor: 'Oceniajacy',
-  viewer: 'Podglad',
+  assessor: 'Oceniający',
+  viewer: 'Podgląd',
 }
 
 function canAdmin(user: UserProfile): boolean {
@@ -54,7 +54,7 @@ function DictionaryEditor({
     <div className="dictionary-editor">
       <h3>{title}</h3>
       <div className="dictionary-add">
-        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder="Nowa wartosc" />
+        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder="Nowa wartość" />
         <button type="button" onClick={onAdd}><Plus size={15} /></button>
       </div>
       <div className="dictionary-list">
@@ -107,7 +107,7 @@ export default function AdminView({
   if (!canAdmin(user)) {
     return (
       <main className="screen">
-        <div className="empty-state">Brak dostepu do panelu admina dla tej roli.</div>
+        <div className="empty-state">Brak dostępu do panelu administratora dla tej roli.</div>
       </main>
     )
   }
@@ -128,7 +128,7 @@ export default function AdminView({
       setDraftAdmin(next)
       setNotice(`Zapisano konfiguracje ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zapisac konfiguracji.'))
+      setNotice(readableError(error, 'Nie udało się zapisać konfiguracji.'))
     }
   }
 
@@ -138,7 +138,7 @@ export default function AdminView({
       await onUserSave(selectedUser)
       setNotice(`Zapisano uzytkownika ${selectedUser.email || selectedUser.login}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zapisac uzytkownika.'))
+      setNotice(readableError(error, 'Nie udało się zapisać uzytkownika.'))
     }
   }
 
@@ -159,7 +159,7 @@ export default function AdminView({
       setNewUser({ ...newUser, id: '', email: '', login: '', fullName: '', password: '', role: 'viewer', leaderScope: '', isActive: true })
       setNotice(`Dodano uzytkownika ${saved.email || saved.login}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie utworzyc uzytkownika.'))
+      setNotice(readableError(error, 'Nie udało się utworzyc uzytkownika.'))
     }
   }
 
@@ -227,13 +227,13 @@ export default function AdminView({
     <main className="screen admin-screen">
       <section className="admin-hero data-panel">
         <div>
-          <div className="section-title"><span>Panel admina</span><small>{notice || 'Konfiguracja slownikow i celow'}</small></div>
-          <p className="hint-text">Zmiany w tym widoku zasilaja formularz oceny, zakres liderow oraz raporty. Zapis jest jawny, zeby uniknac przypadkowych zmian slownikow.</p>
+          <div className="section-title"><span>Panel administratora</span><small>{notice || 'Konfiguracja slownikow i celow'}</small></div>
+          <p className="hint-text">Zmiany w tym widoku zasilaja formularz oceny, zakres liderów oraz raporty. Zapis jest jawny, żeby uniknac przypadkowych zmian slownikow.</p>
         </div>
         <button className="primary-btn" onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfiguracje</button>
       </section>
       <section className="data-panel">
-        <div className="section-title"><span>Cele jakosciowe</span><small>progi i wolumeny</small></div>
+        <div className="section-title"><span>Cele jakościowe</span><small>progi i wolumeny</small></div>
         <div className="field-grid two">
           <label><span>Minimum sredniej</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
           <label><span>Udzial bardzo dobrych</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
@@ -243,7 +243,7 @@ export default function AdminView({
         </div>
       </section>
       <section className="data-panel dictionary-panel">
-        <div className="section-title"><span>Slowniki</span><small>liderzy, dzialy, stanowiska</small></div>
+        <div className="section-title"><span>Słowniki</span><small>liderzy, dzialy, stanowiska</small></div>
         <div className="dictionary-columns">
           <DictionaryEditor
             title="Liderzy"
@@ -254,7 +254,7 @@ export default function AdminView({
             onRemove={(value) => removeDictionary('leaders', value)}
           />
           <DictionaryEditor
-            title="Dzialy"
+            title="Działy"
             values={draftAdmin.departments}
             value={newDepartment}
             onValue={setNewDepartment}
@@ -273,12 +273,12 @@ export default function AdminView({
       </section>
       <section className="data-panel specialist-admin">
         <div className="section-title">
-          <span>Specjalisci</span>
+          <span>Specjaliści</span>
           <small>{draftAdmin.specialists.filter((item) => item.active).length} aktywnych / {draftAdmin.specialists.length} lacznie</small>
         </div>
         <div className="specialist-layout">
           <div className="specialist-list">
-            <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> Dodaj specjaliste</button>
+            <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> Dodaj specjalistę</button>
             {draftAdmin.specialists.map((specialist) => (
               <button
                 key={specialist.id}
@@ -287,26 +287,26 @@ export default function AdminView({
                 onClick={() => setSelectedSpecialistId(specialist.id)}
               >
                 <strong>{specialist.name || 'Nowy specjalista'}</strong>
-                <small>{specialist.leader || 'Bez lidera'} · {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
+                <small>{specialist.leader || 'Bez lidera'} • {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
               </button>
             ))}
           </div>
           <div className="specialist-editor">
             <div className="field-grid two">
-              <label><span>Imie i nazwisko</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
+              <label><span>Imię i nazwisko</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
               <label><span>Lider</span><select value={selectedSpecialist.leader} onChange={(event) => updateSpecialist(selectedSpecialist.id, { leader: event.target.value })}>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-              <label><span>Dzial</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+              <label><span>Dział</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
               <label><span>Stanowisko</span><select value={selectedSpecialist.position} onChange={(event) => updateSpecialist(selectedSpecialist.id, { position: event.target.value })}>{draftAdmin.positions.map((position) => <option key={position} value={position}>{position}</option>)}</select></label>
             </div>
             <div className="admin-inline-actions">
               <label className="toggle-line"><input type="checkbox" checked={selectedSpecialist.active} onChange={(event) => updateSpecialist(selectedSpecialist.id, { active: event.target.checked })} /> Aktywny specjalista</label>
-              <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> Usun z listy</button>
+              <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> Usuń z listy</button>
             </div>
           </div>
         </div>
       </section>
       <section className="data-panel user-admin">
-        <div className="section-title"><span>Uzytkownicy i role</span><small>{draftUsers.length} kont</small></div>
+        <div className="section-title"><span>Użytkownicy i role</span><small>{draftUsers.length} kont</small></div>
         <div className="user-layout">
           <div className="user-list">
             {draftUsers.map((account) => (
@@ -317,7 +317,7 @@ export default function AdminView({
                 onClick={() => setSelectedUserId(account.id)}
               >
                 <strong>{account.fullName || account.email || account.login}</strong>
-                <small>{roleLabels[account.role]} · {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
+                <small>{roleLabels[account.role]} • {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
               </button>
             ))}
           </div>
@@ -327,10 +327,10 @@ export default function AdminView({
                 <div className="field-grid two">
                   <label><span>Email</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
                   <label><span>Login lokalny</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
-                  <label><span>Imie i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
+                  <label><span>Imię i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
                   <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
                   <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-                  <label><span>Haslo lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
+                  <label><span>Hasło lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
                 </div>
                 <div className="admin-inline-actions">
                   <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> Konto aktywne</label>
@@ -345,8 +345,8 @@ export default function AdminView({
           <div className="field-grid">
             <label><span>Email</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
             <label><span>Login lokalny</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
-            <label><span>Imie i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
-            <label><span>Haslo startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+            <label><span>Imię i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
+            <label><span>Hasło startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
             <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
             <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
           </div>

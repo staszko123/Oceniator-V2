@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { BarChart3, ClipboardCheck, Database, Eye, FileBarChart, FileText, LayoutDashboard, LogOut, Mail, MonitorCog, Moon, PanelRight, PhoneCall, Plus, RotateCcw, Settings, ShieldCheck, Sun, Trash2, UserRound, Users } from 'lucide-react'
 import { TYPE_LABELS } from './domain/defs'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
@@ -23,13 +23,13 @@ import './index.css'
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
 const navItems: Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboard }> = [
-  { key: 'start', label: 'Start', icon: LayoutDashboard },
-  { key: 'form', label: 'Ocena rozmow', icon: PhoneCall },
-  { key: 'team', label: 'Moj Zespol', icon: Users },
+  { key: 'start', label: 'G\u0142\u00F3wna', icon: LayoutDashboard },
+  { key: 'form', label: 'Ocena rozm\u00F3w', icon: PhoneCall },
+  { key: 'team', label: 'M\u00F3j zesp\u00F3\u0142', icon: Users },
   { key: 'registry', label: 'Ewidencja', icon: ClipboardCheck },
-  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { key: 'dashboard', label: 'Analityka', icon: BarChart3 },
   { key: 'reports', label: 'Raporty', icon: FileBarChart },
-  { key: 'admin', label: 'Panel admina', icon: Settings },
+  { key: 'admin', label: 'Administracja', icon: Settings },
 ]
 
 const localDemoAccounts = 'admin/admin123, lider01/lider123, lider02/lider123, lider/lider123, oceniajacy/ocena123, podglad/podglad123'
@@ -39,7 +39,7 @@ const AdminView = lazy(() => import('./features/admin/AdminView'))
 const DashboardView = lazy(() => import('./features/dashboard/DashboardView'))
 const lazyViewFallback = (
   <main className="screen">
-    <div className="empty-state">Ladowanie widoku...</div>
+    <div className="empty-state">{'\u0141adowanie widoku...'}</div>
   </main>
 )
 
@@ -115,7 +115,7 @@ function LoginScreen({
     try {
       await onLogin(login, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nie udalo sie zalogowac.')
+      setError(err instanceof Error ? err.message : 'Nie uda\u0142o si\u0119 zalogowa\u0107.')
     } finally {
       setBusy(false)
     }
@@ -127,7 +127,7 @@ function LoginScreen({
     try {
       await onLocalDemo()
     } catch (err) {
-      setError(readableError(err, 'Nie udalo sie uruchomic lokalnego demo.'))
+      setError(readableError(err, 'Nie uda\u0142o si\u0119 uruchomi\u0107 lokalnego demo.'))
     } finally {
       setBusy(false)
     }
@@ -140,46 +140,87 @@ function LoginScreen({
           <span />
           <div>
             <strong>Oceniator</strong>
-            <small>Quality Operations SaaS</small>
+            <small>{'Platforma oceny jako\u015Bci'}</small>
           </div>
         </div>
-        <h1>Centrum jakosci, ktore prowadzi caly proces oceny.</h1>
-        <p>
-          Formularze, ewidencja, raporty i administracja w jednym neutralnym,
-          produkcyjnym portalu z szybkim trybem demo i gotowoscia pod Supabase.
-        </p>
-        <div className="login-proof">
-          <div><ShieldCheck size={18} /> Role i zakresy</div>
-          <div><Database size={18} /> Supabase lub lokalnie</div>
-          <div><PanelRight size={18} /> Operacyjny pulpit</div>
+        <div className="login-copy">
+          <span className="login-kicker">{'System operacyjny dla jako\u015Bci'}</span>
+          <h1>{'Ocena jako\u015Bci, ewidencja i decyzje lider\u00F3w w jednym uporz\u0105dkowanym miejscu.'}</h1>
+          <p>
+            {'Ten ekran ma prowadzi\u0107 do pracy w produkcie, nie wygl\u0105da\u0107 jak tani szablon. '}
+            {'Dostajesz szybkie wej\u015Bcie do aplikacji, tryb demo i czytelny kontekst operacyjny.'}
+          </p>
+        </div>
+        <div className="login-metrics">
+          <article>
+            <strong>3 obszary</strong>
+            <span>ocena, ewidencja, raportowanie</span>
+          </article>
+          <article>
+            <strong>Role i zakresy</strong>
+            <span>{'admin, dyrektor, lider, oceniaj\u0105cy, podgl\u0105d'}</span>
+          </article>
+          <article>
+            <strong>Tryb danych</strong>
+            <span>Supabase albo lokalne demo</span>
+          </article>
+        </div>
+        <div className="login-preview">
+          <section className="login-preview-card">
+            <header>
+              <span>{'Przep\u0142yw pracy'}</span>
+              <strong>Od oceny do decyzji</strong>
+            </header>
+            <ol>
+              <li>{'Uzupe\u0142nij kart\u0119 i zapisz szkic lokalnie.'}</li>
+              <li>{'Przejd\u017A do ewidencji i domknij status.'}</li>
+              <li>{'Sprawd\u017A raporty, trendy i priorytety coachingowe.'}</li>
+            </ol>
+          </section>
+          <section className="login-preview-card compact">
+            <header>
+              <span>Widok operacyjny</span>
+              <strong>Gotowy do codziennej pracy</strong>
+            </header>
+            <div className="login-proof">
+              <div><ShieldCheck size={18} /> {'Historia zmian i status\u00F3w'}</div>
+              <div><Database size={18} /> Dane lokalne lub Supabase</div>
+              <div><PanelRight size={18} /> Eksporty, raporty i PDF</div>
+            </div>
+          </section>
         </div>
       </section>
       <section className="login-card">
-        <div className="section-title">
-          <span>{provider.mode === 'supabase' ? 'Logowanie Supabase' : 'Tryb lokalny'}</span>
-          <button className="theme-toggle" type="button" onClick={toggleTheme} title="Przelacz motyw">
+        <div className="section-title login-card-head">
+          <div>
+            <span>{provider.mode === 'supabase' ? 'Logowanie Supabase' : 'Logowanie lokalne'}</span>
+            <p className="login-card-copy">
+              {'Wejd\u017A do aplikacji i kontynuuj prac\u0119 bez ekran\u00F3w przej\u015Bciowych.'}
+            </p>
+          </div>
+          <button className="theme-toggle" type="button" onClick={toggleTheme} title={'Prze\u0142\u0105cz motyw'}>
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             <span>{theme === 'dark' ? 'Jasny' : 'Ciemny'}</span>
           </button>
         </div>
         <form onSubmit={submit} className="stack">
           <label>
-            <span>{provider.mode === 'supabase' ? 'Email' : 'Login'}</span>
+            <span>{provider.mode === 'supabase' ? 'Adres e-mail' : 'Login lokalny'}</span>
             <input value={login} onChange={(event) => setLogin(event.target.value)} autoFocus />
           </label>
           <label>
-            <span>Haslo</span>
+            <span>{'Has\u0142o'}</span>
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
           {error ? <div className="error-box">{error}</div> : null}
           <button className="primary-btn" disabled={busy} type="submit">
-            {busy ? 'Logowanie...' : 'Wejdz do aplikacji'}
+            {busy ? 'Logowanie...' : 'Zaloguj si\u0119'}
           </button>
         </form>
         <button className="ghost-btn wide" type="button" disabled={busy} onClick={() => void startLocalDemo()}>
-          Uruchom lokalne demo jako admin
+          Uruchom demo lokalne jako administrator
         </button>
-        <p className="hint-text">Konta demo: {localDemoAccounts}.</p>
+        <p className="hint-text">Konta testowe: {localDemoAccounts}.</p>
       </section>
     </main>
   )
@@ -215,7 +256,7 @@ function AppShell({
           <span className="logo-box" />
           <div>
             <strong>Oceniator</strong>
-            <small>Quality OS</small>
+            <small>{'System jako\u015Bci'}</small>
           </div>
         </div>
         <nav className="side-nav">
@@ -241,19 +282,19 @@ function AppShell({
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             <span>{theme === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'}</span>
           </button>
-          <div className="mode-chip"><Database size={14} /> {providerMode === 'supabase' ? 'Supabase' : 'Local demo'}</div>
+          <div className="mode-chip"><Database size={14} /> {providerMode === 'supabase' ? 'Supabase' : 'Demo lokalne'}</div>
         </div>
       </aside>
       <section className="workspace">
         <header className="topbar">
           <div>
             <h2>{activeTitle}</h2>
-            <p>{user.fullName} · {user.role}</p>
+            <p>{user.fullName} • {user.role}</p>
           </div>
           <div className="user-pill">
             <UserRound size={15} />
             <span>{user.email}</span>
-            <button className="topbar-theme" type="button" onClick={toggleTheme} title="Przelacz motyw">
+            <button className="topbar-theme" type="button" onClick={toggleTheme} title={'Prze\u0142\u0105cz motyw'}>
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <button type="button" onClick={onLogout}><LogOut size={15} /> Wyloguj</button>
@@ -264,8 +305,8 @@ function AppShell({
       </section>
       <div className="desktop-guard">
         <MonitorCog size={44} />
-        <h1>Aplikacja wymaga wiekszego ekranu</h1>
-        <p>Nowy Oceniator jest projektowany tylko pod desktop. Uzyj szerokosci minimum 1280 px.</p>
+        <h1>{'Aplikacja wymaga wi\u0119kszego ekranu'}</h1>
+        <p>{'Oceniator jest projektowany pod desktop. U\u017Cyj szeroko\u015Bci minimum 1280 px.'}</p>
       </div>
     </div>
   )
@@ -316,7 +357,7 @@ function StartView({
         </div>
         <div className="metric-panel"><span>Karty aktywne</span><strong>{active.length}</strong><small>dla zakresu: {user.role}</small></div>
         <div className="metric-panel"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel minimum 92%</small></div>
-        <div className="metric-panel"><span>W weryfikacji</span><strong>{review}</strong><small>wymagaja decyzji</small></div>
+        <div className="metric-panel"><span>W weryfikacji</span><strong>{review}</strong><small>wymagają decyzji</small></div>
       </section>
       <section className="data-panel">
         <div className="section-title"><span>Szkice robocze</span><small>{savedDrafts.length ? `${savedDrafts.length} zapisane` : 'brak aktywnych szkicow'}</small></div>
@@ -339,13 +380,13 @@ function StartView({
                     <RotateCcw size={15} /> Wznow szkic
                   </button>
                   <button className="ghost-btn" type="button" onClick={() => onClearDraft(type)}>
-                    <Trash2 size={15} /> Wyczysc
+                    <Trash2 size={15} /> Wyczyść
                   </button>
                 </div>
               </article>
             ))}
           </div>
-        ) : <div className="empty-state">Brak zapisanych szkicow. Formularz zapisuje postep lokalnie przy kazdej zmianie.</div>}
+        ) : <div className="empty-state">Brak zapisanych szkiców. Formularz zapisuje postęp lokalnie przy każdej zmianie.</div>}
       </section>
       <section className="data-panel">
         <div className="section-title"><span>Ostatnie karty</span><small>Top 8</small></div>
@@ -402,8 +443,8 @@ function TeamView({
     <main className="screen">
       <section className="team-hero data-panel">
         <div>
-          <div className="section-title"><span>Moj Zespol</span><small>{activeLeader || 'Pelny zakres'}</small></div>
-          <p className="hint-text">Widok operacyjny lidera pokazuje aktywnych specjalistow, ostatnie karty i priorytety do rozmow 1:1.</p>
+          <div className="section-title"><span>Mój zespół</span><small>{activeLeader || 'Pełny zakres'}</small></div>
+          <p className="hint-text">Widok operacyjny lidera pokazuje aktywnych specjalistów, ostatnie karty i priorytety do rozmow 1:1.</p>
         </div>
         <div className="team-actions">
           {leaderOptions.length > 1 ? (
@@ -418,16 +459,16 @@ function TeamView({
         </div>
       </section>
       <section className="dashboard-grid">
-        <div className="metric-panel"><span>Specjalisci</span><strong>{specialists.length}</strong><small>aktywni w zakresie</small></div>
+        <div className="metric-panel"><span>Specjaliści</span><strong>{specialists.length}</strong><small>aktywni w zakresie</small></div>
         <div className="metric-panel"><span>Karty aktywne</span><strong>{rows.length}</strong><small>bez archiwum</small></div>
         <div className="metric-panel"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>dla zespolu</small></div>
         <div className="metric-panel"><span>Do reakcji</span><strong>{pending + below}</strong><small>status lub niski wynik</small></div>
       </section>
       <section className="data-panel">
-        <div className="section-title"><span>Specjalisci zespolu</span><small>{specialistRows.length} osob</small></div>
+        <div className="section-title"><span>Specjaliści zespolu</span><small>{specialistRows.length} osob</small></div>
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Specjalista</th><th>Stanowisko</th><th>Dzial</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
+            <thead><tr><th>Specjalista</th><th>Stanowisko</th><th>Dział</th><th>Karty</th><th>Średnia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
             <tbody>
               {specialistRows.map((item) => (
                 <tr key={item.specialist.id}>
@@ -436,7 +477,7 @@ function TeamView({
                   <td>{item.specialist.department}</td>
                   <td>{item.count}</td>
                   <td>{item.count ? <span className={scoreClass(item.avg)}>{item.avg}%</span> : '-'}</td>
-                  <td>{item.last ? `${item.last.data} · ${TYPE_LABELS[item.last.type]}` : 'Brak kart'}</td>
+                  <td>{item.last ? `${item.last.data} • ${TYPE_LABELS[item.last.type]}` : 'Brak kart'}</td>
                   <td>
                     <button className="ghost-btn table-inline-btn" type="button" onClick={() => setSelectedSpecialistProfile(item.specialist.name)} disabled={!item.count}>
                       <Eye size={15} /> Profil
@@ -492,7 +533,7 @@ function AssessmentTable({
   onAdvance?: (assessment: Assessment) => void
   canAdvanceItem?: (assessment: Assessment) => boolean
 }) {
-  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrow.</div>
+  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrów.</div>
   const hasActions = Boolean(onPreview || onPrint || onEdit || onAdvance)
   return (
     <div className="table-wrap">
@@ -503,7 +544,7 @@ function AssessmentTable({
             <th>Typ</th>
             <th>Okres</th>
             <th>Data</th>
-            {!compact ? <th>Oceniajacy</th> : null}
+            {!compact ? <th>Oceniający</th> : null}
             <th>Wynik</th>
             <th>Status</th>
             {hasActions ? <th>Akcje</th> : null}
@@ -522,7 +563,7 @@ function AssessmentTable({
               {hasActions ? (
                 <td>
                   <div className="table-actions">
-                    {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podglad"><Eye size={15} /></button> : null}
+                    {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podgląd"><Eye size={15} /></button> : null}
                     {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
                     {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
                     {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}
@@ -553,14 +594,14 @@ function AssessmentPreviewModal({
         <header className="modal-header">
           <div>
             <h3>{def.name}</h3>
-            <p>{assessment.spec} · {assessment.period} · {statusLabels[assessment.status]}</p>
+            <p>{assessment.spec} • {assessment.period} • {statusLabels[assessment.status]}</p>
           </div>
           <button type="button" onClick={onClose}><X size={18} /></button>
         </header>
         <div className="preview-grid">
           <div><span>Stanowisko</span><strong>{assessment.stand || '-'}</strong></div>
-          <div><span>Dzial</span><strong>{assessment.dzial || '-'}</strong></div>
-          <div><span>Oceniajacy</span><strong>{assessment.oce || '-'}</strong></div>
+          <div><span>Dział</span><strong>{assessment.dzial || '-'}</strong></div>
+          <div><span>Oceniający</span><strong>{assessment.oce || '-'}</strong></div>
           <div><span>Data</span><strong>{assessment.data}</strong></div>
           <div><span>Wynik</span><strong className={scoreClass(assessment.avgFinal)}>{assessment.avgFinal}%</strong></div>
         </div>
@@ -600,7 +641,7 @@ function AssessmentPreviewModal({
           {(assessment.statusHistory || []).length ? assessment.statusHistory.map((item, index) => (
             <div className="timeline-item" key={`${item.status}-${item.at}-${index}`}>
               <strong>{statusLabels[item.status]}</strong>
-              <span>{new Date(item.at).toLocaleString('pl-PL')} · {item.by || 'system'}</span>
+              <span>{new Date(item.at).toLocaleString('pl-PL')} • {item.by || 'system'}</span>
               <small>{item.note}</small>
             </div>
           )) : <p className="hint-text">Brak zapisanej historii statusow dla tej karty.</p>}
@@ -669,7 +710,7 @@ function AssessmentEditModal({
       })
       onClose()
     } catch (err) {
-      setError(readableError(err, 'Nie udalo sie zapisac zmian w karcie.'))
+      setError(readableError(err, 'Nie udało się zapisać zmian w karcie.'))
     } finally {
       setBusy(false)
     }
@@ -681,7 +722,7 @@ function AssessmentEditModal({
         <header className="modal-header">
           <div>
             <h3>Edytuj karte</h3>
-            <p>{assessment.spec} · wynik po zmianach {calculated.avgFinal}%</p>
+            <p>{assessment.spec} • wynik po zmianach {calculated.avgFinal}%</p>
           </div>
           <button type="button" onClick={onClose}><X size={18} /></button>
         </header>
@@ -690,7 +731,7 @@ function AssessmentEditModal({
           <label><span>Specjalista</span><input value={draft.specialist} onChange={(event) => setDraft({ ...draft, specialist: event.target.value })} /></label>
           <label><span>Data</span><input type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value, period: periodOf(event.target.value) })} /></label>
           <label><span>Stanowisko</span><input value={draft.position} onChange={(event) => setDraft({ ...draft, position: event.target.value })} /></label>
-          <label><span>Dzial</span><input value={draft.department} onChange={(event) => setDraft({ ...draft, department: event.target.value })} /></label>
+          <label><span>Dział</span><input value={draft.department} onChange={(event) => setDraft({ ...draft, department: event.target.value })} /></label>
         </div>
         <div className="edit-contact-grid" style={{ gridTemplateColumns: `repeat(${draft.contactCount}, minmax(0, 1fr))` }}>
           {draft.contactIds.map((contactId, index) => (
@@ -843,7 +884,7 @@ function RegistryView({
       })
       setNotice(`Status zmieniony na: ${statusLabels[status]}.`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie zmienic statusu.'))
+      setNotice(readableError(error, 'Nie udało się zmienic statusu.'))
     }
   }
 
@@ -882,12 +923,12 @@ function RegistryView({
       if (kind === 'json') exportJson(rows)
       setNotice(`Eksport ${kind.toUpperCase()} przygotowany dla ${rows.length} pozycji.`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udalo sie przygotowac eksportu.'))
+      setNotice(readableError(error, 'Nie udało się przygotowac eksportu.'))
     }
   }
 
   function printRow(item: Assessment) {
-    if (!printAssessment(item)) setNotice('Przegladarka zablokowala nowe okno drukowania/PDF.')
+    if (!printAssessment(item)) setNotice('Przeglądarka zablokowała nowe okno drukowania/PDF.')
   }
 
   return (
@@ -930,7 +971,7 @@ function RegistryView({
         <div className="row-action-strip">
           {canAdvanceStatuses ? rows.filter(canAdvanceRow).slice(0, 6).map((item) => (
             <button key={item.id} className="ghost-btn" type="button" onClick={() => advance(item)}>
-              {item.spec}: {statusLabels[item.status]} →
+              {item.spec}: {statusLabels[item.status]} â†’
             </button>
           )) : <span className="hint-text">Tryb tylko do odczytu: podglad i eksporty pozostaja dostepne.</span>}
         </div>
@@ -950,9 +991,9 @@ type DashboardPrefs = { order: DashboardPanelKey[]; hidden: DashboardPanelKey[];
 const dashboardPanelLabels: Record<DashboardPanelKey, string> = {
   trend: 'Trend okresowy',
   typeMix: 'Rozklad typow',
-  sections: 'Sekcje jakosci',
-  leaders: 'Ranking liderow',
-  weak: 'Slabe kryteria',
+  sections: 'Sekcje jakości',
+  leaders: 'Ranking liderów',
+  weak: 'Słabe kryteria',
   lowScores: 'Najpilniejsze karty',
 }
 
@@ -998,7 +1039,7 @@ function sectionBreakdown(rows: Assessment[]) {
   rows.forEach((assessment) => {
     ASSESSMENT_DEFS[assessment.type].sections.forEach((section) => {
       const key = `${assessment.type}-${section.key}`
-      const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} · ${section.label}`, sum: 0, count: 0 }
+      const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} • ${section.label}`, sum: 0, count: 0 }
       current.sum += sectionAverage(assessment, section.key)
       current.count += 1
       buckets.set(key, current)
@@ -1018,7 +1059,7 @@ function weakestCriteria(rows: Assessment[]) {
         const values = (assessment.snapshotScores[section.key]?.[criterionIndex] || []).filter((value) => value !== 'nd') as number[]
         if (!values.length) return
         const key = `${assessment.type}-${section.key}-${criterionIndex}`
-        const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} · ${criterion.name}`, sum: 0, count: 0 }
+        const current = buckets.get(key) || { label: `${TYPE_LABELS[assessment.type]} • ${criterion.name}`, sum: 0, count: 0 }
         current.sum += values.reduce((acc, value) => acc + value, 0)
         current.count += values.length
         buckets.set(key, current)
@@ -1152,16 +1193,16 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
       ['Cel sredniej', `${goals.minAvg}%`],
       ['Bardzo dobry', `${greatShare}%`],
       ['Karty aktywne', active.length],
-      ['Ponizej standardu', belowCount],
+      ['Poniżej standardu', belowCount],
       ['Kolejka decyzyjna', reviewCount],
       ['Filtr okresu', filters.period],
       ['Filtr typu', filters.type],
       ['Filtr lidera', filters.leader],
       ['Filtr specjalisty', filters.specialist],
     ]
-    const trendRows = [['Okres', 'Karty', 'Srednia', 'Ponizej standardu', 'Do decyzji'], ...trend.map((item) => [item.period, item.count, `${item.avg}%`, item.below, item.review])]
-    const leaderRows = [['Lider', 'Karty', 'Srednia', 'Ponizej standardu', 'Do decyzji'], ...leaders.map((item) => [item.leader, item.count, `${item.avg}%`, item.below, item.review])]
-    const weakRows = [['Kryterium', 'Srednia', 'Liczba ocen'], ...weak.map((item) => [item.label, `${item.avg}%`, item.count])]
+    const trendRows = [['Okres', 'Karty', 'Średnia', 'Poniżej standardu', 'Do decyzji'], ...trend.map((item) => [item.period, item.count, `${item.avg}%`, item.below, item.review])]
+    const leaderRows = [['Lider', 'Karty', 'Średnia', 'Poniżej standardu', 'Do decyzji'], ...leaders.map((item) => [item.leader, item.count, `${item.avg}%`, item.below, item.review])]
+    const weakRows = [['Kryterium', 'Średnia', 'Liczba ocen'], ...weak.map((item) => [item.label, `${item.avg}%`, item.count])]
     const blocks = [
       ['Podsumowanie dashboardu'],
       ...summary,
@@ -1169,10 +1210,10 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
       ['Trend okresowy'],
       ...trendRows,
       [],
-      ['Ranking liderow'],
+      ['Ranking liderów'],
       ...leaderRows,
       [],
-      ['Slabe kryteria'],
+      ['Słabe kryteria'],
       ...weakRows,
     ]
     const csv = `\uFEFF${blocks.map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
@@ -1191,8 +1232,8 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
       ['Tryb danych', assessments.length ? 'aktywny' : 'brak kart'],
       ['Karty po filtrze', String(active.length)],
       ['Wszystkie karty w zakresie', String(assessments.length)],
-      ['Widoczne widzety', String(visiblePanels.length)],
-      ['Ukryte widzety', String(prefs.hidden.length)],
+      ['Widoczne widgety', String(visiblePanels.length)],
+      ['Ukryte widgety', String(prefs.hidden.length)],
       ['LocalStorage', storage],
     ]
   }
@@ -1214,7 +1255,7 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
                 </div>
                 <div className="trend-label">
                   <span>{item.period}</span>
-                  <small>{item.below} nisko · {item.review} decyzji</small>
+                  <small>{item.below} nisko • {item.review} decyzji</small>
                 </div>
               </div>
             ))}
@@ -1245,7 +1286,7 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
     }
     if (panel === 'sections') {
       return (
-        <DashboardWidget panel={panel} title="Sekcje jakosci" subtitle="od najslabszej" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Sekcje jakości" subtitle="od najsłabszej" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           {sections.slice(0, 8).map((item, index) => (
             <div className="bar-row rich" key={item.label} style={{ ['--row-index' as string]: index }}>
               <span>{item.label}</span>
@@ -1258,7 +1299,7 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
     }
     if (panel === 'weak') {
       return (
-        <DashboardWidget panel={panel} title="Slabe kryteria" subtitle="kolejka coachingowa" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Słabe kryteria" subtitle="kolejka coachingowa" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="weak-list enhanced">
             {weak.map((item) => (
               <div className="weak-item" key={item.label}>
@@ -1273,14 +1314,14 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
     }
     if (panel === 'leaders') {
       return (
-        <DashboardWidget panel={panel} title="Ranking liderow" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel={panel} title="Ranking liderów" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="leader-board">
             {leaders.map((item, index) => (
               <div className="leader-row" key={item.leader}>
                 <div className="leader-rank">{index < 3 ? <Trophy size={15} /> : index + 1}</div>
                 <div>
                   <strong>{item.leader}</strong>
-                  <span>{item.count} kart · {item.review} do decyzji · {item.below} nisko</span>
+                  <span>{item.count} kart • {item.review} do decyzji • {item.below} nisko</span>
                 </div>
                 <span className={scoreClass(item.avg)}>{item.avg}%</span>
               </div>
@@ -1300,9 +1341,9 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
     <main className={`screen dashboard-screen density-${prefs.density} layout-${prefs.layout}`}>
       <section className="dashboard-hero">
         <div className="dashboard-hero-copy">
-          <div className="section-title"><span>Dashboard jakosci</span><small>{active.length} kart w aktywnym filtrze</small></div>
+          <div className="section-title"><span>Dashboard jakości</span><small>{active.length} kart w aktywnym filtrze</small></div>
           <h1>Interaktywny pulpit wynikow, celow i ryzyk zespolu.</h1>
-          <p className="hint-text">Przeciagaj sekcje za uchwyt, ukrywaj mniej potrzebne widzety i przelaczaj gestosc ukladu. Preferencje zapisza sie lokalnie.</p>
+          <p className="hint-text">Przeciągaj sekcje za uchwyt, ukrywaj mniej potrzebne widgety i przełączaj gęstość układu. Preferencje zapiszą się lokalnie.</p>
         </div>
         <div className="quality-ring" style={{ ['--score' as string]: `${avg || 0}%` }}>
           <div>
@@ -1366,13 +1407,13 @@ function DashboardView({ assessments, goals }: { assessments: Assessment[]; goal
         <div className="metric-panel premium"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
         <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}% udzialu</small></div>
         <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
-        <div className="metric-panel premium"><span>Ponizej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
+        <div className="metric-panel premium"><span>Poniżej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
       </section>
       <div className="analytics-grid movable-grid">
         {allPanelsHidden ? (
           <section className="empty-dashboard">
             <Settings size={34} />
-            <h3>Wszystkie widzety sa ukryte</h3>
+            <h3>Wszystkie widgety są ukryte</h3>
             <p>Przywroc wybrane panele w konfiguracji albo zresetuj caly uklad dashboardu.</p>
             <button className="primary-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Przywroc domyslny uklad</button>
           </section>
@@ -1408,7 +1449,7 @@ function DashboardWidget({
       onDrop={() => onDrop(panel)}
     >
       <div className="widget-head">
-        <button className="drag-handle" type="button" title="Przeciagnij panel"><GripVertical size={16} /></button>
+        <button className="drag-handle" type="button" title="Przeciągnij panel"><GripVertical size={16} /></button>
         <div className="section-title"><span>{title}</span><small>{subtitle}</small></div>
         <button className="widget-icon-btn" type="button" onClick={() => onHide(panel)} title="Ukryj panel"><EyeOff size={15} /></button>
       </div>

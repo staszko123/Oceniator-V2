@@ -38,14 +38,25 @@ if (!legacyHtml.includes('js/main.js')) {
 }
 
 const app = existsSync(join(root, 'app/src/App.tsx')) ? read('app/src/App.tsx') : ''
+const dashboardView = existsSync(join(root, 'app/src/features/dashboard/DashboardView.tsx')) ? read('app/src/features/dashboard/DashboardView.tsx') : ''
+const dashboardUtils = existsSync(join(root, 'app/src/features/dashboard/utils.ts')) ? read('app/src/features/dashboard/utils.ts') : ''
+const registryView = existsSync(join(root, 'app/src/features/registry/RegistryView.tsx')) ? read('app/src/features/registry/RegistryView.tsx') : ''
 for (const account of ['admin/admin123', 'lider01/lider123', 'lider02/lider123', 'podglad/podglad123']) {
   if (!app.includes(account)) failures.push(`Login screen is missing demo account hint: ${account}`)
 }
 for (const guard of ['availableNavItems', 'canCreate(user)', 'canAdmin(user)', 'readableError']) {
   if (!app.includes(guard)) failures.push(`App.tsx is missing guard/helper: ${guard}`)
 }
-for (const feature of ['TeamView', "'team'", 'Wszystkie statusy', 'Wszystkie okresy', 'DashboardWidget', 'oc_v2_dashboard_prefs', 'Trend okresowy', 'Ranking liderow', 'exportDashboardCsv', 'dashboardDiagnostics']) {
-  if (!app.includes(feature)) failures.push(`App.tsx is missing feature marker: ${feature}`)
+const featureMarkers = [
+  ['App.tsx', app, ['TeamView', "'team'"]],
+  ['RegistryView.tsx', registryView, ['Wszystkie statusy', 'Wszystkie okresy']],
+  ['DashboardView.tsx', dashboardView, ['DashboardWidget', 'Trend okresowy', 'Ranking liderów', 'exportDashboardCsv', 'dashboardDiagnostics']],
+  ['dashboard/utils.ts', dashboardUtils, ['oc_v2_dashboard_prefs']],
+]
+for (const [label, content, markers] of featureMarkers) {
+  for (const feature of markers) {
+    if (!content.includes(feature)) failures.push(`${label} is missing feature marker: ${feature}`)
+  }
 }
 
 const localProvider = existsSync(join(root, 'app/src/data/localProvider.ts')) ? read('app/src/data/localProvider.ts') : ''

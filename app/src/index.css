@@ -80,31 +80,33 @@ button { cursor: pointer; }
 .login-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) 430px;
-  gap: 26px;
-  padding: 38px;
+  grid-template-columns: minmax(0, 1.18fr) 430px;
+  gap: 24px;
+  padding: 28px;
   background:
-    linear-gradient(115deg, rgba(7, 17, 31, .88), rgba(16, 32, 57, .68) 45%, rgba(15, 143, 135, .26)),
+    radial-gradient(circle at 12% 8%, rgba(45, 212, 191, .12), transparent 24%),
+    radial-gradient(circle at 86% 6%, rgba(96, 165, 250, .12), transparent 24%),
+    linear-gradient(125deg, rgba(7, 17, 31, .95), rgba(11, 24, 43, .92) 42%, rgba(10, 28, 45, .88)),
     var(--app-gradient);
 }
 
 .login-hero, .login-card {
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   box-shadow: var(--shadow-strong);
 }
 
 .login-hero {
-  padding: 44px;
+  padding: 42px;
   color: #f8fafc;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 28px;
   min-height: 620px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)),
-    rgba(7, 17, 31, .34);
-  backdrop-filter: blur(18px);
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+    rgba(7, 17, 31, .38);
+  backdrop-filter: blur(24px);
 }
 
 .brand-mark, .brand-block {
@@ -122,8 +124,76 @@ button { cursor: pointer; }
 }
 
 .brand-mark small, .brand-block small { display: block; color: #8ea0b7; font-size: 11px; margin-top: 2px; }
-.login-hero h1 { max-width: 720px; font-size: 58px; line-height: 1.02; letter-spacing: 0; margin: 0; }
-.login-hero p { max-width: 650px; color: #b8c4d4; font-size: 17px; line-height: 1.7; }
+.login-copy { display: grid; gap: 14px; }
+.login-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  color: #d7e9ff;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.login-hero h1 { max-width: 760px; font-size: 52px; line-height: 1.04; letter-spacing: 0; margin: 0; }
+.login-hero p { max-width: 660px; color: #b9c9dc; font-size: 16px; line-height: 1.75; margin: 0; }
+.login-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.login-metrics article,
+.login-preview-card {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+  backdrop-filter: blur(20px);
+}
+.login-metrics article {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+}
+.login-metrics strong,
+.login-preview-card strong {
+  font-size: 15px;
+}
+.login-metrics span,
+.login-preview-card span,
+.login-preview-card li {
+  color: #b7c7d9;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.login-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+  gap: 14px;
+}
+.login-preview-card {
+  padding: 18px;
+}
+.login-preview-card header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.login-preview-card header span {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: 11px;
+}
+.login-preview-card ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
 .login-proof { display: flex; gap: 12px; flex-wrap: wrap; }
 .login-proof div {
   display: inline-flex;
@@ -142,9 +212,19 @@ button { cursor: pointer; }
   align-self: center;
   background: var(--glass-strong);
   color: var(--text);
-  padding: 28px;
-  backdrop-filter: blur(18px);
+  padding: 30px;
+  backdrop-filter: blur(22px);
   border-color: var(--line);
+}
+.login-card-head {
+  align-items: flex-start;
+  gap: 12px;
+}
+.login-card-copy {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .stack { display: grid; gap: 14px; }
@@ -1488,6 +1568,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shado
   }
   .login-hero { min-height: auto; padding: 28px; }
   .login-hero h1 { font-size: 38px; }
+  .login-metrics,
+  .login-preview { grid-template-columns: 1fr; }
   .login-card { align-self: auto; }
   .app-shell {
     display: block;
