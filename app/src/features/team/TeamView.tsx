@@ -3,17 +3,12 @@ import { useMemo, useState } from 'react'
 import { canCreateRole } from '../../domain/access'
 import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, UserProfile } from '../../domain/types'
+import { scoreClass } from '../../lib/display'
 import { AssessmentTable } from '../registry/AssessmentTable'
 import { statusLabels } from '../registry/registryExports'
 import { SpecialistProfileModal } from '../specialists/profile'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
-}
 
 function daysSince(value?: string): number | null {
   if (!value) return null

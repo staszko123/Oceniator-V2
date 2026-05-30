@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDashboard, Maximize2, RotateCcw, Settings, Trophy } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, AssessmentType, Role } from '../../domain/types'
+import { scoreClass } from '../../lib/display'
 import { AnalyticsFilterBar } from '../analytics/shared'
 import { applyAnalyticsFilters, defaultAnalyticsFilters, type AnalyticsFilters } from '../analytics/filters'
 import {
@@ -17,12 +18,6 @@ import {
 } from './utils'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
-}
 
 function downloadFile(fileName: string, mime: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }))

@@ -5,16 +5,9 @@ import { getErrorMessage } from '../../domain/errors'
 import { shortDateTime } from '../../domain/history'
 import type { DiagnosticEvent } from '../../domain/diagnostics'
 import type { AdminConfig, AdminHistoryEntry, AssessmentPeriod, ManagedUser, Specialist, UserProfile } from '../../domain/types'
+import { ROLE_LABELS, ROLE_OPTIONS } from '../../lib/display'
 
 type AdminSection = 'goals' | 'dictionaries' | 'specialists' | 'users' | 'periods'
-
-const roleLabels: Record<UserProfile['role'], string> = {
-  admin: 'Administrator',
-  director: 'Dyrektor',
-  leader: 'Lider',
-  assessor: 'Oceniajacy',
-  viewer: 'Specjalista',
-}
 
 const adminSections: Array<{ key: AdminSection; label: string; description: string }> = [
   { key: 'goals', label: 'Cele', description: 'Progi, wolumeny i KPI okresowe.' },
@@ -452,7 +445,7 @@ export default function AdminView({
                 <input value={userQuery} onChange={(event) => setUserQuery(event.target.value)} placeholder="Szukaj po imieniu, e-mailu lub loginie" />
                 <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as 'all' | UserProfile['role'])}>
                   <option value="all">Wszystkie role</option>
-                  {Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
+                  {ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}
                 </select>
               </div>
               {filteredUsers.map((account) => (
@@ -463,7 +456,7 @@ export default function AdminView({
                   onClick={() => setSelectedUserId(account.id)}
                 >
                   <strong>{account.fullName || account.email || account.login}</strong>
-                  <small>{roleLabels[account.role]} - {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
+                  <small>{ROLE_LABELS[account.role]} - {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
                 </button>
               ))}
               {!filteredUsers.length ? <div className="empty-state compact-empty">Brak uzytkownikow dla tego filtra.</div> : null}
@@ -475,7 +468,7 @@ export default function AdminView({
                     <label><span>Email</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
                     <label><span>Login lokalny</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
                     <label><span>Imie i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
-                    <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
+                    <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
                     <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
                     <label><span>Haslo lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
                   </div>
@@ -494,7 +487,7 @@ export default function AdminView({
               <label><span>Login lokalny</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
               <label><span>Imie i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
               <label><span>Haslo startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
-              <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
+              <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
               <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
             </div>
             <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> Utworz konto</button>

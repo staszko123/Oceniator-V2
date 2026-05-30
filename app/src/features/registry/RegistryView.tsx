@@ -6,17 +6,12 @@ import { recordDiagnostic } from '../../domain/diagnostics'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS } from '../../domain/defs'
 import { hasEditHistory, lastStatusEvent } from '../../domain/history'
 import { assessmentToDraft, calculateDraft, draftToAssessment, periodOf } from '../../domain/scoring'
+import { scoreClass } from '../../lib/display'
 import { canEditAssessment as canEditAssessmentForUser } from '../../lib/security'
 import type { Assessment, AssessmentStatus, AssessmentType, ScoreValue, UserProfile } from '../../domain/types'
 import { uniqueSorted } from '../analytics/filters'
 import { AssessmentTable } from './AssessmentTable'
 import { exportCsv, exportExcel, exportJson, printAssessment, statusLabels } from './registryExports'
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
-}
 
 function countFilledNotes(notes: Assessment['snapshotNotes']): number {
   return Object.values(notes || {}).reduce((sum, items) => sum + items.filter((item) => item.trim()).length, 0)

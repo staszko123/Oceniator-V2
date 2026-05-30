@@ -1,24 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Database, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, UserRound } from 'lucide-react'
 import type { DataProvider, UserProfile } from '../../domain/types'
+import { PROVIDER_LABELS, ROLE_LABELS } from '../../lib/display'
 import { useTheme } from '../../lib/theme'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
 const shellStateKey = 'oc_v2_shell_sidebar_collapsed'
-
-const roleLabels: Record<UserProfile['role'], string> = {
-  admin: 'Administrator',
-  director: 'Dyrektor',
-  leader: 'Lider',
-  assessor: 'Oceniajacy',
-  viewer: 'Specjalista',
-}
-
-const providerLabels: Record<DataProvider['mode'], string> = {
-  supabase: 'Supabase',
-  local: 'Demo lokalne',
-}
 
 const viewMeta: Record<ViewKey, { eyebrow: string; description: string }> = {
   start: {
@@ -138,7 +126,7 @@ export default function AppShell({
         <div className="sidebar-footer">
           <div className="mode-chip">
             <Database size={14} />
-            <span>{providerLabels[providerMode]}</span>
+            <span>{PROVIDER_LABELS[providerMode]}</span>
           </div>
         </div>
       </aside>
@@ -155,9 +143,9 @@ export default function AppShell({
             <div className="topbar-context">
               <span className="topbar-chip">
                 <Database size={13} />
-                {providerLabels[providerMode]}
+                {PROVIDER_LABELS[providerMode]}
               </span>
-              <span className="topbar-chip neutral">{roleLabels[user.role]}</span>
+              <span className="topbar-chip neutral">{ROLE_LABELS[user.role]}</span>
             </div>
             <div className="topbar-user">
               <UserRound size={15} />

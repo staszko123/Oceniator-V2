@@ -2,6 +2,7 @@
 import { FileText, X } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
+import { scoreClass } from '../../lib/display'
 import { printSpecialistProfileReport, specialistProfileData } from './profileData'
 
 const statusLabels: Record<AssessmentStatus, string> = {
@@ -9,12 +10,6 @@ const statusLabels: Record<AssessmentStatus, string> = {
   review: 'W weryfikacji',
   approved: 'Zatwierdzona',
   archived: 'Archiwum',
-}
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
 }
 
 export function SpecialistProfileModal({

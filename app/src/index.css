@@ -1,22 +1,22 @@
 @import './styles/theme.css';
 
 :root {
-  color: #102033;
-  background: #edf4f8;
+  color: #0e1c2f;
+  background: #c9d4df;
   font-family: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --bg: #e1e8f0;
-  --bg-2: #eef3f8;
-  --surface: rgba(247, 250, 253, 0.94);
-  --surface-solid: #fbfcfe;
-  --surface-2: rgba(240, 244, 249, 0.98);
-  --line: rgba(122, 140, 160, 0.20);
-  --line-strong: rgba(87, 109, 134, 0.30);
-  --text: #102033;
-  --muted: #334155;
-  --soft: #526374;
+  --bg: #c5d1dd;
+  --bg-2: #e0e7ef;
+  --surface: rgba(245, 248, 252, 0.91);
+  --surface-solid: rgba(250, 252, 254, 0.97);
+  --surface-2: rgba(232, 239, 246, 0.88);
+  --line: rgba(116, 134, 153, 0.22);
+  --line-strong: rgba(92, 111, 132, 0.28);
+  --text: #0e1c2f;
+  --muted: #394c63;
+  --soft: #66798e;
   --navy: #07111f;
   --navy-2: #102039;
   --teal: #0f8f87;
@@ -24,15 +24,16 @@
   --green: #16a34a;
   --amber: #d97706;
   --red: #dc2626;
-  --shadow: 0 24px 68px rgba(16, 32, 51, 0.13);
-  --shadow-strong: 0 40px 126px rgba(8, 17, 31, 0.24);
+  --shadow: 0 22px 58px rgba(7, 17, 31, 0.16);
+  --shadow-strong: 0 38px 108px rgba(7, 17, 31, 0.24);
   --glass: rgba(255, 255, 255, 0.82);
   --glass-strong: rgba(255, 255, 255, 0.94);
-  --focus: rgba(15, 143, 135, 0.18);
+  --focus: rgba(15, 143, 135, 0.16);
   --app-gradient:
-    radial-gradient(circle at 4% 8%, rgba(15, 143, 135, 0.16), transparent 28%),
-    radial-gradient(circle at 90% 4%, rgba(37, 99, 235, 0.14), transparent 30%),
-    linear-gradient(135deg, #e1e8f0 0%, #eef3f8 52%, #e4efed 100%);
+    radial-gradient(circle at 6% 10%, rgba(45, 212, 191, 0.10), transparent 24%),
+    radial-gradient(circle at 88% 6%, rgba(96, 165, 250, 0.09), transparent 26%),
+    radial-gradient(circle at 50% 120%, rgba(15, 143, 135, 0.07), transparent 24%),
+    linear-gradient(135deg, #c2cfdb 0%, #d9e1e8 48%, #cfdbda 100%);
 }
 
 .dark {

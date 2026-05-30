@@ -3,18 +3,13 @@ import { ClipboardCheck, Download, Eye, FileText, TrendingUp, Users } from 'luci
 import { AnalyticsFilterBar } from '../analytics/shared'
 import { applyAnalyticsFilters, defaultAnalyticsFilters } from '../analytics/filters'
 import { recordDiagnostic } from '../../domain/diagnostics'
+import { scoreClass } from '../../lib/display'
 import { buildReportTable, exportTableCsv, exportTableExcel, type ReportMode } from './reporting'
 import { SpecialistProfileModal } from '../specialists/profile'
 import { printSpecialistProfileReport } from '../specialists/profileData'
 import type { Assessment } from '../../domain/types'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
-}
 
 function downloadFile(fileName: string, mime: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }))

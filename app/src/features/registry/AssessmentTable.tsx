@@ -2,13 +2,8 @@ import { Edit3, Eye, FileText, Mail, MonitorCog, PhoneCall, ShieldCheck } from '
 import { TYPE_LABELS } from '../../domain/defs'
 import { lastStatusEvent, shortDateTime } from '../../domain/history'
 import type { Assessment, AssessmentType } from '../../domain/types'
+import { scoreClass } from '../../lib/display'
 import { statusLabels } from './registryExports'
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
-}
 
 function typeIcon(type: AssessmentType) {
   if (type === 'r') return <PhoneCall size={15} />

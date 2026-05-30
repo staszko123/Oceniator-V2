@@ -5,13 +5,8 @@ import { getErrorMessage } from '../../domain/errors'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS, TYPE_LABELS } from '../../domain/defs'
 import { calculateDraft, createDraft, periodOf, ratingLabel, resizeDraft } from '../../domain/scoring'
 import type { AdminConfig, AssessmentDraft, AssessmentType, ScoreValue, UserProfile } from '../../domain/types'
+import { scoreClass } from '../../lib/display'
 import { buildDraftSummary, reviewDraftQuality, type DraftAssistantResult } from './assistant'
-
-function scoreClass(score: number): string {
-  if (score >= 92) return 'score score-great'
-  if (score >= 82) return 'score score-good'
-  return 'score score-below'
-}
 
 function typeIcon(type: AssessmentType) {
   if (type === 'r') return <><PhoneCall size={15} /> {TYPE_LABELS.r}</>
@@ -28,6 +23,12 @@ function canAutofillSpecialist(draft: AssessmentDraft): boolean {
     && !draft.contactIds.some((item) => item.trim())
     && !draft.gold.some((item) => item > 0)
     && !Object.values(draft.notes).some((items) => items.some((item) => item.trim()))
+}
+
+type WorkflowStep = {
+  label: string
+  sectionId: string
+  done: boolean
 }
 
 export default function EvaluationView({
@@ -76,22 +77,38 @@ export default function EvaluationView({
     noteCount > 0 || draft.summary.trim() ? 1 : 0,
   ]
   const completion = Math.round(completionPoints.reduce((acc, value) => acc + value, 0) / completionPoints.length * 100)
-  const workflowSteps = [
-    { label: 'Dane oceny', done: Boolean(draft.specialist.trim() && draft.date && draft.position.trim() && draft.department.trim()) },
-    { label: 'Kontakty lub sprawy', done: filledIds > 0 },
-    { label: 'Ocena kryteriów', done: hasCriteriaChanges },
-    { label: 'Komentarze', done: noteCount > 0 || draft.goldDescription.trim().length > 0 },
-    { label: 'Podsumowanie', done: draft.summary.trim().length > 0 },
-    { label: 'Zapis', done: Boolean(draft.savedAt) },
+  const workflowSteps: WorkflowStep[] = [
+    {
+      label: 'Dane oceny',
+      sectionId: 'section-data',
+      done: Boolean(draft.specialist.trim() && draft.date && draft.position.trim() && draft.department.trim()),
+    },
+    {
+      label: 'Kontakty lub sprawy',
+      sectionId: 'section-contacts',
+      done: filledIds > 0,
+    },
+    {
+      label: 'Ocena kryteriów',
+      sectionId: 'section-criteria',
+      done: hasCriteriaChanges,
+    },
+    {
+      label: 'Komentarze',
+      sectionId: 'section-comments',
+      done: noteCount > 0 || draft.goldDescription.trim().length > 0,
+    },
+    {
+      label: 'Podsumowanie',
+      sectionId: 'section-summary',
+      done: draft.summary.trim().length > 0,
+    },
+    {
+      label: 'Zapis',
+      sectionId: 'section-summary',
+      done: Boolean(draft.savedAt),
+    },
   ]
-  const workflowSectionMap: Record<string, string> = {
-    'Dane oceny': 'section-data',
-    'Kontakty lub sprawy': 'section-contacts',
-    'Ocena kryteriów': 'section-criteria',
-    'Komentarze': 'section-comments',
-    'Podsumowanie': 'section-summary',
-    'Zapis': 'section-summary',
-  }
   const activeStepIndex = workflowSteps.findIndex((item) => !item.done)
   const currentStepIndex = activeStepIndex === -1 ? workflowSteps.length - 1 : activeStepIndex
   const currentStep = workflowSteps[currentStepIndex]
@@ -250,7 +267,7 @@ export default function EvaluationView({
             <div className="workflow-banner-pill">
               {completion}% kompletności
             </div>
-            <button className="primary-btn" type="button" onClick={() => jumpToSection(workflowSectionMap[nextStep.label])}>
+            <button className="primary-btn" type="button" onClick={() => jumpToSection(nextStep.sectionId)}>
               Przejdź do kroku
             </button>
           </div>
@@ -263,7 +280,7 @@ export default function EvaluationView({
                 key={step.label}
                 className={step.label === currentStep?.label ? 'active' : ''}
                 type="button"
-                onClick={() => jumpToSection(workflowSectionMap[step.label])}
+                onClick={() => jumpToSection(step.sectionId)}
               >
                 {step.label}
               </button>
