@@ -12,6 +12,16 @@ returns text language sql stable security definer as $$
   select leader_scope from public.profiles where id = auth.uid();
 $$;
 
+create or replace function public.current_profile_full_name()
+returns text language sql stable security definer as $$
+  select full_name from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.current_profile_email()
+returns text language sql stable security definer as $$
+  select email from public.profiles where id = auth.uid();
+$$;
+
 create unique index if not exists idx_periods_code_unique on public.periods(code);
 
 drop policy if exists "profiles: admin edyt" on public.profiles;
@@ -79,6 +89,12 @@ grant execute on function public.admin_update_profile(uuid,text,text,text,boolea
 
 notify pgrst, 'reload schema';
 
+drop policy if exists "admin_history: insert przez zalogowanych" on public.admin_history;
+drop policy if exists "admin_history: admin i dyrektor wstawiaja" on public.admin_history;
+create policy "admin_history: admin i dyrektor wstawiaja"
+  on public.admin_history for insert
+  with check (public.my_role() in ('admin','director'));
+
 drop policy if exists "goals: admin insert" on public.goals;
 create policy "goals: admin insert"
   on public.goals for insert
@@ -144,4 +160,10 @@ create policy "assessments: assessor update"
 
 create policy "assessments: viewer read"
   on public.assessments for select
-  using (public.my_role() = 'viewer' and leader_scope = public.my_scope());
+  using (
+    public.my_role() = 'viewer'
+    and (
+      spec = public.current_profile_full_name()
+      or spec = public.current_profile_email()
+    )
+  );

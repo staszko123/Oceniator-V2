@@ -12,6 +12,10 @@ const requiredFiles = [
   'app/src/data/supabaseProvider.ts',
   'app/src/domain/types.ts',
   'legacy/index.html',
+  'BACKEND_SCOPE.md',
+  'LAUNCH_CHECKLIST.md',
+  'SUPABASE_INTEGRATION.md',
+  'PILOT_RUNBOOK.md',
 ]
 
 const failures = []
@@ -44,7 +48,7 @@ const registryView = existsSync(join(root, 'app/src/features/registry/RegistryVi
 for (const account of ['admin/admin123', 'lider01/lider123', 'lider02/lider123', 'podglad/podglad123']) {
   if (!app.includes(account)) failures.push(`Login screen is missing demo account hint: ${account}`)
 }
-for (const guard of ['availableNavItems', 'canCreate(user)', 'canAdmin(user)', 'readableError']) {
+for (const guard of ['availableNavItems', 'canCreateRole(user.role)', 'canAdminRole(user.role)', 'canViewTeamRole(user.role)', 'getErrorMessage']) {
   if (!app.includes(guard)) failures.push(`App.tsx is missing guard/helper: ${guard}`)
 }
 const featureMarkers = [
@@ -75,6 +79,9 @@ for (const table of ['profiles', 'assessments', 'goals', 'specialists', 'departm
 const packageJson = existsSync(join(root, 'package.json')) ? JSON.parse(read('package.json')) : {}
 for (const script of ['dev', 'build', 'lint', 'smoke']) {
   if (!packageJson.scripts?.[script]) failures.push(`Missing package script: ${script}`)
+}
+if (!packageJson.scripts?.['test:integration']) {
+  failures.push('Missing package script: test:integration')
 }
 
 const scanFiles = requiredFiles.concat(['README.md', 'SMOKE_CHECKS.md'])

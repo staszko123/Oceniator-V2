@@ -21,10 +21,12 @@ export function SpecialistProfileModal({
   specialist,
   assessments,
   onClose,
+  onStartAssessment,
 }: {
   specialist: string
   assessments: Assessment[]
   onClose: () => void
+  onStartAssessment?: () => void
 }) {
   const profile = useMemo(() => specialistProfileData(assessments, specialist), [assessments, specialist])
   const [printNotice, setPrintNotice] = useState('')
@@ -37,14 +39,14 @@ export function SpecialistProfileModal({
         <header className="modal-header">
           <div>
             <h3>{specialist}</h3>
-            <p>Profil jakościowy specjalisty oparty o zapisane karty.</p>
+            <p>Profil jakosciowy specjalisty oparty o zapisane karty.</p>
           </div>
           <button type="button" onClick={onClose}><X size={18} /></button>
         </header>
         <div className="specialist-kpi-grid">
           <div><span>Sredni wynik</span><strong className={scoreClass(profile.avg)}>{profile.avg}%</strong></div>
           <div><span>Liczba kart</span><strong>{profile.rows.length}</strong></div>
-          <div><span>Poniżej standardu</span><strong>{profile.below}</strong></div>
+          <div><span>Ponizej standardu</span><strong>{profile.below}</strong></div>
           <div><span>Kolejka decyzji</span><strong>{profile.review}</strong></div>
         </div>
         <div className="specialist-profile-grid">
@@ -98,10 +100,11 @@ export function SpecialistProfileModal({
         </section>
         <footer className="modal-footer">
           {printNotice ? <span className="hint-text">{printNotice}</span> : null}
+          {onStartAssessment ? <button className="ghost-btn" type="button" onClick={onStartAssessment}>Nowa karta</button> : null}
           <button
             className="ghost-btn"
             type="button"
-            onClick={() => setPrintNotice(printSpecialistProfileReport(specialist, assessments) ? '' : 'Przeglądarka zablokowała okno drukowania/PDF.')}
+            onClick={() => setPrintNotice(printSpecialistProfileReport(specialist, assessments) ? '' : 'Przegladarka zablokowala okno drukowania/PDF.')}
           >
             <FileText size={16} /> Drukuj / PDF
           </button>

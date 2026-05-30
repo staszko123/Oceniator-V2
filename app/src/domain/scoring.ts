@@ -72,6 +72,8 @@ export function createDraft(type: AssessmentType): AssessmentDraft {
 }
 
 export function draftHasContent(draft: AssessmentDraft): boolean {
+  const defaultContactCount = draft.type === 'r' ? 3 : 2
+  if (draft.contactCount !== defaultContactCount) return true
   if (draft.specialist.trim()) return true
   if (draft.position.trim()) return true
   if (draft.department.trim()) return true

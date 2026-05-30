@@ -64,6 +64,13 @@ export interface AdminConfig {
   goals: Goal
 }
 
+export interface AdminHistoryEntry {
+  id?: string
+  description: string
+  changedBy: string
+  changedAt: string
+}
+
 export interface CriterionDef {
   name: string
   hint: string
@@ -145,6 +152,7 @@ export interface DataProvider {
   getCurrentUser(): Promise<UserProfile | null>
   loadAdmin(): Promise<AdminConfig>
   saveAdmin(config: AdminConfig): Promise<void>
+  loadAdminHistory?(): Promise<AdminHistoryEntry[]>
   listUsers?(): Promise<ManagedUser[]>
   createUser?(user: ManagedUser): Promise<ManagedUser>
   updateUser?(user: ManagedUser): Promise<ManagedUser>

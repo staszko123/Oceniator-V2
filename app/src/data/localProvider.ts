@@ -1,6 +1,7 @@
 import { buildDemoAdmin, buildDemoAssessments } from './seed'
+import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
 import { createDraft } from '../domain/scoring'
-import type { AdminConfig, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
 
 const keys = {
   session: 'oc_v2_session',
@@ -8,6 +9,7 @@ const keys = {
   assessments: 'oc_v2_assessments',
   drafts: 'oc_v2_drafts',
   users: 'oc_v2_users',
+  adminHistory: 'oc_v2_admin_history',
 }
 
 const defaultLocalUsers: Array<{ login: string; password: string; role: Role; fullName: string; leaderScope: string }> = [
@@ -17,7 +19,7 @@ const defaultLocalUsers: Array<{ login: string; password: string; role: Role; fu
   { login: 'lider01', password: 'lider123', role: 'leader', fullName: 'Alicja Wrona', leaderScope: 'Alicja Wrona' },
   { login: 'lider02', password: 'lider123', role: 'leader', fullName: 'Mateusz Cieslak', leaderScope: 'Mateusz Cieslak' },
   { login: 'oceniajacy', password: 'ocena123', role: 'assessor', fullName: 'Mateusz Cieslak', leaderScope: 'Mateusz Cieslak' },
-  { login: 'podglad', password: 'podglad123', role: 'viewer', fullName: 'Uzytkownik podgladu', leaderScope: 'Alicja Wrona' },
+  { login: 'podglad', password: 'podglad123', role: 'viewer', fullName: 'Anna Kowalska', leaderScope: 'Alicja Wrona' },
 ]
 
 function readJson<T>(key: string, fallback: T): T {
@@ -31,6 +33,18 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson(key: string, value: unknown): void {
   localStorage.setItem(key, JSON.stringify(value))
+}
+
+function appendAdminHistory(description: string): void {
+  const history = readJson<AdminHistoryEntry[]>(keys.adminHistory, [])
+  const session = readJson<UserProfile | null>(keys.session, null)
+  history.unshift({
+    id: crypto.randomUUID(),
+    description,
+    changedBy: session?.fullName || session?.email || 'local',
+    changedAt: new Date().toISOString(),
+  })
+  writeJson(keys.adminHistory, history.slice(0, 250))
 }
 
 function defaultManagedUsers(): ManagedUser[] {
@@ -158,6 +172,12 @@ export class LocalDataProvider implements DataProvider {
 
   async saveAdmin(config: AdminConfig): Promise<void> {
     writeJson(keys.admin, config)
+    appendAdminHistory(describeAdminConfigSave(config))
+  }
+
+  async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
+    const history = readJson<AdminHistoryEntry[]>(keys.adminHistory, [])
+    return history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
   }
 
   async listUsers(): Promise<ManagedUser[]> {
@@ -181,6 +201,7 @@ export class LocalDataProvider implements DataProvider {
       createdAt: new Date().toISOString(),
     }
     writeJson(keys.users, [next, ...users])
+    appendAdminHistory(describeUserCreate(next))
     return next
   }
 
@@ -190,6 +211,7 @@ export class LocalDataProvider implements DataProvider {
     writeJson(keys.users, next)
     const session = readJson<UserProfile | null>(keys.session, null)
     if (session?.id === user.id) writeJson(keys.session, localProfile({ ...user, source: 'local' }))
+    appendAdminHistory(describeUserUpdate({ ...user, source: 'local' }))
     return { ...user, source: 'local' }
   }
 

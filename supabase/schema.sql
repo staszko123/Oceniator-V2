@@ -201,9 +201,27 @@ create trigger trg_specialists_updated
   before update on public.specialists
   for each row execute function public.touch_updated_at();
 
-create trigger trg_assessments_updated
-  before update on public.assessments
-  for each row execute function public.touch_updated_at();
+create or replace function public.guard_assessment_write()
+returns trigger language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_by = coalesce(new.created_by, auth.uid());
+    new.leader_scope = coalesce(nullif(new.leader_scope, ''), public.current_leader_scope(), '');
+    new.created_at = coalesce(new.created_at, now());
+  else
+    new.created_by = old.created_by;
+    new.leader_scope = old.leader_scope;
+    new.created_at = old.created_at;
+  end if;
+
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create trigger trg_assessments_write_guard
+  before insert or update on public.assessments
+  for each row execute function public.guard_assessment_write();
 
 
 -- ──────────────────────────────────────────────────────────────────
@@ -240,6 +258,16 @@ $$;
 create or replace function public.current_leader_scope()
 returns text language sql stable security definer as $$
   select leader_scope from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.current_profile_full_name()
+returns text language sql stable security definer as $$
+  select full_name from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.current_profile_email()
+returns text language sql stable security definer as $$
+  select email from public.profiles where id = auth.uid();
 $$;
 
 
@@ -333,7 +361,10 @@ create policy "assessments: viewer odczyt"
   on public.assessments for select
   using (
     public.current_role_name() = 'viewer'
-    and leader_scope = public.current_leader_scope()
+    and (
+      spec = public.current_profile_full_name()
+      or spec = public.current_profile_email()
+    )
   );
 
 -- ── admin_history ──
@@ -341,9 +372,9 @@ alter table public.admin_history enable row level security;
 create policy "admin_history: admin i dyrektor czytają"
   on public.admin_history for select
   using (public.current_role_name() in ('admin','director'));
-create policy "admin_history: insert przez zalogowanych"
+create policy "admin_history: admin i dyrektor wstawiaja"
   on public.admin_history for insert
-  with check (auth.uid() is not null);
+  with check (public.current_role_name() in ('admin','director'));
 
 
 -- ──────────────────────────────────────────────────────────────────

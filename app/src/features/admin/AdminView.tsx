@@ -1,24 +1,28 @@
-﻿import { useMemo, useState } from 'react'
-import { Plus, Save, Trash2, Users, X } from 'lucide-react'
-import type { AdminConfig, AssessmentPeriod, ManagedUser, Specialist, UserProfile } from '../../domain/types'
+import { useMemo, useState } from 'react'
+import { AlertTriangle, Plus, Save, Trash2, Users, X } from 'lucide-react'
+import { canAdminRole } from '../../domain/access'
+import { getErrorMessage } from '../../domain/errors'
+import { shortDateTime } from '../../domain/history'
+import type { DiagnosticEvent } from '../../domain/diagnostics'
+import type { AdminConfig, AdminHistoryEntry, AssessmentPeriod, ManagedUser, Specialist, UserProfile } from '../../domain/types'
+
+type AdminSection = 'goals' | 'dictionaries' | 'specialists' | 'users' | 'periods'
 
 const roleLabels: Record<UserProfile['role'], string> = {
   admin: 'Administrator',
   director: 'Dyrektor',
   leader: 'Lider',
-  assessor: 'Oceniający',
-  viewer: 'Podgląd',
+  assessor: 'Oceniajacy',
+  viewer: 'Specjalista',
 }
 
-function canAdmin(user: UserProfile): boolean {
-  return ['admin', 'director'].includes(user.role)
-}
-
-function readableError(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) return error.message
-  if (typeof error === 'string' && error.trim()) return error
-  return fallback
-}
+const adminSections: Array<{ key: AdminSection; label: string; description: string }> = [
+  { key: 'goals', label: 'Cele', description: 'Progi, wolumeny i KPI okresowe.' },
+  { key: 'dictionaries', label: 'Slowniki', description: 'Liderzy, dzialy i stanowiska.' },
+  { key: 'specialists', label: 'Specjalisci', description: 'Zakresy operacyjne i przypisania.' },
+  { key: 'users', label: 'Uzytkownicy', description: 'Role, dostepy i nowe konta.' },
+  { key: 'periods', label: 'Okresy', description: 'Okna rozliczeniowe i nazewnictwo.' },
+]
 
 function emptySpecialist(admin: AdminConfig): Specialist {
   return {
@@ -54,7 +58,7 @@ function DictionaryEditor({
     <div className="dictionary-editor">
       <h3>{title}</h3>
       <div className="dictionary-add">
-        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder="Nowa wartość" />
+        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder="Nowa wartosc" />
         <button type="button" onClick={onAdd}><Plus size={15} /></button>
       </div>
       <div className="dictionary-list">
@@ -69,6 +73,8 @@ function DictionaryEditor({
 export default function AdminView({
   user,
   admin,
+  adminHistory,
+  diagnostics,
   users,
   onAdminChange,
   onUserSave,
@@ -76,12 +82,15 @@ export default function AdminView({
 }: {
   user: UserProfile
   admin: AdminConfig
+  adminHistory: AdminHistoryEntry[]
+  diagnostics: DiagnosticEvent[]
   users: ManagedUser[]
   onAdminChange: (admin: AdminConfig) => Promise<void>
   onUserSave: (user: ManagedUser) => Promise<void>
   onUserCreate: (user: ManagedUser) => Promise<ManagedUser>
 }) {
   const [draftAdmin, setDraftAdmin] = useState(admin)
+  const [selectedSection, setSelectedSection] = useState<AdminSection>('goals')
   const [selectedSpecialistId, setSelectedSpecialistId] = useState(admin.specialists[0]?.id || '')
   const [draftUsers, setDraftUsers] = useState(users)
   const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
@@ -124,12 +133,18 @@ export default function AdminView({
     return JSON.stringify(sourceUser) !== JSON.stringify(selectedUser)
   }, [selectedUser, users])
   const canCreateUser = Boolean((newUser.email || '').trim() || (newUser.login || '').trim())
-  const pendingBadges = [configDirty ? 'konfiguracja' : null, usersDirty ? 'użytkownicy' : null].filter(Boolean) as string[]
+  const pendingBadges = [configDirty ? 'konfiguracja' : null, usersDirty ? 'uzytkownicy' : null].filter(Boolean) as string[]
+  const summaryStats = [
+    `Specjalisci: ${draftAdmin.specialists.length}`,
+    `Aktywni: ${draftAdmin.specialists.filter((item) => item.active).length}`,
+    `Konta: ${draftUsers.length}`,
+    `Okresy: ${draftAdmin.periods.length}`,
+  ]
 
-  if (!canAdmin(user)) {
+  if (!canAdminRole(user.role)) {
     return (
       <main className="screen">
-        <div className="empty-state">Brak dostępu do panelu administratora dla tej roli.</div>
+        <div className="empty-state">Brak dostepu do panelu administratora dla tej roli.</div>
       </main>
     )
   }
@@ -148,9 +163,9 @@ export default function AdminView({
     try {
       await onAdminChange(next)
       setDraftAdmin(next)
-      setNotice(`Zapisano konfigurację ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
+      setNotice(`Zapisano konfiguracje ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się zapisać konfiguracji.'))
+      setNotice(getErrorMessage(error, 'Nie udalo sie zapisac konfiguracji.'))
     }
   }
 
@@ -158,9 +173,9 @@ export default function AdminView({
     if (!selectedUser) return
     try {
       await onUserSave(selectedUser)
-      setNotice(`Zapisano użytkownika ${selectedUser.email || selectedUser.login}`)
+      setNotice(`Zapisano uzytkownika ${selectedUser.email || selectedUser.login}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się zapisać użytkownika.'))
+      setNotice(getErrorMessage(error, 'Nie udalo sie zapisac uzytkownika.'))
     }
   }
 
@@ -170,7 +185,7 @@ export default function AdminView({
       ...newUser,
       id: newUser.id || newUser.login || newUser.email,
       email: newUser.email || `${newUser.login}@local`,
-      fullName: newUser.fullName || newUser.email || newUser.login || 'Nowy użytkownik',
+      fullName: newUser.fullName || newUser.email || newUser.login || 'Nowy uzytkownik',
       password: newUser.password || 'start123',
       source: user.source,
     }
@@ -179,9 +194,10 @@ export default function AdminView({
       setDraftUsers((current) => [saved, ...current])
       setSelectedUserId(saved.id)
       setNewUser({ ...newUser, id: '', email: '', login: '', fullName: '', password: '', role: 'viewer', leaderScope: '', isActive: true })
-      setNotice(`Dodano użytkownika ${saved.email || saved.login}`)
+      setSelectedSection('users')
+      setNotice(`Dodano uzytkownika ${saved.email || saved.login}`)
     } catch (error) {
-      setNotice(readableError(error, 'Nie udało się utworzyć użytkownika.'))
+      setNotice(getErrorMessage(error, 'Nie udalo sie utworzyc uzytkownika.'))
     }
   }
 
@@ -201,6 +217,7 @@ export default function AdminView({
   }
 
   function removeDictionary(kind: 'leaders' | 'departments' | 'positions', value: string) {
+    if (typeof window !== 'undefined' && !window.confirm(`Usunac wartosc "${value}" ze slownika?`)) return
     setDraftAdmin({
       ...draftAdmin,
       [kind]: draftAdmin[kind].filter((item) => item !== value),
@@ -218,9 +235,12 @@ export default function AdminView({
     const specialist = emptySpecialist(draftAdmin)
     setDraftAdmin({ ...draftAdmin, specialists: [specialist, ...draftAdmin.specialists] })
     setSelectedSpecialistId(specialist.id)
+    setSelectedSection('specialists')
   }
 
   function removeSpecialist(id: string) {
+    const specialist = draftAdmin.specialists.find((item) => item.id === id)
+    if (typeof window !== 'undefined' && !window.confirm(`Usunac specjaliste "${specialist?.name || 'bez nazwy'}" z listy?`)) return
     const next = draftAdmin.specialists.filter((item) => item.id !== id)
     setDraftAdmin({ ...draftAdmin, specialists: next })
     setSelectedSpecialistId(next[0]?.id || '')
@@ -239,9 +259,12 @@ export default function AdminView({
       ...draftAdmin,
       periods: [...draftAdmin.periods, { code: `P${number}`, name: `P${number}`, from: '01-01', to: '12-31' }],
     })
+    setSelectedSection('periods')
   }
 
   function removePeriod(index: number) {
+    const period = draftAdmin.periods[index]
+    if (typeof window !== 'undefined' && !window.confirm(`Usunac okres "${period?.name || period?.code || index + 1}"?`)) return
     setDraftAdmin({ ...draftAdmin, periods: draftAdmin.periods.filter((_, itemIndex) => itemIndex !== index) })
   }
 
@@ -249,165 +272,253 @@ export default function AdminView({
     <main className="screen admin-screen">
       <section className="admin-hero data-panel">
         <div>
-          <div className="section-title"><span>Panel administratora</span><small>{notice || 'Konfiguracja słowników i celów'}</small></div>
-          <p className="hint-text">Zmiany w tym widoku zasilają formularz oceny, zakres liderów oraz raporty. Zapis jest jawny, żeby uniknąć przypadkowych zmian słowników.</p>
-          {pendingBadges.length ? (
-            <div className="status-chips">
-              {pendingBadges.map((item) => <span className="status-chip" key={item}>Niezapisane: {item}</span>)}
-            </div>
-          ) : null}
-        </div>
-        <button className="primary-btn" disabled={!configDirty} onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfigurację</button>
-      </section>
-      <section className="data-panel">
-        <div className="section-title"><span>Cele jakościowe</span><small>progi i wolumeny</small></div>
-        <div className="field-grid two">
-          <label><span>Minimum średniej</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
-          <label><span>Udział bardzo dobrych</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
-          <label><span>Rozmowy / okres</span><input type="number" value={draftAdmin.goals.callsPerPeriod} onChange={(event) => updateGoals('callsPerPeriod', Number(event.target.value))} /></label>
-          <label><span>Maile / okres</span><input type="number" value={draftAdmin.goals.mailsPerPeriod} onChange={(event) => updateGoals('mailsPerPeriod', Number(event.target.value))} /></label>
-          <label><span>Systemy / okres</span><input type="number" value={draftAdmin.goals.systemsPerPeriod} onChange={(event) => updateGoals('systemsPerPeriod', Number(event.target.value))} /></label>
-        </div>
-      </section>
-      <section className="data-panel dictionary-panel">
-        <div className="section-title"><span>Słowniki</span><small>liderzy, działy, stanowiska</small></div>
-        <div className="dictionary-columns">
-          <DictionaryEditor
-            title="Liderzy"
-            values={draftAdmin.leaders}
-            value={newLeader}
-            onValue={setNewLeader}
-            onAdd={() => addDictionary('leaders', newLeader, () => setNewLeader(''))}
-            onRemove={(value) => removeDictionary('leaders', value)}
-          />
-          <DictionaryEditor
-            title="Działy"
-            values={draftAdmin.departments}
-            value={newDepartment}
-            onValue={setNewDepartment}
-            onAdd={() => addDictionary('departments', newDepartment, () => setNewDepartment(''))}
-            onRemove={(value) => removeDictionary('departments', value)}
-          />
-          <DictionaryEditor
-            title="Stanowiska"
-            values={draftAdmin.positions}
-            value={newPosition}
-            onValue={setNewPosition}
-            onAdd={() => addDictionary('positions', newPosition, () => setNewPosition(''))}
-            onRemove={(value) => removeDictionary('positions', value)}
-          />
-        </div>
-      </section>
-      <section className="data-panel specialist-admin">
-        <div className="section-title">
-          <span>Specjaliści</span>
-          <small>{draftAdmin.specialists.filter((item) => item.active).length} aktywnych / {draftAdmin.specialists.length} łącznie</small>
-        </div>
-        <div className="specialist-layout">
-          <div className="specialist-list">
-            <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> Dodaj specjalistę</button>
-            <div className="list-toolbar">
-              <input value={specialistQuery} onChange={(event) => setSpecialistQuery(event.target.value)} placeholder="Szukaj specjalisty, lidera lub działu" />
-              <small>{filteredSpecialists.length} wyników</small>
-            </div>
-            {filteredSpecialists.map((specialist) => (
-              <button
-                key={specialist.id}
-                className={specialist.id === selectedSpecialist.id ? 'active' : ''}
-                type="button"
-                onClick={() => setSelectedSpecialistId(specialist.id)}
-              >
-                <strong>{specialist.name || 'Nowy specjalista'}</strong>
-                <small>{specialist.leader || 'Bez lidera'} • {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
-              </button>
-            ))}
-            {!filteredSpecialists.length ? <div className="empty-state compact-empty">Brak specjalistów dla tego filtra.</div> : null}
-          </div>
-          <div className="specialist-editor">
-            <div className="field-grid two">
-              <label><span>Imię i nazwisko</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
-              <label><span>Lider</span><select value={selectedSpecialist.leader} onChange={(event) => updateSpecialist(selectedSpecialist.id, { leader: event.target.value })}>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-              <label><span>Dział</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
-              <label><span>Stanowisko</span><select value={selectedSpecialist.position} onChange={(event) => updateSpecialist(selectedSpecialist.id, { position: event.target.value })}>{draftAdmin.positions.map((position) => <option key={position} value={position}>{position}</option>)}</select></label>
-            </div>
-            <div className="admin-inline-actions">
-              <label className="toggle-line"><input type="checkbox" checked={selectedSpecialist.active} onChange={(event) => updateSpecialist(selectedSpecialist.id, { active: event.target.checked })} /> Aktywny specjalista</label>
-              <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> Usuń z listy</button>
-            </div>
+          <div className="section-title"><span>Panel administratora</span><small>{notice || 'Konfiguracja slownikow, celow i dostepow'}</small></div>
+          <p className="hint-text">Ten widok zasila formularz oceny, zakresy liderow, okresy i konta. Zapis jest jawny, zeby ograniczyc przypadkowe zmiany.</p>
+          <div className="status-chips">
+            {summaryStats.map((item) => <span className="status-chip neutral" key={item}>{item}</span>)}
+            {pendingBadges.length ? pendingBadges.map((item) => <span className="status-chip" key={item}>Niezapisane: {item}</span>) : <span className="status-chip success">Brak oczekujacych zmian</span>}
           </div>
         </div>
+        <button className="primary-btn" disabled={!configDirty} onClick={saveGoals} type="button"><Save size={16} /> Zapisz konfiguracje</button>
       </section>
-      <section className="data-panel user-admin">
-        <div className="section-title"><span>Użytkownicy i role</span><small>{draftUsers.length} kont</small></div>
-        <div className="user-layout">
-          <div className="user-list">
-            <div className="list-toolbar">
-              <input value={userQuery} onChange={(event) => setUserQuery(event.target.value)} placeholder="Szukaj po imieniu, e-mailu lub loginie" />
-              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as 'all' | UserProfile['role'])}>
-                <option value="all">Wszystkie role</option>
-                {Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
-              </select>
-            </div>
-            {filteredUsers.map((account) => (
-              <button
-                key={account.id}
-                className={account.id === selectedUser?.id ? 'active' : ''}
-                type="button"
-                onClick={() => setSelectedUserId(account.id)}
-              >
-                <strong>{account.fullName || account.email || account.login}</strong>
-                <small>{roleLabels[account.role]} • {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
-              </button>
-            ))}
-            {!filteredUsers.length ? <div className="empty-state compact-empty">Brak użytkowników dla tego filtra.</div> : null}
-          </div>
-          <div className="user-editor">
-            {selectedUser ? (
-              <>
-                <div className="field-grid two">
-                  <label><span>Email</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
-                  <label><span>Login lokalny</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
-                  <label><span>Imię i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
-                  <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-                  <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pełny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-                  <label><span>Hasło lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
-                </div>
-                <div className="admin-inline-actions">
-                  <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> Konto aktywne</label>
-                  <button className="primary-btn" disabled={!selectedUserDirty} type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz użytkownika</button>
-                </div>
-              </>
-            ) : <div className="empty-state">Brak użytkowników.</div>}
-          </div>
-        </div>
-        <div className="new-user-panel">
-          <div className="section-title"><span>Nowe konto</span><small>{user.source === 'supabase' ? 'tworzone przez Edge Function' : 'konto lokalne demo'}</small></div>
-          <div className="field-grid">
-            <label><span>Email</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
-            <label><span>Login lokalny</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
-            <label><span>Imię i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
-            <label><span>Hasło startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
-            <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-            <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pełny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-          </div>
-          <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> Utwórz konto</button>
-        </div>
-      </section>
-      <section className="data-panel periods-panel">
-        <div className="section-title"><span>Okresy rozliczeniowe</span><small>{draftAdmin.periods.length} okresy</small></div>
-        <div className="period-grid">
-          {draftAdmin.periods.map((period, index) => (
-            <div className="period-row" key={`${period.code}-${index}`}>
-              <input value={period.code} onChange={(event) => updatePeriod(index, { code: event.target.value })} />
-              <input value={period.name} onChange={(event) => updatePeriod(index, { name: event.target.value })} />
-              <input value={period.from} onChange={(event) => updatePeriod(index, { from: event.target.value })} />
-              <input value={period.to} onChange={(event) => updatePeriod(index, { to: event.target.value })} />
-              <button type="button" onClick={() => removePeriod(index)}><Trash2 size={15} /></button>
-            </div>
+
+      <section className="admin-section-nav data-panel">
+        <div className="admin-section-tabs">
+          {adminSections.map((section) => (
+            <button
+              key={section.key}
+              className={selectedSection === section.key ? 'active' : ''}
+              type="button"
+              onClick={() => setSelectedSection(section.key)}
+            >
+              <strong>{section.label}</strong>
+              <span>{section.description}</span>
+            </button>
           ))}
         </div>
-        <button className="ghost-btn" type="button" onClick={addPeriod}><Plus size={16} /> Dodaj okres</button>
       </section>
+
+      <section className="admin-change-bar">
+        <div className="admin-change-copy">
+          <span className="admin-change-kicker">Stan roboczy</span>
+          <strong>{pendingBadges.length ? `Masz ${pendingBadges.length} obszary z niezapisanymi zmianami` : 'Wszystkie zmiany sa zapisane'}</strong>
+          <p>{selectedSection === 'users' ? 'Zmiany uzytkownikow zapisujesz osobno na poziomie wybranego konta.' : 'Zmiany konfiguracji slownikow, specjalistow i okresow zapisz jednym przyciskiem z naglowka.'}</p>
+        </div>
+        {pendingBadges.length ? (
+          <div className="admin-change-warning">
+            <AlertTriangle size={16} />
+            <span>Przed opuszczeniem panelu zapisz zmiany konfiguracji.</span>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="data-panel admin-history-panel">
+        <div className="section-title">
+          <span>Ostatnie zmiany</span>
+          <small>audyt konfiguracji i kont</small>
+        </div>
+        {adminHistory.length ? (
+          <div className="admin-history-list">
+            {adminHistory.slice(0, 8).map((entry) => (
+              <article key={entry.id || `${entry.changedAt}-${entry.description}`} className="admin-history-item">
+                <div className="admin-history-copy">
+                  <strong>{entry.description}</strong>
+                  <p>{entry.changedBy}</p>
+                </div>
+                <small>{shortDateTime(entry.changedAt)}</small>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">Brak wpisow audytu dla tego konta.</div>
+        )}
+      </section>
+
+      <section className="data-panel admin-history-panel">
+        <div className="section-title">
+          <span>Diagnostyka</span>
+          <small>ostatnie zdarzenia aplikacji</small>
+        </div>
+        {diagnostics.length ? (
+          <div className="admin-history-list">
+            {diagnostics.slice(0, 8).map((event) => (
+              <article key={event.id} className="admin-history-item">
+                <div className="admin-history-copy">
+                  <strong>{event.action}</strong>
+                  <p>{event.detail}</p>
+                </div>
+                <small>{shortDateTime(event.at)}</small>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">Brak zapisanych zdarzen diagnostycznych.</div>
+        )}
+      </section>
+
+      {selectedSection === 'goals' ? (
+        <section className="data-panel">
+          <div className="section-title"><span>Cele jakosciowe</span><small>progi i wolumeny</small></div>
+          <div className="field-grid two">
+            <label><span>Minimum sredniej</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
+            <label><span>Udzial bardzo dobrych</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
+            <label><span>Rozmowy / okres</span><input type="number" value={draftAdmin.goals.callsPerPeriod} onChange={(event) => updateGoals('callsPerPeriod', Number(event.target.value))} /></label>
+            <label><span>Maile / okres</span><input type="number" value={draftAdmin.goals.mailsPerPeriod} onChange={(event) => updateGoals('mailsPerPeriod', Number(event.target.value))} /></label>
+            <label><span>Systemy / okres</span><input type="number" value={draftAdmin.goals.systemsPerPeriod} onChange={(event) => updateGoals('systemsPerPeriod', Number(event.target.value))} /></label>
+          </div>
+        </section>
+      ) : null}
+
+      {selectedSection === 'dictionaries' ? (
+        <section className="data-panel dictionary-panel">
+          <div className="section-title"><span>Slowniki</span><small>liderzy, dzialy, stanowiska</small></div>
+          <div className="dictionary-columns">
+            <DictionaryEditor
+              title="Liderzy"
+              values={draftAdmin.leaders}
+              value={newLeader}
+              onValue={setNewLeader}
+              onAdd={() => addDictionary('leaders', newLeader, () => setNewLeader(''))}
+              onRemove={(value) => removeDictionary('leaders', value)}
+            />
+            <DictionaryEditor
+              title="Dzialy"
+              values={draftAdmin.departments}
+              value={newDepartment}
+              onValue={setNewDepartment}
+              onAdd={() => addDictionary('departments', newDepartment, () => setNewDepartment(''))}
+              onRemove={(value) => removeDictionary('departments', value)}
+            />
+            <DictionaryEditor
+              title="Stanowiska"
+              values={draftAdmin.positions}
+              value={newPosition}
+              onValue={setNewPosition}
+              onAdd={() => addDictionary('positions', newPosition, () => setNewPosition(''))}
+              onRemove={(value) => removeDictionary('positions', value)}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {selectedSection === 'specialists' ? (
+        <section className="data-panel specialist-admin">
+          <div className="section-title">
+            <span>Specjalisci</span>
+            <small>{draftAdmin.specialists.filter((item) => item.active).length} aktywnych / {draftAdmin.specialists.length} lacznie</small>
+          </div>
+          <div className="specialist-layout">
+            <div className="specialist-list">
+              <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> Dodaj specjaliste</button>
+              <div className="list-toolbar">
+                <input value={specialistQuery} onChange={(event) => setSpecialistQuery(event.target.value)} placeholder="Szukaj specjalisty, lidera lub dzialu" />
+                <small>{filteredSpecialists.length} wynikow</small>
+              </div>
+              {filteredSpecialists.map((specialist) => (
+                <button
+                  key={specialist.id}
+                  className={specialist.id === selectedSpecialist.id ? 'active' : ''}
+                  type="button"
+                  onClick={() => setSelectedSpecialistId(specialist.id)}
+                >
+                  <strong>{specialist.name || 'Nowy specjalista'}</strong>
+                  <small>{specialist.leader || 'Bez lidera'} • {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
+                </button>
+              ))}
+              {!filteredSpecialists.length ? <div className="empty-state compact-empty">Brak specjalistow dla tego filtra.</div> : null}
+            </div>
+            <div className="specialist-editor">
+              <div className="field-grid two">
+                <label><span>Imie i nazwisko</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
+                <label><span>Lider</span><select value={selectedSpecialist.leader} onChange={(event) => updateSpecialist(selectedSpecialist.id, { leader: event.target.value })}>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+                <label><span>Dzial</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+                <label><span>Stanowisko</span><select value={selectedSpecialist.position} onChange={(event) => updateSpecialist(selectedSpecialist.id, { position: event.target.value })}>{draftAdmin.positions.map((position) => <option key={position} value={position}>{position}</option>)}</select></label>
+              </div>
+              <div className="admin-inline-actions">
+                <label className="toggle-line"><input type="checkbox" checked={selectedSpecialist.active} onChange={(event) => updateSpecialist(selectedSpecialist.id, { active: event.target.checked })} /> Aktywny specjalista</label>
+                <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> Usun z listy</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {selectedSection === 'users' ? (
+        <section className="data-panel user-admin">
+          <div className="section-title"><span>Uzytkownicy i role</span><small>{draftUsers.length} kont</small></div>
+          <div className="user-layout">
+            <div className="user-list">
+              <div className="list-toolbar">
+                <input value={userQuery} onChange={(event) => setUserQuery(event.target.value)} placeholder="Szukaj po imieniu, e-mailu lub loginie" />
+                <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as 'all' | UserProfile['role'])}>
+                  <option value="all">Wszystkie role</option>
+                  {Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
+                </select>
+              </div>
+              {filteredUsers.map((account) => (
+                <button
+                  key={account.id}
+                  className={account.id === selectedUser?.id ? 'active' : ''}
+                  type="button"
+                  onClick={() => setSelectedUserId(account.id)}
+                >
+                  <strong>{account.fullName || account.email || account.login}</strong>
+                  <small>{roleLabels[account.role]} • {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
+                </button>
+              ))}
+              {!filteredUsers.length ? <div className="empty-state compact-empty">Brak uzytkownikow dla tego filtra.</div> : null}
+            </div>
+            <div className="user-editor">
+              {selectedUser ? (
+                <>
+                  <div className="field-grid two">
+                    <label><span>Email</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
+                    <label><span>Login lokalny</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
+                    <label><span>Imie i nazwisko</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
+                    <label><span>Rola</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
+                    <label><span>Zakres lidera</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+                    <label><span>Haslo lokalne / startowe</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
+                  </div>
+                  <div className="admin-inline-actions">
+                    <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> Konto aktywne</label>
+                    <button className="primary-btn" disabled={!selectedUserDirty} type="button" onClick={saveSelectedUser}><Save size={16} /> Zapisz uzytkownika</button>
+                  </div>
+                </>
+              ) : <div className="empty-state">Brak uzytkownikow.</div>}
+            </div>
+          </div>
+          <div className="new-user-panel">
+            <div className="section-title"><span>Nowe konto</span><small>{user.source === 'supabase' ? 'tworzone przez Edge Function' : 'konto lokalne demo'}</small></div>
+            <div className="field-grid">
+              <label><span>Email</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
+              <label><span>Login lokalny</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
+              <label><span>Imie i nazwisko</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
+              <label><span>Haslo startowe</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+              <label><span>Rola</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{Object.entries(roleLabels).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
+              <label><span>Zakres lidera</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">Brak / pelny zakres</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+            </div>
+            <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> Utworz konto</button>
+          </div>
+        </section>
+      ) : null}
+
+      {selectedSection === 'periods' ? (
+        <section className="data-panel periods-panel">
+          <div className="section-title"><span>Okresy rozliczeniowe</span><small>{draftAdmin.periods.length} okresy</small></div>
+          <div className="period-grid">
+            {draftAdmin.periods.map((period, index) => (
+              <div className="period-row" key={`${period.code}-${index}`}>
+                <input value={period.code} onChange={(event) => updatePeriod(index, { code: event.target.value })} />
+                <input value={period.name} onChange={(event) => updatePeriod(index, { name: event.target.value })} />
+                <input value={period.from} onChange={(event) => updatePeriod(index, { from: event.target.value })} />
+                <input value={period.to} onChange={(event) => updatePeriod(index, { to: event.target.value })} />
+                <button type="button" onClick={() => removePeriod(index)}><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+          <button className="ghost-btn" type="button" onClick={addPeriod}><Plus size={16} /> Dodaj okres</button>
+        </section>
+      ) : null}
     </main>
   )
 }

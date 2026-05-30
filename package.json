@@ -10,6 +10,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b app/tsconfig.json && vite build",
     "lint": "npm --prefix app run lint",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/supabase.integration.test.ts",
     "preview": "vite preview --host 127.0.0.1",
     "smoke": "node scripts/smoke-static.mjs"
   },
@@ -31,6 +33,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.0.8"
   }
 }

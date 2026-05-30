@@ -23,10 +23,38 @@ http://127.0.0.1:5173/
 ```powershell
 npm run build
 npm run lint
+npm run test
 ```
 
 Rootowe skrypty buduja i sprawdzaja aplikacje React. Poprzedni wariant legacy nie jest juz
 glownym entrypointem produkcyjnym.
+
+## Integracja Supabase
+
+Rzeczywisty harness przeciwko stagingowemu Supabase jest opisany w `SUPABASE_INTEGRATION.md`.
+Po ustawieniu sekretow uruchom:
+
+```powershell
+npm run test:integration
+```
+
+Suite sprawdza logowanie admina, RLS dla `viewer` i `leader`, zapis kart oraz zapis audytu.
+
+## Diagnostyka i start
+
+- Panel administratora pokazuje ostatnie zmiany konfiguracji oraz ostatnie zdarzenia aplikacji.
+- Lista startowa i checklista wdrozeniowa sa w `LAUNCH_CHECKLIST.md`.
+- Runbook pilota i kryteria go/no-go sa w `PILOT_RUNBOOK.md`.
+- Po zmianach uruchom:
+
+```powershell
+npm run build
+npm run lint
+npm run test
+npm run smoke
+```
+
+- Przed pilotażem sprawdz, czy szkic wraca po odswiezeniu, czy audyt zapisuje zmiany i czy role widza poprawnie ograniczaja zakres danych.
 
 ## Tryby danych
 

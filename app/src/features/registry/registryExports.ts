@@ -1,4 +1,5 @@
-﻿import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+import { lastHistoryAt, lastHistoryBy, lastHistoryNote } from '../../domain/history'
 import { ratingLabel } from '../../domain/scoring'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
 
@@ -7,23 +8,6 @@ export const statusLabels: Record<AssessmentStatus, string> = {
   review: 'W weryfikacji',
   approved: 'Zatwierdzona',
   archived: 'Archiwum',
-}
-
-function lastStatusEvent(assessment: Assessment) {
-  const history = assessment.statusHistory || []
-  return history[history.length - 1]
-}
-
-function lastEventAt(assessment: Assessment): string {
-  return lastStatusEvent(assessment)?.at || ''
-}
-
-function lastEventBy(assessment: Assessment): string {
-  return lastStatusEvent(assessment)?.by || ''
-}
-
-function lastEventNote(assessment: Assessment): string {
-  return lastStatusEvent(assessment)?.note || ''
 }
 
 function esc(value: unknown): string {
@@ -60,9 +44,9 @@ export function exportCsv(rows: Assessment[]) {
     item.avgFinal,
     ratingLabel(item.rating),
     statusLabels[item.status],
-    lastEventAt(item),
-    lastEventBy(item),
-    lastEventNote(item),
+    lastHistoryAt(item),
+    lastHistoryBy(item),
+    lastHistoryNote(item),
   ])
   const csv = `\uFEFF${[header, ...body].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
   downloadFile('oceniator-ewidencja.csv', 'text/csv;charset=utf-8', csv)
@@ -86,9 +70,9 @@ export async function exportExcel(rows: Assessment[]) {
     Wynik: item.avgFinal,
     Ocena: ratingLabel(item.rating),
     Status: statusLabels[item.status],
-    'Ostatnia zmiana': lastEventAt(item),
-    'Zmienił': lastEventBy(item),
-    'Opis zmiany': lastEventNote(item),
+    'Ostatnia zmiana': lastHistoryAt(item),
+    'Zmienił': lastHistoryBy(item),
+    'Opis zmiany': lastHistoryNote(item),
   }))
   const worksheet = utils.json_to_sheet(tableRows, { header })
   worksheet['!cols'] = [

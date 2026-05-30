@@ -16,7 +16,8 @@ type UserPayload = {
   is_active?: boolean;
 };
 
-const allowedRoles = new Set(["admin", "director", "leader", "assessor", "viewer"]);
+// Must stay aligned with BACKEND_SCOPE.md and the UI role helpers.
+const ALLOWED_ROLES = new Set(["admin", "director", "leader", "assessor", "viewer"]);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -65,7 +66,7 @@ serve(async (req) => {
 
   const email = String(payload.email || "").trim().toLowerCase();
   const fullName = String(payload.full_name || "").trim();
-  const role = allowedRoles.has(String(payload.role || "")) ? String(payload.role) : "viewer";
+  const role = ALLOWED_ROLES.has(String(payload.role || "")) ? String(payload.role) : "viewer";
   const leaderScope = String(payload.leader_scope || "").trim();
   const isActive = payload.is_active !== false;
   const password = String(payload.password || "");
@@ -98,6 +99,14 @@ serve(async (req) => {
     is_active: isActive,
   });
   if (upsertError) return json({ error: upsertError.message }, 400);
+
+  const { error: auditError } = await adminClient.from("admin_history").insert({
+    description: `Utworzono konto: ${fullName || email} (${role})`,
+    changed_by: authData.user.id,
+  });
+  if (auditError) {
+    console.warn("admin_history write failed:", auditError.message);
+  }
 
   return json({
     ok: true,

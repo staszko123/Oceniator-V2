@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { LocalDataProvider } from './localProvider'
-import type { AdminConfig, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
+import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
 
 const supabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || 'https://oemqmxqngwtxmhlmwubq.supabase.co',
@@ -217,6 +218,23 @@ export class SupabaseDataProvider implements DataProvider {
       const failed = results.find((result) => result.error)
       if (failed?.error) throw failed.error
     })
+
+    await this.recordAdminHistory(describeAdminConfigSave(config))
+  }
+
+  async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
+    const { data, error } = await this.client
+      .from('admin_history')
+      .select('id,description,changed_by,changed_at')
+      .order('changed_at', { ascending: false })
+      .limit(12)
+    if (error) throw error
+    return (data || []).map((item) => ({
+      id: item.id,
+      description: item.description,
+      changedBy: item.changed_by,
+      changedAt: item.changed_at,
+    }))
   }
 
   async listUsers(): Promise<ManagedUser[]> {
@@ -256,6 +274,7 @@ export class SupabaseDataProvider implements DataProvider {
     }
     const { error } = await this.client.from('profiles').update(payload).eq('id', user.id)
     if (error) throw error
+    await this.recordAdminHistory(describeUserUpdate({ ...user, source: 'supabase' }))
     return { ...user, source: 'supabase' }
   }
 
@@ -281,6 +300,7 @@ export class SupabaseDataProvider implements DataProvider {
     })
     const body = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(body.error || `Supabase Edge Function HTTP ${response.status}`)
+    await this.recordAdminHistory(describeUserCreate({ ...user, source: 'supabase' }))
     return {
       ...user,
       id: body.id || body.user?.id || user.email,
@@ -332,6 +352,15 @@ export class SupabaseDataProvider implements DataProvider {
       isActive: data.is_active !== false,
       source: 'supabase',
     }
+  }
+
+  private async recordAdminHistory(description: string): Promise<void> {
+    if (!this.currentUser?.id) return
+    const { error } = await this.client.from('admin_history').insert({
+      description,
+      changed_by: this.currentUser.id,
+    })
+    if (error) console.warn('Admin history write failed:', error.message)
   }
 }
 

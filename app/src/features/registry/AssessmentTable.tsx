@@ -1,5 +1,6 @@
 import { Edit3, Eye, FileText, Mail, MonitorCog, PhoneCall, ShieldCheck } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
+import { lastStatusEvent, shortDateTime } from '../../domain/history'
 import type { Assessment, AssessmentType } from '../../domain/types'
 import { statusLabels } from './registryExports'
 
@@ -13,23 +14,6 @@ function typeIcon(type: AssessmentType) {
   if (type === 'r') return <PhoneCall size={15} />
   if (type === 'm') return <Mail size={15} />
   return <MonitorCog size={15} />
-}
-
-function lastStatusEvent(assessment: Assessment) {
-  const history = assessment.statusHistory || []
-  return history[history.length - 1]
-}
-
-function shortDateTime(value: string): string {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export function AssessmentTable({
@@ -61,7 +45,7 @@ export function AssessmentTable({
   onToggleSelect?: (id: string) => void
   onToggleSelectAll?: () => void
 }) {
-  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrów.</div>
+  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrow.</div>
   const hasActions = Boolean(onPreview || onPrint || onEdit || onAdvance)
   const showSelection = selectable && !compact
 
@@ -79,7 +63,7 @@ export function AssessmentTable({
             <th>Typ</th>
             <th>Okres</th>
             <th>Data</th>
-            {!compact ? <th>Oceniający</th> : null}
+            {!compact ? <th>Oceniajacy</th> : null}
             <th>Wynik</th>
             <th>Status</th>
             {!compact ? <th>Ostatnia zmiana</th> : null}
@@ -94,7 +78,7 @@ export function AssessmentTable({
               <tr key={item.id} className={isSelected ? 'selected-row' : ''}>
                 {showSelection ? (
                   <td className="select-col">
-                    <input checked={isSelected} onChange={() => onToggleSelect?.(item.id)} type="checkbox" aria-label={`Zaznacz kartę ${item.spec}`} />
+                    <input checked={isSelected} onChange={() => onToggleSelect?.(item.id)} type="checkbox" aria-label={`Zaznacz karte ${item.spec}`} />
                   </td>
                 ) : null}
                 <td><strong>{item.spec}</strong><small>{item.dzial}</small></td>
@@ -117,10 +101,10 @@ export function AssessmentTable({
                 {hasActions ? (
                   <td>
                     <div className="table-actions">
-                      {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podgląd"><Eye size={15} /></button> : null}
+                      {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podglad"><Eye size={15} /></button> : null}
                       {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
                       {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
-                      {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmień status"><ShieldCheck size={15} /></button> : null}
+                      {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}
                     </div>
                   </td>
                 ) : null}

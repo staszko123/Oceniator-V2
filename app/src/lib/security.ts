@@ -1,15 +1,16 @@
 import type { Assessment, UserProfile } from '../domain/types'
+import { canAdminRole, canCreateRole, canViewTeamRole } from '../domain/access'
 
 export function canCreate(user: UserProfile): boolean {
-  return ['admin', 'director', 'leader', 'assessor'].includes(user.role)
+  return canCreateRole(user.role)
 }
 
 export function canAdmin(user: UserProfile): boolean {
-  return ['admin', 'director'].includes(user.role)
+  return canAdminRole(user.role)
 }
 
 export function canViewTeam(user: UserProfile): boolean {
-  return ['admin', 'director', 'leader', 'assessor'].includes(user.role)
+  return canViewTeamRole(user.role)
 }
 
 export function canEditAssessment(user: UserProfile, assessment: Pick<Assessment, 'oce' | 'leaderScope'>): boolean {
