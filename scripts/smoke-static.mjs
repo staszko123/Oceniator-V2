@@ -11,6 +11,7 @@ const requiredFiles = [
   'app/src/data/localProvider.ts',
   'app/src/data/supabaseProvider.ts',
   'app/src/domain/types.ts',
+  'app/src/config/userPreferences.ts',
   'legacy/index.html',
   'BACKEND_SCOPE.md',
   'LAUNCH_CHECKLIST.md',
@@ -44,6 +45,7 @@ if (!legacyHtml.includes('js/main.js')) {
 const app = existsSync(join(root, 'app/src/App.tsx')) ? read('app/src/App.tsx') : ''
 const dashboardView = existsSync(join(root, 'app/src/features/dashboard/DashboardView.tsx')) ? read('app/src/features/dashboard/DashboardView.tsx') : ''
 const dashboardUtils = existsSync(join(root, 'app/src/features/dashboard/utils.ts')) ? read('app/src/features/dashboard/utils.ts') : ''
+const dashboardConfig = existsSync(join(root, 'app/src/config/dashboard.ts')) ? read('app/src/config/dashboard.ts') : ''
 const registryView = existsSync(join(root, 'app/src/features/registry/RegistryView.tsx')) ? read('app/src/features/registry/RegistryView.tsx') : ''
 for (const account of ['admin/admin123', 'lider01/lider123', 'lider02/lider123', 'podglad/podglad123']) {
   if (!app.includes(account)) failures.push(`Login screen is missing demo account hint: ${account}`)
@@ -53,9 +55,12 @@ for (const guard of ['availableNavItems', 'canCreateRole(user.role)', 'canAdminR
 }
 const featureMarkers = [
   ['App.tsx', app, ['TeamView', "'team'"]],
-  ['RegistryView.tsx', registryView, ['Wszystkie statusy', 'Wszystkie okresy']],
+  ['RegistryView.tsx', registryView, ['registry.allPeriods', 'registry.allStatuses', 'registry.queueTitle', 'registry.clearFilters']],
   ['DashboardView.tsx', dashboardView, ['DashboardWidget', 'Trend okresowy', 'Ranking liderów', 'exportDashboardCsv', 'dashboardDiagnostics']],
-  ['dashboard/utils.ts', dashboardUtils, ['oc_v2_dashboard_prefs']],
+  ['dashboard/utils.ts', dashboardUtils, ['dashboardPanelConfig']],
+  ['config/dashboard.ts', dashboardConfig, ['normalizeDashboardPrefs', 'defaultDashboardPrefs']],
+  ['App.tsx', app, ['saveDashboardPreferences', 'userPreferenceKeys.dashboardPrefs', 'userPreferenceKeys.shellCollapsed']],
+  ['config/userPreferences.ts', existsSync(join(root, 'app/src/config/userPreferences.ts')) ? read('app/src/config/userPreferences.ts') : '', ['dashboardPrefs', 'shellCollapsed']],
 ]
 for (const [label, content, markers] of featureMarkers) {
   for (const feature of markers) {

@@ -42,6 +42,7 @@ function DictionaryEditor({
   onValue,
   onAdd,
   onRemove,
+  t,
 }: {
   title: string
   values: string[]
@@ -49,12 +50,13 @@ function DictionaryEditor({
   onValue: (value: string) => void
   onAdd: () => void
   onRemove: (value: string) => void
+  t: (key: string, fallback?: string) => string
 }) {
   return (
     <div className="dictionary-editor">
       <h3>{title}</h3>
       <div className="dictionary-add">
-        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder="Nowa wartosc" />
+        <input value={value} onChange={(event) => onValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAdd() }} placeholder={t('admin.dictionary.placeholder', 'Nowa wartość')} />
         <button type="button" onClick={onAdd}><Plus size={15} /></button>
       </div>
       <div className="dictionary-list">
@@ -378,6 +380,7 @@ export default function AdminView({
               onValue={setNewLeader}
               onAdd={() => addDictionary('leaders', newLeader, () => setNewLeader(''))}
               onRemove={(value) => removeDictionary('leaders', value)}
+              t={t}
             />
             <DictionaryEditor
               title={t('admin.dictionary.departments', 'Dzialy')}
@@ -386,6 +389,7 @@ export default function AdminView({
               onValue={setNewDepartment}
               onAdd={() => addDictionary('departments', newDepartment, () => setNewDepartment(''))}
               onRemove={(value) => removeDictionary('departments', value)}
+              t={t}
             />
             <DictionaryEditor
               title={t('admin.dictionary.positions', 'Stanowiska')}
@@ -394,6 +398,7 @@ export default function AdminView({
               onValue={setNewPosition}
               onAdd={() => addDictionary('positions', newPosition, () => setNewPosition(''))}
               onRemove={(value) => removeDictionary('positions', value)}
+              t={t}
             />
           </div>
         </section>

@@ -1,6 +1,6 @@
 import { AlertTriangle, Eye, Plus, TimerReset, UserRoundSearch } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { canCreateRole } from '../../domain/access'
+import { canCompareLeadersRole, canCreateRole } from '../../domain/access'
 import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, UserProfile } from '../../domain/types'
 import { scoreClass } from '../../lib/display'
@@ -8,6 +8,7 @@ import { AssessmentTable } from '../registry/AssessmentTable'
 import { AssessmentDetailModal } from '../registry/AssessmentDetailModal'
 import { statusLabels } from '../registry/registryExports'
 import { SpecialistProfileModal } from '../specialists/profile'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
@@ -33,8 +34,9 @@ export default function TeamView({
   openRegistry: (preset?: 'all' | 'decision' | 'recent' | 'edited') => void
   onStartAssessmentForSpecialist?: (name: string) => void
 }) {
+  const { t } = useLanguage()
   const leaderOptions = useMemo(() => {
-    if (user.role === 'admin' || user.role === 'director') return admin.leaders
+    if (canCompareLeadersRole(user.role)) return admin.leaders
     return [user.leaderScope].filter(Boolean)
   }, [admin.leaders, user])
   const [leader, setLeader] = useState(() => leaderOptions[0] || '')
@@ -81,9 +83,9 @@ export default function TeamView({
   const below = rows.filter((item) => item.rating === 'below').length
   const staleSpecialists = specialistRows.filter((item) => !item.last || item.last.data < recentWindow)
   const teamFocus = [
-    pending ? { label: 'Kolejka decyzji', value: pending, hint: 'Karty submitted i review czekają na domknięcie.', tone: 'alert' as const } : null,
-    below ? { label: 'Poniżej standardu', value: below, hint: 'Przygotuj feedback i plan działań dla słabszych wyników.', tone: 'warning' as const } : null,
-    staleSpecialists.length ? { label: 'Bez świeżej karty', value: staleSpecialists.length, hint: 'Część zespołu nie ma oceny z ostatnich 14 dni.', tone: 'neutral' as const } : null,
+    pending ? { label: t('team.toDecision', 'Kolejka decyzji'), value: pending, hint: 'Karty submitted i review czekają na domknięcie.', tone: 'alert' as const } : null,
+    below ? { label: t('team.belowStandard', 'Poniżej standardu'), value: below, hint: 'Przygotuj feedback i plan działań dla słabszych wyników.', tone: 'warning' as const } : null,
+    staleSpecialists.length ? { label: t('team.noFreshCard', 'Bez świeżej karty'), value: staleSpecialists.length, hint: 'Część zespołu nie ma oceny z ostatnich 14 dni.', tone: 'neutral' as const } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string; tone: 'alert' | 'warning' | 'neutral' }>
 
   const prioritySpecialists = [...specialistRows]
@@ -107,56 +109,56 @@ export default function TeamView({
     <main className="screen">
       <section className="team-hero data-panel">
         <div className="team-hero-copy">
-          <div className="section-title"><span>Mój zespół</span><small>{activeLeader || 'Pełny zakres'}</small></div>
-          <h1>Operacyjny widok pracy lidera na jednym ekranie.</h1>
-          <p>Najpierw domknij kolejkę decyzji, potem sprawdź osoby bez świeżej karty i wejdź prosto do profilu specjalisty bez przeskakiwania po modułach.</p>
+          <div className="section-title"><span>{t('team.title')}</span><small>{activeLeader || t('team.fullScope', 'Pełny zakres')}</small></div>
+          <h1>{t('team.hero')}</h1>
+          <p>{t('team.heroHint')}</p>
           <div className="status-chips">
-            <span className="status-chip neutral">{specialists.length} aktywnych specjalistów</span>
-            <span className={pending ? 'status-chip' : 'status-chip success'}>{pending ? `${pending} kart do decyzji` : 'Brak kolejki decyzyjnej'}</span>
-            <span className={below ? 'status-chip' : 'status-chip success'}>{below ? `${below} kart poniżej standardu` : 'Brak kart poniżej standardu'}</span>
+            <span className="status-chip neutral">{specialists.length} {t('team.activeSpecialists')}</span>
+            <span className={pending ? 'status-chip' : 'status-chip success'}>{pending ? `${pending} ${t('team.pending', 'kart do decyzji')}` : t('team.noQueue')}</span>
+            <span className={below ? 'status-chip' : 'status-chip success'}>{below ? `${below} ${t('team.belowStandard', 'kart poniżej standardu')}` : t('team.noBelow')}</span>
           </div>
         </div>
         <div className="team-actions">
           {leaderOptions.length > 1 ? (
             <label>
-              <span>Lider</span>
+              <span>{t('team.leader')}</span>
               <select value={activeLeader} onChange={(event) => setLeader(event.target.value)}>
                 {leaderOptions.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
           ) : null}
-          {canCreateRole(user.role) ? <button className="primary-btn" type="button" onClick={() => setView('form')}><Plus size={16} /> Nowa ocena</button> : null}
+          {canCreateRole(user.role) ? <button className="primary-btn" type="button" onClick={() => setView('form')}><Plus size={16} /> {t('team.newEvaluation')}</button> : null}
         </div>
       </section>
 
       <section className="dashboard-grid">
-        <div className="metric-panel"><span>Specjaliści</span><strong>{specialists.length}</strong><small>aktywni w zakresie</small></div>
-        <div className="metric-panel"><span>Karty aktywne</span><strong>{rows.length}</strong><small>bez archiwum</small></div>
-        <div className="metric-panel"><span>Średni wynik</span><strong>{avg || '-'}%</strong><small>dla zespołu</small></div>
-        <div className="metric-panel"><span>Do reakcji</span><strong>{pending + below}</strong><small>status lub niski wynik</small></div>
+        <div className="metric-panel"><span>{t('team.specialists')}</span><strong>{specialists.length}</strong><small>{t('team.activeScope')}</small></div>
+        <div className="metric-panel"><span>{t('team.activeCards')}</span><strong>{rows.length}</strong><small>{t('team.withoutArchive')}</small></div>
+        <div className="metric-panel"><span>{t('team.avgScore')}</span><strong>{avg || '-'}%</strong><small>{t('team.forTeam')}</small></div>
+        <div className="metric-panel"><span>{t('team.toReact')}</span><strong>{pending + below}</strong><small>{t('team.statusOrScore')}</small></div>
       </section>
 
       <section className="team-ops-grid">
         <article className="data-panel">
-          <div className="section-title"><span>Priorytety dnia</span><small>{teamFocus.length ? 'co domknąć najpierw' : 'bez pilnych sygnałów'}</small></div>
+          <div className="section-title"><span>{t('team.priority')}</span><small>{teamFocus.length ? t('team.prioritySubtitle') : t('team.noUrgent')}</small></div>
           <div className="team-focus-grid">
             {teamFocus.length ? teamFocus.map((item) => (
               <button
                 className={`team-focus-card ${item.tone}`}
                 key={item.label}
                 type="button"
-                onClick={() => item.label === 'Kolejka decyzji' ? openRegistry('decision') : undefined}
+                onClick={() => item.label.includes(t('team.toDecision')) ? openRegistry('decision') : undefined}
               >
                 <strong>{item.value}</strong>
                 <span>{item.label}</span>
                 <small>{item.hint}</small>
               </button>
-            )) : <div className="empty-state compact-empty">Brak pilnych sygnałów. Zespół nie ma zaległych kart ani słabych wyników.</div>}
+            )) : <div className="empty-state compact-empty">{t('team.noUrgentText')}</div>}
           </div>
         </article>
 
         <article className="data-panel">
-          <div className="section-title"><span>Osoby do rozmowy 1:1</span><small>{prioritySpecialists.length ? 'największe ryzyko lub brak świeżej karty' : 'brak pilnych rozmów'}</small></div>
+          <div className="section-title"><span>{t('team.oneToOne')}</span><small>{prioritySpecialists.length ? t('team.oneToOneSubtitle') : t('team.noOneToOne')}</small></div>
           <div className="team-priority-list">
             {prioritySpecialists.length ? prioritySpecialists.map((item) => (
               <button className="team-priority-card" key={item.specialist.id} type="button" onClick={() => setSelectedSpecialistProfile(item.specialist.name)}>
@@ -165,19 +167,19 @@ export default function TeamView({
                   <span>{item.specialist.position} • {item.specialist.department}</span>
                 </div>
                 <div className="team-priority-meta">
-                  {item.pending ? <span><AlertTriangle size={14} /> {item.pending} do decyzji</span> : null}
-                  {item.below ? <span><UserRoundSearch size={14} /> {item.below} nisko</span> : null}
-                  {!item.last ? <span><TimerReset size={14} /> brak kart</span> : null}
-                  {item.last && item.staleDays !== null && item.staleDays > 21 ? <span><TimerReset size={14} /> {item.staleDays} dni od ostatniej</span> : null}
+                  {item.pending ? <span><AlertTriangle size={14} /> {item.pending} {t('team.pending')}</span> : null}
+                  {item.below ? <span><UserRoundSearch size={14} /> {item.below} {t('team.low')}</span> : null}
+                  {!item.last ? <span><TimerReset size={14} /> {t('team.noCards')}</span> : null}
+                  {item.last && item.staleDays !== null && item.staleDays > 21 ? <span><TimerReset size={14} /> {item.staleDays} {t('team.daysSince')}</span> : null}
                 </div>
               </button>
-            )) : <div className="empty-state compact-empty">Brak specjalistów wymagających pilnego wejścia w profil.</div>}
+            )) : <div className="empty-state compact-empty">{t('team.noAttention')}</div>}
           </div>
         </article>
       </section>
 
       <section className="data-panel">
-        <div className="section-title"><span>Specjaliści zespołu</span><small>{specialistRows.length} osób w aktywnym zakresie</small></div>
+        <div className="section-title"><span>{t('team.members')}</span><small>{specialistRows.length} {t('team.inScope')}</small></div>
         <div className="team-specialist-grid">
           {specialistRows.map((item) => (
             <article className="team-specialist-card" key={item.specialist.id}>
@@ -186,25 +188,25 @@ export default function TeamView({
                   <strong>{item.specialist.name}</strong>
                   <span>{item.specialist.position} • {item.specialist.department}</span>
                 </div>
-                <span className={item.count ? scoreClass(item.avg) : 'status-chip neutral'}>{item.count ? `${item.avg}%` : 'Brak kart'}</span>
+                <span className={item.count ? scoreClass(item.avg) : 'status-chip neutral'}>{item.count ? `${item.avg}%` : t('team.noCards')}</span>
               </div>
               <div className="team-specialist-meta">
-                <span>{item.count} kart</span>
-                <span>{item.pending} do decyzji</span>
-                <span>{item.below} poniżej standardu</span>
+                <span>{item.count} {t('team.activeCards')}</span>
+                <span>{item.pending} {t('team.pending')}</span>
+                <span>{item.below} {t('team.belowStandard')}</span>
               </div>
               <p className="hint-text">
                 {item.last
-                  ? `Ostatnia karta: ${item.last.data} • ${TYPE_LABELS[item.last.type]} • ${statusLabels[item.last.status]}`
-                  : 'Brak zapisanych kart w aktualnym zakresie.'}
+                  ? `${t('team.lastCard')} ${item.last.data} • ${TYPE_LABELS[item.last.type]} • ${statusLabels[item.last.status]}`
+                  : t('team.noCardsInScope')}
               </p>
               <div className="team-specialist-actions">
                 <button className="ghost-btn" type="button" onClick={() => setSelectedSpecialistProfile(item.specialist.name)} disabled={!item.count}>
-                  <Eye size={15} /> Profil
+                  <Eye size={15} /> {t('report.profile', 'Profil')}
                 </button>
                 {canCreateRole(user.role) ? (
                   <button className="ghost-btn" type="button" onClick={() => onStartAssessmentForSpecialist?.(item.specialist.name) || setView('form')}>
-                    <Plus size={15} /> Nowa karta
+                    <Plus size={15} /> {t('team.newCard')}
                   </button>
                 ) : null}
               </div>
@@ -214,7 +216,7 @@ export default function TeamView({
       </section>
 
       <section className="data-panel">
-        <div className="section-title"><span>Najpilniejsze karty</span><small>niskie wyniki i otwarta kolejka decyzyjna</small></div>
+        <div className="section-title"><span>{t('team.topCards')}</span><small>{t('team.topCardsSubtitle')}</small></div>
         <AssessmentTable assessments={queueRows} compact onPreview={setSelectedAssessment} />
       </section>
 

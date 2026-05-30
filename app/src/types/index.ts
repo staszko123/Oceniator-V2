@@ -7,4 +7,4 @@ export type { User, UserRole } from './user'
 export type { Evaluation, EvaluationScore } from './evaluation'
 export type { Specialist } from './specialist'
 export type { Team } from './team'
-
+export type { AssessmentComment, UserDraftRecord, UserPreference } from '../domain/types'

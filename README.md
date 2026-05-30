@@ -40,6 +40,21 @@ npm run test:integration
 
 Suite sprawdza logowanie admina, RLS dla `viewer` i `leader`, zapis kart oraz zapis audytu.
 
+Minimalne zmienne do uruchomienia suite:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_TEST_ADMIN_EMAIL`
+- `SUPABASE_TEST_ADMIN_PASSWORD`
+
+Opcjonalnie, ale zalecane:
+
+- `SUPABASE_TEST_VIEWER_EMAIL`
+- `SUPABASE_TEST_VIEWER_PASSWORD`
+- `SUPABASE_TEST_LEADER_EMAIL`
+- `SUPABASE_TEST_LEADER_PASSWORD`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
 ## Diagnostyka i start
 
 - Panel administratora pokazuje ostatnie zmiany konfiguracji oraz ostatnie zdarzenia aplikacji.
@@ -59,8 +74,10 @@ npm run smoke
 ## Tryby danych
 
 - Domyslnie aplikacja probuje uzyc Supabase przez `app/src/data/supabaseProvider.ts`.
-- Przycisk `Uruchom lokalne demo jako admin` przelacza przegladarke na provider lokalny.
-- Dane lokalne v2 uzywaja kluczy `oc_v2_*` i nie mieszaja sie z legacy `localStorage`.
+- Przycisk `Uruchom demo lokalne` przelacza przegladarke na provider lokalny.
+- Przycisk `Eksportuj dane demo` pobiera lokalne dane testowe do pliku JSON bez automatycznej migracji do Supabase.
+- Dane lokalne v2 uzywaja kluczy `oc_v2_*` tylko w trybie demo i nie sa zrodlem prawdy dla produkcji.
+- W trybie Supabase dane biznesowe, w tym oceny, szkice, komentarze i powiadomienia, sa zapisywane w zewnetrznej bazie.
 
 Konta demo:
 

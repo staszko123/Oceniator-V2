@@ -28,7 +28,26 @@ export const dashboardPanelConfig: Record<DashboardPanelKey, DashboardPanelConfi
 
 export const defaultDashboardPanelOrder: DashboardPanelKey[] = ['trend', 'typeMix', 'sections', 'leaders', 'weak', 'lowScores']
 
+export const defaultDashboardPrefs: DashboardPrefs = {
+  order: defaultDashboardPanelOrder,
+  hidden: [],
+  density: 'comfortable',
+  layout: 'grid',
+}
+
+export function normalizeDashboardPrefs(prefs?: Partial<DashboardPrefs> | null): DashboardPrefs {
+  if (!prefs) return defaultDashboardPrefs
+  const order = (prefs.order || defaultDashboardPrefs.order).filter((item) => defaultDashboardPanelOrder.includes(item))
+  const hidden = (prefs.hidden || []).filter((item) => defaultDashboardPanelOrder.includes(item))
+
+  return {
+    order: [...order, ...defaultDashboardPanelOrder.filter((item) => !order.includes(item))],
+    hidden,
+    density: prefs.density === 'compact' ? 'compact' : 'comfortable',
+    layout: prefs.layout === 'focus' ? 'focus' : 'grid',
+  }
+}
+
 export function createDashboardMetric(key: string, label: string, value: string | number, hint?: string): DashboardMetric {
   return { key, label, value, hint }
 }
-

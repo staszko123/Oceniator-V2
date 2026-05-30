@@ -17,6 +17,10 @@ Jedno spójne źródło prawdy dla danych, ról i reguł biznesowych. Backend ma
 - `periods` - okresy rozliczeniowe.
 - `goals` - cele i progi jakościowe.
 - `assessments` - karty oceny, status, scoring, komentarze, historia.
+- `user_drafts` - szkice formularzy przypisane do użytkownika i typu oceny.
+- `assessment_comments` - komentarze operacyjne do kart oceny.
+- `notifications` - powiadomienia użytkownika z linkiem do powiązanej encji.
+- `user_preferences` - preferencje użytkownika niewpływające na model biznesowy.
 - `admin_history` - ślad zmian administracyjnych.
 
 ## Role
@@ -55,6 +59,7 @@ Jedno spójne źródło prawdy dla danych, ról i reguł biznesowych. Backend ma
 - role są spójne w UI, localProvider i Supabase,
 - zapis i odczyt działają bez utraty danych,
 - szkice przetrwają odświeżenie,
+- szkice, komentarze i powiadomienia w trybie produkcyjnym są zapisywane w Supabase, nie w `localStorage`,
 - RLS blokuje nieautoryzowany dostęp,
 - eksport działa na realnych danych,
 - audyt rejestruje zmiany w kluczowych operacjach,

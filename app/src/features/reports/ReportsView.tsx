@@ -8,6 +8,7 @@ import { buildReportTable, exportTableCsv, exportTableExcel, type ReportMode } f
 import { SpecialistProfileModal } from '../specialists/profile'
 import { printSpecialistProfileReport } from '../specialists/profileData'
 import type { Assessment } from '../../domain/types'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
@@ -38,6 +39,7 @@ export default function ReportsView({
   openRegistry: (preset?: 'all' | 'decision' | 'recent' | 'edited') => void
   onStartAssessmentForSpecialist?: (name: string) => void
 }) {
+  const { t } = useLanguage()
   const [filters, setFilters] = useState(() => defaultAnalyticsFilters())
   const [mode, setMode] = useState<ReportMode>('summary')
   const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
@@ -90,21 +92,21 @@ export default function ReportsView({
   const goalGap = activeAvg - 82
 
   const exportReadiness = [
-    activeReview ? { label: 'Do decyzji', value: activeReview, hint: 'Karty do domknięcia review.' } : null,
-    activeBelow ? { label: 'Poniżej standardu', value: activeBelow, hint: 'Lista do feedbacku i korekty.' } : null,
-    activeGreat ? { label: 'Bardzo dobry', value: activeGreat, hint: 'Mocne przykłady do kalibracji.' } : null,
+    activeReview ? { label: t('registry.onlyDecision', 'Do decyzji'), value: activeReview, hint: t('report.reviewHint', 'Karty do domknięcia review.') } : null,
+    activeBelow ? { label: t('report.belowStandard', 'Poniżej standardu'), value: activeBelow, hint: t('report.belowHint', 'Lista do feedbacku i korekty.') } : null,
+    activeGreat ? { label: t('report.great', 'Bardzo dobry'), value: activeGreat, hint: t('report.greatHint', 'Mocne przykłady do kalibracji.') } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string }>
 
   const reportActions = [
-    activeReview ? { label: 'Przejdź do ewidencji', hint: 'Domknij statusy submitted i review z tego zakresu.', action: () => openRegistry('decision'), icon: ClipboardCheck } : null,
-    activeBelow ? { label: 'Przejdź do zespołu', hint: 'Wejdź do profili specjalistów z najsłabszymi wynikami.', action: () => setView('team'), icon: Users } : null,
-    { label: 'Przejdź do dashboardu', hint: 'Zobacz trend i priorytety dla tego samego filtra.', action: () => setView('dashboard'), icon: TrendingUp },
+    activeReview ? { label: t('report.goRegistry', 'Przejdź do ewidencji'), hint: t('report.registryHint', 'Domknij statusy submitted i review z tego zakresu.'), action: () => openRegistry('decision'), icon: ClipboardCheck } : null,
+    activeBelow ? { label: t('report.goTeam', 'Przejdź do zespołu'), hint: t('report.teamHint', 'Wejdź do profili specjalistów z najsłabszymi wynikami.'), action: () => setView('team'), icon: Users } : null,
+    { label: t('report.goDashboard', 'Przejdź do dashboardu'), hint: t('report.dashboardHint', 'Zobacz trend i priorytety dla tego samego filtra.'), action: () => setView('dashboard'), icon: TrendingUp },
   ].filter(Boolean) as Array<{ label: string; hint: string; action: () => void; icon: typeof ClipboardCheck }>
 
   function exportSpecialistPdf() {
     if (!filters.specialist || filters.specialist === 'all') return
     const exported = printSpecialistProfileReport(filters.specialist, filtered)
-    setNotice(exported ? '' : 'Przeglądarka zablokowała okno drukowania lub PDF.')
+    setNotice(exported ? '' : t('report.printBlocked', 'Przeglądarka zablokowała okno drukowania lub PDF.'))
     if (exported) {
       recordDiagnostic({
         scope: 'reports',
@@ -122,30 +124,30 @@ export default function ReportsView({
       <section className="report-hero">
         <div className="report-hero-copy">
           <div className="section-title">
-            <span>Raporty</span>
-            <small>{filtered.length} kart po filtrach</small>
+            <span>{t('report.title', 'Raporty')}</span>
+            <small>{filtered.length} {t('report.cardsAfterFilters', 'kart po filtrach')}</small>
           </div>
-          <h1>Najpierw ustaw filtr, potem pobierz tylko to, co pomaga podjąć decyzję.</h1>
+          <h1>{t('report.entryHint', 'Najpierw ustaw filtr, potem pobierz tylko to, co pomaga podjąć decyzję.')}</h1>
           <p>{notice || reportTable.description}</p>
         </div>
         <div className="report-hero-actions">
           <button className="primary-btn" type="button" onClick={() => openRegistry('decision')}>
-            <ClipboardCheck size={16} /> Przejdź do ewidencji
+            <ClipboardCheck size={16} /> {t('report.goRegistry', 'Przejdź do ewidencji')}
           </button>
-          <span className="hint-text">Tryby, eksporty i tabele pomocnicze są niżej.</span>
+          <span className="hint-text">{t('report.toolsHint', 'Tryby, eksporty i tabele pomocnicze są niżej.')}</span>
         </div>
       </section>
 
       <section className="report-kpi-grid">
-        <div className="metric-panel"><span>Średni wynik</span><strong>{activeAvg || '-'}</strong><small>w aktywnym filtrze</small></div>
-        <div className="metric-panel"><span>Karty</span><strong>{filtered.length}</strong><small>aktywny zakres</small></div>
-        <div className="metric-panel"><span>Poniżej standardu</span><strong>{activeBelow}</strong><small>wymagają reakcji</small></div>
-        <div className="metric-panel"><span>Różnica do celu</span><strong>{goalGap ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>progiem jest 82%</small></div>
+        <div className="metric-panel"><span>{t('report.avgScore', 'Średni wynik')}</span><strong>{activeAvg || '-'}</strong><small>{t('report.inFilter', 'w aktywnym filtrze')}</small></div>
+        <div className="metric-panel"><span>{t('report.cards', 'Karty')}</span><strong>{filtered.length}</strong><small>{t('report.activeRange', 'aktywny zakres')}</small></div>
+        <div className="metric-panel"><span>{t('report.belowStandard', 'Poniżej standardu')}</span><strong>{activeBelow}</strong><small>{t('report.needsAction', 'wymagają reakcji')}</small></div>
+        <div className="metric-panel"><span>{t('report.goalGap', 'Różnica do celu')}</span><strong>{goalGap ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>{t('report.goalThreshold', 'progiem jest 82%')}</small></div>
       </section>
 
       <section className="report-ops-grid">
         <div className="data-panel">
-          <div className="section-title"><span>Sygnały</span><small>kontekst bieżącego zestawu</small></div>
+          <div className="section-title"><span>{t('report.signals', 'Sygnały')}</span><small>{t('report.currentContext', 'kontekst bieżącego zestawu')}</small></div>
           {exportReadiness.length ? (
             <div className="action-priority-list">
               {exportReadiness.map((item) => (
@@ -159,12 +161,12 @@ export default function ReportsView({
               ))}
             </div>
           ) : (
-            <div className="empty-state compact-empty">Bieżący filtr nie pokazuje sygnałów wymagających pilnego komentarza.</div>
+            <div className="empty-state compact-empty">{t('report.noSignals', 'Bieżący filtr nie pokazuje sygnałów wymagających pilnego komentarza.')}</div>
           )}
         </div>
 
         <div className="report-preview-panel">
-          <div className="section-title"><span>{reportTable.title}</span><small>{reportTable.rows.length} wierszy wynikowych</small></div>
+          <div className="section-title"><span>{reportTable.title}</span><small>{reportTable.rows.length} {t('report.resultRows', 'wierszy wynikowych')}</small></div>
           <p className="hint-text">{reportTable.description}</p>
           {reportTable.rows.length ? (
             <div className="table-wrap">
@@ -182,44 +184,44 @@ export default function ReportsView({
               </table>
             </div>
           ) : (
-            <div className="empty-state">Brak danych dla aktualnego zestawu filtrów.</div>
+            <div className="empty-state">{t('report.empty', 'Brak danych dla aktualnego zestawu filtrów.')}</div>
           )}
-          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pełny zakres pobierzesz z eksportu.</p> : null}
+          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">{t('report.previewHint', 'Pokazano pierwsze {count} wiersze. Pełny zakres pobierzesz z eksportu.').replace('{count}', String(reportPreviewRows.length))}</p> : null}
         </div>
       </section>
 
       <details className="report-more" open={showMore} onToggle={(event) => setShowMore(event.currentTarget.open)}>
         <summary>
-          <span>Narzędzia</span>
-          <small>tryby, eksporty i rankingi</small>
+          <span>{t('report.tools', 'Narzędzia')}</span>
+          <small>{t('report.toolsSubtitle', 'tryby, eksporty i rankingi')}</small>
         </summary>
         <div className="report-more-body">
           <section className="data-panel">
-            <div className="section-title"><span>Format</span><small>wybierz jeden widok na raz</small></div>
+            <div className="section-title"><span>{t('report.format', 'Format')}</span><small>{t('report.oneMode', 'wybierz jeden widok na raz')}</small></div>
             <div className="report-mode-group">
               <button className={mode === 'detail' ? 'active' : ''} type="button" onClick={() => setMode('detail')}>
-                <FileText size={15} /> Szczegółowy
+                <FileText size={15} /> {t('report.detail', 'Szczegółowy')}
               </button>
               <button className={mode === 'summary' ? 'active' : ''} type="button" onClick={() => setMode('summary')}>
-                <Users size={15} /> Specjaliści
+                <Users size={15} /> {t('report.specialists', 'Specjaliści')}
               </button>
               <button className={mode === 'trend' ? 'active' : ''} type="button" onClick={() => setMode('trend')}>
-                <TrendingUp size={15} /> Trendy
+                <TrendingUp size={15} /> {t('report.trends', 'Trendy')}
               </button>
             </div>
             <div className="report-actions">
               <button className="ghost-btn" type="button" onClick={() => { exportTableCsv(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `CSV ${reportTable.rows.length} wierszy`, level: 'info' }) }}>
-                <Download size={16} /> Eksport CSV
+                <Download size={16} /> {t('report.exportCsv', 'Eksport CSV')}
               </button>
               <button className="ghost-btn" type="button" onClick={() => { void exportTableExcel(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `XLSX ${reportTable.rows.length} wierszy`, level: 'info' }) }}>
-                <Download size={16} /> Eksport XLSX
+                <Download size={16} /> {t('report.exportXlsx', 'Eksport XLSX')}
               </button>
               <button className="ghost-btn" type="button" onClick={() => { exportJson(filtered); recordDiagnostic({ scope: 'reports', action: 'export', detail: `JSON ${filtered.length} kart`, level: 'info' }) }}>
-                <Download size={16} /> Karty JSON
+                <Download size={16} /> {t('report.exportJson', 'Karty JSON')}
               </button>
               {filters.specialist !== 'all' ? (
                 <button className="ghost-btn" type="button" onClick={exportSpecialistPdf}>
-                  <FileText size={16} /> Raport PDF specjalisty
+                  <FileText size={16} /> {t('report.specialistPdf', 'Raport PDF specjalisty')}
                 </button>
               ) : null}
             </div>
@@ -227,7 +229,7 @@ export default function ReportsView({
 
           <section className="report-action-grid">
             <article className="data-panel">
-              <div className="section-title"><span>Następny krok</span><small>na podstawie aktywnego filtra</small></div>
+              <div className="section-title"><span>{t('report.nextStep', 'Następny krok')}</span><small>{t('report.nextStepHint', 'na podstawie aktywnego filtra')}</small></div>
               <div className="report-action-list">
                 {reportActions.map((item) => (
                   <button className="report-action-card" key={item.label} type="button" onClick={item.action}>
@@ -239,13 +241,13 @@ export default function ReportsView({
             </article>
 
             <article className="data-panel">
-              <div className="section-title"><span>Szybki dostęp</span><small>{bySpecialist.length ? 'najniższe średnie w filtrze' : 'brak danych'}</small></div>
+              <div className="section-title"><span>{t('report.quickAccess', 'Szybki dostęp')}</span><small>{bySpecialist.length ? t('report.lowestInFilter', 'najniższe średnie w filtrze') : t('report.noDataShort', 'brak danych')}</small></div>
               <div className="report-specialist-shortlist">
                 {bySpecialist.slice(0, 6).map((item) => (
                   <button className="report-specialist-card" key={item.specialist} type="button" onClick={() => setSelectedSpecialistProfile(item.specialist)}>
                     <div>
                       <strong>{item.specialist}</strong>
-                      <span>{item.leader || 'Brak lidera'} - {item.lastDate || 'Brak daty'}</span>
+                      <span>{item.leader || t('report.noLeader', 'Brak lidera')} - {item.lastDate || t('report.noDate', 'Brak daty')}</span>
                     </div>
                     <span className={scoreClass(item.avg)}>{item.avg}%</span>
                   </button>
@@ -256,19 +258,19 @@ export default function ReportsView({
 
           <section className="data-panel">
             <div className="section-title">
-              <span>Liderzy</span>
-              <small>agregacja w bieżącym filtrze</small>
+              <span>{t('report.leaders', 'Liderzy')}</span>
+              <small>{t('report.groupedInFilter', 'agregacja w bieżącym filtrze')}</small>
             </div>
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Lider</th>
-                    <th>Karty</th>
-                    <th>Średnia</th>
-                    <th>Bardzo dobry</th>
-                    <th>Poniżej standardu</th>
-                    <th>Do decyzji</th>
+                    <th>{t('report.leader', 'Lider')}</th>
+                    <th>{t('report.cards', 'Karty')}</th>
+                    <th>{t('report.avgScore', 'Średnia')}</th>
+                    <th>{t('report.great', 'Bardzo dobry')}</th>
+                    <th>{t('report.belowStandard', 'Poniżej standardu')}</th>
+                    <th>{t('registry.onlyDecision', 'Do decyzji')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,17 +290,17 @@ export default function ReportsView({
           </section>
 
           <section className="data-panel">
-            <div className="section-title"><span>Najniższe średnie</span><small>najsłabsze średnie w filtrze</small></div>
+            <div className="section-title"><span>{t('report.lowestAverages', 'Najniższe średnie')}</span><small>{t('report.lowestInFilter', 'najsłabsze średnie w filtrze')}</small></div>
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Specjalista</th>
-                    <th>Lider</th>
-                    <th>Karty</th>
-                    <th>Średnia</th>
-                    <th>Ostatnia karta</th>
-                    <th>Profil</th>
+                    <th>{t('table.specialist', 'Specjalista')}</th>
+                    <th>{t('report.leader', 'Lider')}</th>
+                    <th>{t('report.cards', 'Karty')}</th>
+                    <th>{t('report.avgScore', 'Średnia')}</th>
+                    <th>{t('report.lastCard', 'Ostatnia karta')}</th>
+                    <th>{t('report.profile', 'Profil')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -311,7 +313,7 @@ export default function ReportsView({
                       <td>{item.lastDate}</td>
                       <td>
                         <button className="ghost-btn table-inline-btn" type="button" onClick={() => setSelectedSpecialistProfile(item.specialist)}>
-                          <Eye size={15} /> Profil
+                          <Eye size={15} /> {t('report.profile', 'Profil')}
                         </button>
                       </td>
                     </tr>

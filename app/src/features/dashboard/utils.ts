@@ -1,8 +1,6 @@
 import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import type { Assessment } from '../../domain/types'
-import type { DashboardPrefs } from '../../config/dashboard'
 import { dashboardPanelConfig, defaultDashboardPanelOrder } from '../../config/dashboard'
-import { getDashboardPreferences, setDashboardPreferences } from '../../services/settingsService'
 
 export type { DashboardPanelKey, DashboardPrefs, DashboardDensity, DashboardLayout } from '../../config/dashboard'
 
@@ -16,14 +14,6 @@ export const dashboardPanelLabels: Record<keyof typeof dashboardPanelConfig, str
 }
 
 export { defaultDashboardPanelOrder }
-
-export function readDashboardPrefs(): DashboardPrefs {
-  return getDashboardPreferences()
-}
-
-export function writeDashboardPrefs(prefs: DashboardPrefs) {
-  setDashboardPreferences(prefs)
-}
 
 function sectionAverage(assessment: Assessment, sectionKey: string): number {
   if (assessment.secAvg[sectionKey]) return assessment.secAvg[sectionKey]

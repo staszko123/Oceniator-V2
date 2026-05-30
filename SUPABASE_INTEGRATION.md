@@ -6,6 +6,10 @@ Ten dokument opisuje uruchomienie rzeczywistych testów integracyjnych przeciwko
 
 - logowanie admina,
 - zapis karty i stampowanie `created_by`,
+- zapis i odczyt szkicu z `user_drafts`,
+- zapis komentarza do `assessment_comments`,
+- odczyt i oznaczanie powiadomień w `notifications`,
+- zapis preferencji użytkownika w `user_preferences`,
 - widoczność kart dla `viewer` / `Specjalista`,
 - widoczność kart dla `leader` w jego zakresie,
 - blokadę zapisu do `admin_history` dla `viewer`,
@@ -29,6 +33,29 @@ Opcjonalne, ale zalecane:
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 Jeśli nie podasz osobnych danych `viewer` i `leader`, suite utworzy tymczasowe konta tylko wtedy, gdy dostępny jest `SUPABASE_SERVICE_ROLE_KEY`.
+
+## Szybka konfiguracja lokalna
+
+Ustaw zmienne przed uruchomieniem testów integracyjnych. W PowerShell możesz zrobić to tak:
+
+```powershell
+$env:SUPABASE_URL="https://twoj-projekt.supabase.co"
+$env:SUPABASE_ANON_KEY="twoj-anon-key"
+$env:SUPABASE_TEST_ADMIN_EMAIL="admin@example.com"
+$env:SUPABASE_TEST_ADMIN_PASSWORD="haslo-admina"
+$env:SUPABASE_TEST_VIEWER_EMAIL="viewer@example.com"
+$env:SUPABASE_TEST_VIEWER_PASSWORD="haslo-viewera"
+$env:SUPABASE_TEST_LEADER_EMAIL="leader@example.com"
+$env:SUPABASE_TEST_LEADER_PASSWORD="haslo-leadera"
+# opcjonalnie, jeśli suite ma tworzyć i sprzątać konta testowe
+$env:SUPABASE_SERVICE_ROLE_KEY="twoj-service-role-key"
+```
+
+Po tym uruchom:
+
+```powershell
+npm run test:integration
+```
 
 ## Uruchomienie
 

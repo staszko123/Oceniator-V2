@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { Assessment, UserProfile } from './types'
-import { canAdminRole, canCreateRole, canViewTeamRole, scopeAssessmentsForUser } from './access'
+import {
+  canAdvanceAssessmentStatusRole,
+  canAdvanceAssessmentStatus,
+  canAdminRole,
+  canCompareLeadersRole,
+  canCreateRole,
+  canViewTeamRole,
+  isViewerRole,
+  scopeAssessmentsForUser,
+} from './access'
 
 function makeUser(overrides: Partial<UserProfile>): UserProfile {
   return {
@@ -57,6 +66,22 @@ describe('access helpers', () => {
     expect(canViewTeamRole('leader')).toBe(true)
     expect(canViewTeamRole('assessor')).toBe(true)
     expect(canViewTeamRole('viewer')).toBe(false)
+
+    expect(canCompareLeadersRole('admin')).toBe(true)
+    expect(canCompareLeadersRole('director')).toBe(true)
+    expect(canCompareLeadersRole('leader')).toBe(false)
+
+    expect(canAdvanceAssessmentStatusRole('admin')).toBe(true)
+    expect(canAdvanceAssessmentStatusRole('director')).toBe(true)
+    expect(canAdvanceAssessmentStatusRole('leader')).toBe(true)
+    expect(canAdvanceAssessmentStatusRole('assessor')).toBe(false)
+
+    expect(canAdvanceAssessmentStatus(makeUser({ role: 'admin' }), makeAssessment())).toBe(true)
+    expect(canAdvanceAssessmentStatus(makeUser({ role: 'leader', leaderScope: 'Anna Lider' }), makeAssessment({ leaderScope: 'Anna Lider' }))).toBe(true)
+    expect(canAdvanceAssessmentStatus(makeUser({ role: 'leader', leaderScope: 'Inny Lider' }), makeAssessment({ leaderScope: 'Anna Lider' }))).toBe(false)
+
+    expect(isViewerRole('viewer')).toBe(true)
+    expect(isViewerRole('admin')).toBe(false)
   })
 
   it('scopes assessments for viewer, leader and admin', () => {

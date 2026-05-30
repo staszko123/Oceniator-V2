@@ -72,6 +72,7 @@ Jeżeli pilot trzeba odtworzyc:
 - zaloguj `assessor`,
 - zaloguj `viewer` / `Specjalista`,
 - odswiez przegladarke i sprawdz czy sesja zostaje.
+- w trybie Supabase potwierdz, ze szkice, komentarze i powiadomienia nie pochodza z lokalnego demo.
 
 ### 2. Ocena
 
@@ -80,6 +81,7 @@ Jeżeli pilot trzeba odtworzyc:
 - wpisz kontakt,
 - zapisz szkic,
 - odswiez strone i sprawdz czy szkic wraca,
+- sprobuj zapisac niekompletna karte i sprawdz czy formularz blokuje zapis z lista brakow,
 - zapisz pelna karte.
 
 ### 3. Ewidencja

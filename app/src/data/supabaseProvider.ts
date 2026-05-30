@@ -1,8 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { LocalDataProvider } from './localProvider'
+import { DemoDataProvider } from './localProvider'
 import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
-import { scopeAssessmentsForUser } from '../domain/access'
-import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import { canAdminRole, scopeAssessmentsForUser } from '../domain/access'
+import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentComment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import type { Notification } from '../types/notification'
 import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
 import { getProviderMode } from '../services/settingsService'
 
@@ -49,7 +50,7 @@ function mapRow(row: Record<string, unknown>): Assessment {
   }
 }
 
-function mapAssessment(assessment: Assessment, user: UserProfile | null): Record<string, unknown> {
+function mapAssessment(assessment: Assessment): Record<string, unknown> {
   return {
     id: assessment.id,
     type: assessment.type,
@@ -69,8 +70,7 @@ function mapAssessment(assessment: Assessment, user: UserProfile | null): Record
     contact_count: assessment.contactCount,
     status: assessment.status,
     status_history: assessment.statusHistory || [],
-    leader_scope: assessment.leaderScope || user?.leaderScope || assessment.oce,
-    created_by: user?.source === 'supabase' ? user.id : null,
+    leader_scope: assessment.leaderScope || assessment.oce,
   }
 }
 
@@ -81,7 +81,6 @@ function isUuid(value: string): boolean {
 export class SupabaseDataProvider implements DataProvider {
   mode = 'supabase' as const
   private client: SupabaseClient
-  private local = new LocalDataProvider()
   private currentUser: UserProfile | null = null
 
   constructor() {
@@ -117,7 +116,6 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async loadAdmin(): Promise<AdminConfig> {
-    const fallback = await this.local.loadAdmin()
     try {
       const [goals, specialists, departments, positions, periods] = await Promise.all([
         this.client.from('goals').select('*').eq('id', '00000000-0000-0000-0000-000000000001').maybeSingle(),
@@ -127,7 +125,8 @@ export class SupabaseDataProvider implements DataProvider {
         this.client.from('periods').select('*').order('sort_order'),
       ])
 
-      if (goals.error || specialists.error || departments.error || positions.error || periods.error) return fallback
+      const failed = [goals, specialists, departments, positions, periods].find((result) => result.error)
+      if (failed?.error) throw failed.error
 
       return {
         goals: goals.data
@@ -138,7 +137,13 @@ export class SupabaseDataProvider implements DataProvider {
               minAvg: goals.data.min_avg,
               greatShare: goals.data.great_share,
             }
-          : fallback.goals,
+          : {
+              callsPerPeriod: 9,
+              mailsPerPeriod: 9,
+              systemsPerPeriod: 9,
+              minAvg: 92,
+              greatShare: 60,
+            },
         specialists: (specialists.data || []).map((item) => ({
           id: item.id,
           name: item.name,
@@ -158,8 +163,8 @@ export class SupabaseDataProvider implements DataProvider {
         })),
       }
     } catch (error) {
-      console.warn('Supabase admin load failed, using local fallback:', error)
-      return fallback
+      console.warn('Supabase admin load failed:', error)
+      throw error
     }
   }
 
@@ -232,7 +237,7 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
-    if (!this.currentUser || !['admin', 'director'].includes(this.currentUser.role)) return []
+    if (!this.currentUser || !canAdminRole(this.currentUser.role)) return []
     try {
       const { data, error } = await this.client
         .from('admin_history')
@@ -253,7 +258,7 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async listUsers(): Promise<ManagedUser[]> {
-    if (!this.currentUser || !['admin', 'director'].includes(this.currentUser.role)) return []
+    if (!this.currentUser || !canAdminRole(this.currentUser.role)) return []
     try {
       const { data, error } = await this.client
         .from('profiles')
@@ -338,19 +343,31 @@ export class SupabaseDataProvider implements DataProvider {
   async loadAssessments(): Promise<Assessment[]> {
     try {
       const { data, error } = await this.client.from('assessments').select('*').order('assessment_date', { ascending: false })
-      if (error) return this.local.loadAssessments()
+      if (error) throw error
       const mapped = (data || []).map(mapRow)
       return this.currentUser ? scopeAssessmentsForUser(mapped, this.currentUser) : mapped
     } catch (error) {
-      console.warn('Supabase assessments load failed, using local fallback:', error)
-      return this.local.loadAssessments()
+      console.warn('Supabase assessments load failed:', error)
+      throw error
     }
   }
 
   async saveAssessment(assessment: Assessment): Promise<void> {
     if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
     assertCanEditAssessment(this.currentUser, assessment, 'Brak dostepu do zapisu tej karty.')
-    const { error } = await this.client.from('assessments').upsert(mapAssessment(assessment, this.currentUser), { onConflict: 'id' })
+    const { data: existing, error: existingError } = await this.client
+      .from('assessments')
+      .select('created_by')
+      .eq('id', assessment.id)
+      .maybeSingle()
+    if (existingError) throw existingError
+    const payload = mapAssessment(assessment)
+    if (existing?.created_by) {
+      payload.created_by = existing.created_by
+    } else {
+      payload.created_by = this.currentUser.id
+    }
+    const { error } = await this.client.from('assessments').upsert(payload, { onConflict: 'id' })
     if (error) throw error
   }
 
@@ -361,11 +378,170 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async loadDrafts(): Promise<Record<AssessmentType, AssessmentDraft | undefined>> {
-    return this.local.loadDrafts()
+    if (!this.currentUser) return { r: undefined, m: undefined, s: undefined }
+    const { data, error } = await this.client
+      .from('user_drafts')
+      .select('id,assessment_type,payload,saved_at,updated_at')
+      .eq('user_id', this.currentUser.id)
+    if (error) throw error
+    const drafts: Record<AssessmentType, AssessmentDraft | undefined> = { r: undefined, m: undefined, s: undefined }
+    ;(data || []).forEach((row) => {
+      const type = row.assessment_type as AssessmentType
+      if (type === 'r' || type === 'm' || type === 's') {
+        drafts[type] = {
+          ...(row.payload as AssessmentDraft),
+          type,
+          savedAt: row.saved_at || row.updated_at || new Date().toISOString(),
+        }
+      }
+    })
+    return drafts
   }
 
   async saveDrafts(drafts: Record<AssessmentType, AssessmentDraft | undefined>): Promise<void> {
-    await this.local.saveDrafts(drafts)
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    const userId = this.currentUser.id
+    const operations = (['r', 'm', 's'] as AssessmentType[]).map((type) => {
+      const draft = drafts[type]
+      if (!draft) {
+        return this.client
+          .from('user_drafts')
+          .delete()
+          .eq('user_id', userId)
+          .eq('assessment_type', type)
+      }
+      return this.client.from('user_drafts').upsert({
+        user_id: userId,
+        assessment_type: type,
+        payload: draft,
+        saved_at: draft.savedAt || new Date().toISOString(),
+      }, { onConflict: 'user_id,assessment_type' })
+    })
+    const results = await Promise.all(operations)
+    const failed = results.find((result) => result.error)
+    if (failed?.error) throw failed.error
+  }
+
+  async loadNotifications(): Promise<Notification[]> {
+    if (!this.currentUser) return []
+    const { data, error } = await this.client
+      .from('notifications')
+      .select('id,user_id,type,title,message,read,related_entity_type,related_entity_id,created_at')
+      .eq('user_id', this.currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+    if (error) throw error
+    return (data || []).map((item) => ({
+      id: item.id,
+      userId: item.user_id,
+      type: item.type as Notification['type'],
+      title: item.title || '',
+      message: item.message || '',
+      read: Boolean(item.read),
+      createdAt: item.created_at,
+      relatedEntityType: item.related_entity_type as Notification['relatedEntityType'],
+      relatedEntityId: item.related_entity_id || undefined,
+    }))
+  }
+
+  async markNotificationRead(id: string): Promise<Notification[]> {
+    if (!this.currentUser) return []
+    const { error } = await this.client
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id)
+      .eq('user_id', this.currentUser.id)
+    if (error) throw error
+    return this.loadNotifications()
+  }
+
+  async markAllNotificationsRead(): Promise<Notification[]> {
+    if (!this.currentUser) return []
+    const { error } = await this.client
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', this.currentUser.id)
+    if (error) throw error
+    return this.loadNotifications()
+  }
+
+  async pushNotification(payload: Parameters<DataProvider['pushNotification']>[0]): Promise<Notification[]> {
+    const userId = payload.userId || this.currentUser?.id
+    if (!userId) return []
+    const { error } = await this.client.from('notifications').insert({
+      user_id: userId,
+      type: payload.type,
+      title: payload.title,
+      message: payload.message,
+      read: false,
+      related_entity_type: payload.relatedEntityType || null,
+      related_entity_id: payload.relatedEntityId || null,
+    })
+    if (error) throw error
+    return this.loadNotifications()
+  }
+
+  async loadAssessmentComments(assessmentId: string): Promise<AssessmentComment[]> {
+    const { data, error } = await this.client
+      .from('assessment_comments')
+      .select('id,assessment_id,body,created_by,created_at,updated_at')
+      .eq('assessment_id', assessmentId)
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    return (data || []).map((item) => ({
+      id: item.id,
+      assessmentId: item.assessment_id,
+      body: item.body,
+      createdBy: item.created_by,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    }))
+  }
+
+  async addAssessmentComment(assessmentId: string, body: string): Promise<AssessmentComment> {
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    if (!body.trim()) throw new Error('Komentarz nie może być pusty.')
+    const { data, error } = await this.client
+      .from('assessment_comments')
+      .insert({
+        assessment_id: assessmentId,
+        body: body.trim(),
+        created_by: this.currentUser.id,
+      })
+      .select('id,assessment_id,body,created_by,created_at,updated_at')
+      .single()
+    if (error) throw error
+    return {
+      id: data.id,
+      assessmentId: data.assessment_id,
+      body: data.body,
+      createdBy: data.created_by,
+      createdByName: this.currentUser.fullName || this.currentUser.email,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    }
+  }
+
+  async loadUserPreference<T = unknown>(key: string): Promise<T | null> {
+    if (!this.currentUser) return null
+    const { data, error } = await this.client
+      .from('user_preferences')
+      .select('value')
+      .eq('user_id', this.currentUser.id)
+      .eq('key', key)
+      .maybeSingle()
+    if (error) throw error
+    return (data?.value as T | undefined) ?? null
+  }
+
+  async saveUserPreference<T = unknown>(key: string, value: T): Promise<void> {
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    const { error } = await this.client.from('user_preferences').upsert({
+      user_id: this.currentUser.id,
+      key,
+      value,
+    }, { onConflict: 'user_id,key' })
+    if (error) throw error
   }
 
   private async loadProfile(userId: string, email: string): Promise<UserProfile> {
@@ -404,18 +580,18 @@ export class SupabaseDataProvider implements DataProvider {
   }
 }
 
-let localProviderInstance: LocalDataProvider | null = null
+let localProviderInstance: DemoDataProvider | null = null
 let supabaseProviderInstance: SupabaseDataProvider | null = null
 
 export function createProvider(forceLocal = false): DataProvider {
   if (forceLocal || getProviderMode() === 'local') {
-    localProviderInstance ||= new LocalDataProvider()
+    localProviderInstance ||= new DemoDataProvider()
     return localProviderInstance
   }
   if (SupabaseDataProvider.isConfigured()) {
     supabaseProviderInstance ||= new SupabaseDataProvider()
     return supabaseProviderInstance
   }
-  localProviderInstance ||= new LocalDataProvider()
+  localProviderInstance ||= new DemoDataProvider()
   return localProviderInstance
 }

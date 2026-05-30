@@ -6,19 +6,13 @@ import { notificationTypeConfig } from '../../config/status'
 import { PROVIDER_LABELS, ROLE_LABELS } from '../../lib/display'
 import { useTheme } from '../../lib/theme'
 import { routeConfig, type ViewKey } from '../../config/navigation'
-import { getShellCollapsedPreference, setShellCollapsedPreference } from '../../services/settingsService'
 import { useLanguage } from '../../i18n/LanguageContext'
 import type { Notification } from '../../types/notification'
+import { isViewerRole } from '../../domain/access'
 
 function resolveActiveMeta(view: ViewKey, role: UserProfile['role'], t: (key: string, fallback?: string) => string) {
   const baseMeta = routeConfig[view]
-  if (view === 'start' && role === 'viewer') {
-    return {
-      eyebrow: t(baseMeta.viewerEyebrowKey || baseMeta.eyebrowKey),
-      description: t(baseMeta.viewerDescriptionKey || baseMeta.descriptionKey),
-    }
-  }
-  if (view === 'registry' && role === 'viewer') {
+  if ((view === 'start' || view === 'registry') && isViewerRole(role)) {
     return {
       eyebrow: t(baseMeta.viewerEyebrowKey || baseMeta.eyebrowKey),
       description: t(baseMeta.viewerDescriptionKey || baseMeta.descriptionKey),
@@ -96,6 +90,8 @@ export default function AppShell({
   notifications = [],
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
+  collapsed,
+  onCollapsedChange,
 }: {
   user: UserProfile
   providerMode: DataProvider['mode']
@@ -110,19 +106,16 @@ export default function AppShell({
   notifications?: Notification[]
   onMarkNotificationRead?: (id: string) => void
   onMarkAllNotificationsRead?: () => void
+  collapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }) {
   const activeTitle = navItems.find((item) => item.key === view)?.label || 'Oceniator'
   const { t, language, setLanguage } = useLanguage()
   const activeMeta = resolveActiveMeta(view, user.role, t)
   const { theme, toggleTheme } = useTheme()
-  const [collapsed, setCollapsed] = useState<boolean>(() => getShellCollapsedPreference())
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const notificationsPopoverRef = useRef<HTMLDivElement | null>(null)
   const notificationsButtonRef = useRef<HTMLButtonElement | null>(null)
-
-  useEffect(() => {
-    setShellCollapsedPreference(collapsed)
-  }, [collapsed])
 
   useEffect(() => {
     if (!notificationsOpen) return undefined
@@ -167,7 +160,7 @@ export default function AppShell({
           <button
             className="sidebar-toggle"
             type="button"
-            onClick={() => setCollapsed((value) => !value)}
+            onClick={() => onCollapsedChange(!collapsed)}
             title={collapsed ? t('action.expandSidebar') : t('action.collapseSidebar')}
             aria-label={collapsed ? t('action.expandSidebar') : t('action.collapseSidebar')}
           >

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { AssessmentDraft, AssessmentType } from '../app/src/domain/types'
 
 type RoleName = 'viewer' | 'leader'
 
@@ -204,6 +205,10 @@ describeIntegration('Supabase integration', () => {
   let allowedAssessment: AssessmentFixture | null = null
   let foreignAssessment: AssessmentFixture | null = null
   let tempHistoryId: string | null = null
+  const tempDrafts: Array<{ userId: string; type: AssessmentType }> = []
+  const tempNotificationIds: string[] = []
+  const tempCommentIds: string[] = []
+  const tempPreferenceKeys: Array<{ userId: string; key: string }> = []
   const tempAuthUsers: string[] = []
 
   beforeAll(async () => {
@@ -245,8 +250,39 @@ describeIntegration('Supabase integration', () => {
       if (tempHistoryId) {
         await serviceClient.from('admin_history').delete().eq('id', tempHistoryId)
       }
+      for (const draft of tempDrafts) {
+        await serviceClient.from('user_drafts').delete().eq('user_id', draft.userId).eq('assessment_type', draft.type)
+      }
+      for (const id of tempNotificationIds) {
+        await serviceClient.from('notifications').delete().eq('id', id)
+      }
+      for (const id of tempCommentIds) {
+        await serviceClient.from('assessment_comments').delete().eq('id', id)
+      }
+      for (const pref of tempPreferenceKeys) {
+        await serviceClient.from('user_preferences').delete().eq('user_id', pref.userId).eq('key', pref.key)
+      }
       for (const userId of tempAuthUsers) {
         await serviceClient.auth.admin.deleteUser(userId)
+      }
+    } else if (leaderFixture) {
+      if (allowedAssessment?.id) {
+        await adminClient.from('assessments').delete().eq('id', allowedAssessment.id)
+      }
+      if (foreignAssessment?.id) {
+        await adminClient.from('assessments').delete().eq('id', foreignAssessment.id)
+      }
+      for (const draft of tempDrafts) {
+        await leaderFixture.client.from('user_drafts').delete().eq('user_id', draft.userId).eq('assessment_type', draft.type)
+      }
+      for (const id of tempNotificationIds) {
+        await leaderFixture.client.from('notifications').delete().eq('id', id)
+      }
+      for (const id of tempCommentIds) {
+        await leaderFixture.client.from('assessment_comments').delete().eq('id', id)
+      }
+      for (const pref of tempPreferenceKeys) {
+        await leaderFixture.client.from('user_preferences').delete().eq('user_id', pref.userId).eq('key', pref.key)
       }
     } else {
       if (allowedAssessment?.id) {
@@ -362,5 +398,130 @@ describeIntegration('Supabase integration', () => {
     expect(data?.description).toBe(description)
     expect(data?.changed_by).toBe(adminId)
     tempHistoryId = data?.id || null
+  })
+
+  it('persists drafts, comments, notifications and preferences behind RLS', async () => {
+    if (!leaderFixture || !viewerFixture || !allowedAssessment) {
+      return
+    }
+
+    const draftType: AssessmentType = 'r'
+    const draftPayload: AssessmentDraft = {
+      type: draftType,
+      specialist: leaderFixture.fullName,
+      position: 'Specjalista testowy',
+      department: 'Kontrola jakości',
+      assessor: leaderFixture.fullName,
+      date: '2026-05-30',
+      period: 'P1 2026',
+      contactCount: 1,
+      contactIds: ['CALL-1'],
+      scores: { standard: [[1]] },
+      notes: { standard: [''] },
+      gold: [0],
+      summary: '',
+      goldDescription: '',
+      savedAt: new Date().toISOString(),
+    }
+
+    const { error: draftUpsertError } = await leaderFixture.client
+      .from('user_drafts')
+      .upsert({
+        user_id: leaderFixture.id,
+        assessment_type: draftType,
+        payload: draftPayload,
+        saved_at: draftPayload.savedAt,
+      }, { onConflict: 'user_id,assessment_type' })
+    expect(draftUpsertError).toBeNull()
+    tempDrafts.push({ userId: leaderFixture.id, type: draftType })
+
+    const { data: loadedDraft, error: draftLoadError } = await leaderFixture.client
+      .from('user_drafts')
+      .select('user_id,assessment_type,payload,saved_at')
+      .eq('user_id', leaderFixture.id)
+      .eq('assessment_type', draftType)
+      .single()
+    expect(draftLoadError).toBeNull()
+    expect(loadedDraft?.user_id).toBe(leaderFixture.id)
+    expect((loadedDraft?.payload as AssessmentDraft | undefined)?.specialist).toBe(leaderFixture.fullName)
+
+    const { data: notification, error: notificationError } = await leaderFixture.client
+      .from('notifications')
+      .insert({
+        user_id: leaderFixture.id,
+        type: 'low_score',
+        title: 'Alert test',
+        message: 'Test notification',
+        read: false,
+        related_entity_type: 'assessment',
+        related_entity_id: allowedAssessment.id,
+      })
+      .select('id,user_id,read')
+      .single()
+    expect(notificationError).toBeNull()
+    expect(notification?.user_id).toBe(leaderFixture.id)
+    tempNotificationIds.push(notification?.id || '')
+
+    const { data: notificationsForLeader, error: notificationsError } = await leaderFixture.client
+      .from('notifications')
+      .select('id,user_id,read')
+      .eq('user_id', leaderFixture.id)
+    expect(notificationsError).toBeNull()
+    expect((notificationsForLeader || []).some((item) => item.id === notification?.id)).toBe(true)
+
+    const { data: hiddenNotifications, error: hiddenNotificationsError } = await adminClient
+      .from('notifications')
+      .select('id')
+      .eq('user_id', leaderFixture.id)
+    expect(hiddenNotificationsError).toBeNull()
+    expect(hiddenNotifications || []).toHaveLength(0)
+
+    const preferenceKey = `integration.pref.${randomUUID().slice(0, 8)}`
+    const { error: preferenceError } = await leaderFixture.client
+      .from('user_preferences')
+      .upsert({
+        user_id: leaderFixture.id,
+        key: preferenceKey,
+        value: { theme: 'dark' },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,key' })
+    expect(preferenceError).toBeNull()
+    tempPreferenceKeys.push({ userId: leaderFixture.id, key: preferenceKey })
+
+    const { data: preferenceData, error: preferenceLoadError } = await leaderFixture.client
+      .from('user_preferences')
+      .select('user_id,key,value')
+      .eq('user_id', leaderFixture.id)
+      .eq('key', preferenceKey)
+      .single()
+    expect(preferenceLoadError).toBeNull()
+    expect(preferenceData?.value).toEqual({ theme: 'dark' })
+
+    const { data: comment, error: commentError } = await leaderFixture.client
+      .from('assessment_comments')
+      .insert({
+        assessment_id: allowedAssessment.id,
+        body: 'Testowy komentarz integracyjny',
+        created_by: leaderFixture.id,
+      })
+      .select('id,assessment_id,body,created_by')
+      .single()
+    expect(commentError).toBeNull()
+    expect(comment?.assessment_id).toBe(allowedAssessment.id)
+    tempCommentIds.push(comment?.id || '')
+
+    const { data: comments, error: commentsError } = await leaderFixture.client
+      .from('assessment_comments')
+      .select('id,assessment_id,body')
+      .eq('assessment_id', allowedAssessment.id)
+    expect(commentsError).toBeNull()
+    expect((comments || []).some((item) => item.id === comment?.id)).toBe(true)
+
+    const { error: viewerCommentError } = await viewerFixture.client.from('assessment_comments').insert({
+      assessment_id: allowedAssessment.id,
+      body: 'viewer should not comment',
+      created_by: viewerFixture.id,
+    })
+    expect(viewerCommentError).toBeTruthy()
   })
 })

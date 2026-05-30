@@ -1,44 +1,36 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  clearNotifications,
-  loadNotifications,
+  createNotification,
   markAllNotificationsRead,
   markNotificationRead,
-  pushNotification,
   unreadNotificationCount,
 } from './notificationsService'
 
-describe('notifications service', () => {
-  beforeEach(() => {
-    clearNotifications()
-  })
-
+describe('notifications helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('pushes notifications and keeps unread counts in sync', () => {
+  it('creates notifications and keeps unread counts in sync', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('11111111-1111-4111-8111-111111111111')
 
-    const baseline = loadNotifications()
-    expect(baseline).toHaveLength(1)
-    expect(unreadNotificationCount(baseline)).toBe(1)
-
-    const next = pushNotification({
+    const notification = createNotification({
       type: 'systemAction',
       title: 'System',
       message: 'Processed',
       relatedEntityType: 'settings',
+      userId: 'user-1',
     })
+    const list = [notification]
 
-    expect(next[0].id).toBe('11111111-1111-4111-8111-111111111111')
-    expect(unreadNotificationCount(next)).toBe(2)
+    expect(notification.id).toBe('11111111-1111-4111-8111-111111111111')
+    expect(notification.userId).toBe('user-1')
+    expect(unreadNotificationCount(list)).toBe(1)
 
-    const marked = markNotificationRead('11111111-1111-4111-8111-111111111111')
-    expect(marked.find((item) => item.id === '11111111-1111-4111-8111-111111111111')?.read).toBe(true)
-    expect(unreadNotificationCount(marked)).toBe(1)
+    const marked = markNotificationRead(list, notification.id)
+    expect(marked[0].read).toBe(true)
+    expect(unreadNotificationCount(marked)).toBe(0)
 
-    const allRead = markAllNotificationsRead()
-    expect(unreadNotificationCount(allRead)).toBe(0)
+    expect(unreadNotificationCount(markAllNotificationsRead(list))).toBe(0)
   })
 })

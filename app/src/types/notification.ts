@@ -11,6 +11,7 @@ export type NotificationEntityType = 'evaluation' | 'user' | 'specialist' | 'tea
 
 export interface Notification {
   id: string
+  userId?: string
   type: NotificationType
   title: string
   message: string
@@ -19,4 +20,3 @@ export interface Notification {
   relatedEntityType?: NotificationEntityType
   relatedEntityId?: string
 }
-

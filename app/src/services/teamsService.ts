@@ -1,4 +1,5 @@
 import type { AdminConfig, Assessment, UserProfile } from '../domain/types'
+import { canCompareLeadersRole } from '../domain/access'
 import { listActiveSpecialists, listSpecialistsForLeader } from './specialistsService'
 
 export interface TeamSummary {
@@ -10,7 +11,7 @@ export interface TeamSummary {
 }
 
 export function buildTeamSummaries(admin: AdminConfig, assessments: Assessment[], user: UserProfile): TeamSummary[] {
-  const leaders = user.role === 'admin' || user.role === 'director'
+  const leaders = canCompareLeadersRole(user.role)
     ? admin.leaders
     : [user.leaderScope].filter(Boolean)
 
@@ -38,4 +39,3 @@ export function buildTeamSpecialistRows(admin: AdminConfig, assessments: Assessm
     }
   })
 }
-

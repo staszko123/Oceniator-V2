@@ -1,17 +1,18 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Save, Search, ShieldCheck, Upload, X } from 'lucide-react'
-import { canCreateRole } from '../../domain/access'
+import { canAdvanceAssessmentStatus, canAdvanceAssessmentStatusRole, canCreateRole, isViewerRole } from '../../domain/access'
 import { getErrorMessage } from '../../domain/errors'
 import { recordDiagnostic } from '../../domain/diagnostics'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS } from '../../domain/defs'
 import { hasEditHistory, lastStatusEvent } from '../../domain/history'
 import { assessmentToDraft, calculateDraft, draftToAssessment, periodOf } from '../../domain/scoring'
 import { canEditAssessment as canEditAssessmentForUser } from '../../lib/security'
-import type { Assessment, AssessmentStatus, AssessmentType, ScoreValue, UserProfile } from '../../domain/types'
+import type { Assessment, AssessmentComment, AssessmentStatus, AssessmentType, ScoreValue, UserProfile } from '../../domain/types'
 import { uniqueSorted } from '../analytics/filters'
 import { AssessmentTable } from './AssessmentTable'
 import { AssessmentDetailModal } from './AssessmentDetailModal'
 import { exportCsv, exportExcel, exportJson, printAssessment, statusLabels } from './registryExports'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 function countFilledNotes(notes: Assessment['snapshotNotes']): number {
   return Object.values(notes || {}).reduce((sum, items) => sum + items.filter((item) => item.trim()).length, 0)
@@ -103,6 +104,9 @@ function AssessmentPreviewModal({
   onPrint,
   onEdit,
   onAdvance,
+  comments = [],
+  commentsLoading = false,
+  onAddComment,
 }: {
   assessment: Assessment
   user: UserProfile
@@ -110,8 +114,23 @@ function AssessmentPreviewModal({
   onPrint?: (assessment: Assessment) => void
   onEdit?: (assessment: Assessment) => void
   onAdvance?: (assessment: Assessment) => void
+  comments?: AssessmentComment[]
+  commentsLoading?: boolean
+  onAddComment?: (body: string) => Promise<void>
 }) {
-  return <AssessmentDetailModal assessment={assessment} user={user} onClose={onClose} onPrint={onPrint} onEdit={onEdit} onAdvance={onAdvance} />
+  return (
+    <AssessmentDetailModal
+      assessment={assessment}
+      user={user}
+      onClose={onClose}
+      onPrint={onPrint}
+      onEdit={onEdit}
+      onAdvance={onAdvance}
+      comments={comments}
+      commentsLoading={commentsLoading}
+      onAddComment={onAddComment}
+    />
+  )
 }
 
 function AssessmentEditModal({
@@ -315,15 +334,23 @@ export default function RegistryView({
   user,
   intentPreset,
   intentToken,
+  focusAssessmentId,
+  focusToken,
   onUpdate,
   onBulkImport,
+  loadComments,
+  addComment,
 }: {
   assessments: Assessment[]
   user: UserProfile
   intentPreset?: 'all' | 'decision' | 'recent' | 'edited'
   intentToken?: number
+  focusAssessmentId?: string
+  focusToken?: number
   onUpdate: (assessment: Assessment) => Promise<void>
   onBulkImport: (assessments: Assessment[]) => Promise<void>
+  loadComments?: (assessmentId: string) => Promise<AssessmentComment[]>
+  addComment?: (assessmentId: string, body: string) => Promise<AssessmentComment>
 }) {
   const [query, setQuery] = useState('')
   const [type, setType] = useState<AssessmentType | 'all'>('all')
@@ -335,12 +362,15 @@ export default function RegistryView({
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selected, setSelected] = useState<Assessment | null>(null)
+  const [selectedComments, setSelectedComments] = useState<AssessmentComment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
   const [editing, setEditing] = useState<Assessment | null>(null)
   const [notice, setNotice] = useState('')
   const lastIntentToken = useRef<number | null>(null)
-  const isViewer = user.role === 'viewer'
+  const { t } = useLanguage()
+  const isViewer = isViewerRole(user.role)
   const canMutate = canCreateRole(user.role)
-  const canAdvanceStatuses = user.role === 'admin' || user.role === 'director' || user.role === 'leader'
+  const canAdvanceStatuses = canAdvanceAssessmentStatusRole(user.role)
 
   const rows = useMemo(() => assessments.filter((item) => {
     const matchesQuery = `${item.spec} ${item.dzial} ${item.oce}`.toLowerCase().includes(query.toLowerCase())
@@ -369,7 +399,7 @@ export default function RegistryView({
   const visibleSelectedIds = useMemo(() => selectedIds.filter((id) => rows.some((item) => item.id === id)), [rows, selectedIds])
   const selectedRows = useMemo(() => rows.filter((item) => visibleSelectedIds.includes(item.id)), [rows, visibleSelectedIds])
   const allVisibleSelected = rows.length > 0 && rows.every((item) => visibleSelectedIds.includes(item.id))
-  const selectedAdvanceable = selectedRows.filter((item) => canAdvanceStatuses && (user.role !== 'leader' || item.leaderScope === user.leaderScope))
+  const selectedAdvanceable = selectedRows.filter((item) => canAdvanceStatuses && canAdvanceAssessmentStatus(user, item))
   const hasActiveFilters = query.trim() || type !== 'all' || leader !== 'all' || specialist !== 'all' || status !== 'all' || period !== 'all' || changeFilter !== 'all'
   const activeFilterChips = [
     query.trim() ? `Fraza: ${query.trim()}` : null,
@@ -395,12 +425,50 @@ export default function RegistryView({
           : 'Otworzono pelny widok ewidencji.')
   }, [intentPreset, intentToken])
 
+  useEffect(() => {
+    if (!focusAssessmentId || !focusToken) return
+    const match = assessments.find((item) => item.id === focusAssessmentId)
+    if (!match) return
+    const timer = window.setTimeout(() => setSelected(match), 0)
+    return () => window.clearTimeout(timer)
+  }, [assessments, focusAssessmentId, focusToken])
+
+  useEffect(() => {
+    if (!selected || !loadComments) return
+    let cancelled = false
+    void Promise.resolve().then(async () => {
+      if (cancelled) return
+      setCommentsLoading(true)
+      try {
+        const comments = await loadComments(selected.id)
+        if (!cancelled) setSelectedComments(comments)
+      } catch (error) {
+        if (!cancelled) {
+          setSelectedComments([])
+          setNotice(getErrorMessage(error, 'Nie udało się pobrać komentarzy.'))
+        }
+      } finally {
+        if (!cancelled) setCommentsLoading(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadComments, selected])
+
+  async function addSelectedComment(body: string) {
+    if (!selected || !addComment) return
+    const comment = await addComment(selected.id, body)
+    setSelectedComments((current) => [...current, comment])
+    setNotice('Komentarz zapisany.')
+  }
+
   function canEditRow(item: Assessment) {
     return canEditAssessmentForUser(user, item)
   }
 
   function canAdvanceRow(item: Assessment) {
-    return canAdvanceStatuses && (user.role !== 'leader' || item.leaderScope === user.leaderScope)
+    return canAdvanceStatuses && canAdvanceAssessmentStatus(user, item)
   }
 
   function toggleSelect(id: string) {
@@ -563,13 +631,13 @@ export default function RegistryView({
   return (
     <main className="screen">
       <section className="toolbar-panel registry-toolbar">
-        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isViewer ? 'Szukaj po okresie, typie lub oceniajacym' : 'Szukaj specjalisty, dzialu lub oceniajacego'} /></label>
+        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isViewer ? t('registry.searchViewer') : t('registry.searchOper')} /></label>
         <select value={period} onChange={(event) => setPeriod(event.target.value)}>
-          <option value="all">Wszystkie okresy</option>
+          <option value="all">{t('registry.allPeriods')}</option>
           {periods.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
         <select value={type} onChange={(event) => setType(event.target.value as AssessmentType | 'all')}>
-          <option value="all">Wszystkie typy</option>
+          <option value="all">{t('registry.allTypes')}</option>
           <option value="r">Rozmowy</option>
           <option value="m">Maile</option>
           <option value="s">Systemy</option>
@@ -577,19 +645,19 @@ export default function RegistryView({
         {!isViewer ? (
           <>
         <select value={leader} onChange={(event) => setLeader(event.target.value)}>
-          <option value="all">Wszyscy liderzy</option>
+          <option value="all">{t('registry.allLeaders')}</option>
           {leaders.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
         <select value={specialist} onChange={(event) => setSpecialist(event.target.value)}>
-          <option value="all">Wszyscy specjalisci</option>
+          <option value="all">{t('registry.allSpecialists')}</option>
           {specialists.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
         <label className="ghost-btn import-btn">
-          <Upload size={16} /> Import JSON
+          <Upload size={16} /> {t('registry.importJson')}
           <input disabled={!canMutate} type="file" accept="application/json,.json" onChange={(event) => void importJson(event.target.files?.[0])} />
         </label>
         <button className="ghost-btn" type="button" onClick={() => setAdvancedFiltersOpen((value) => !value)}>
-          Więcej filtrów
+          {t('registry.moreFilters')}
         </button>
           </>
         ) : null}
@@ -598,39 +666,39 @@ export default function RegistryView({
       {advancedFiltersOpen && !isViewer ? (
         <section className="registry-advanced-filters">
           <select value={status} onChange={(event) => setStatus(event.target.value as AssessmentStatus | 'all')}>
-            <option value="all">Wszystkie statusy</option>
+            <option value="all">{t('registry.allStatuses')}</option>
             {(Object.keys(statusLabels) as AssessmentStatus[]).map((item) => <option key={item} value={item}>{statusLabels[item]}</option>)}
           </select>
           <select value={changeFilter} onChange={(event) => setChangeFilter(event.target.value as 'all' | 'recent' | 'edited' | 'decision')}>
-            <option value="all">Wszystkie zmiany</option>
-            <option value="recent">Aktywnosc 72h</option>
-            <option value="edited">Tylko edytowane</option>
-            <option value="decision">Do decyzji</option>
+            <option value="all">{t('registry.allChanges')}</option>
+            <option value="recent">{t('registry.active72h')}</option>
+            <option value="edited">{t('registry.onlyEdited')}</option>
+            <option value="decision">{t('registry.onlyDecision')}</option>
           </select>
         </section>
       ) : null}
 
       <section className="registry-ops-bar">
         <div className="registry-ops-copy">
-          <span className="registry-ops-kicker">{isViewer ? 'Tryb tylko do odczytu' : 'Widok operacyjny'}</span>
+          <span className="registry-ops-kicker">{isViewer ? t('registry.readOnlyView') : t('registry.operationalView')}</span>
           <strong>{isViewer ? `${rows.length} zatwierdzonych ocen` : `${rows.length} kart po filtrach`}</strong>
           <p>{notice || (isViewer
-            ? 'Widzisz tylko swoje oceny zatwierdzone przez lidera. Karty robocze i weryfikowane nie sa tu pokazywane.'
-            : 'Filtruj tabele, przejdz przez kolejke decyzji i domykaj statusy bez zmiany kontekstu.')}</p>
+            ? t('registry.readOnlySummary')
+            : t('registry.filterSummary'))}</p>
         </div>
         <div className="registry-ops-actions">
           {!isViewer ? (
             <div className="quick-filter-group">
-              <button className={changeFilter === 'decision' ? 'active' : ''} type="button" onClick={() => applyPreset('decision')}>Do decyzji</button>
-              <button className={changeFilter === 'recent' ? 'active' : ''} type="button" onClick={() => applyPreset('recent')}>Ostatnie 72h</button>
-              <button className={changeFilter === 'edited' ? 'active' : ''} type="button" onClick={() => applyPreset('edited')}>Edytowane</button>
-              <button className={changeFilter === 'all' ? 'active' : ''} type="button" onClick={() => applyPreset('all')}>Pelny widok</button>
+              <button className={changeFilter === 'decision' ? 'active' : ''} type="button" onClick={() => applyPreset('decision')}>{t('registry.onlyDecision')}</button>
+              <button className={changeFilter === 'recent' ? 'active' : ''} type="button" onClick={() => applyPreset('recent')}>{t('registry.active72h')}</button>
+              <button className={changeFilter === 'edited' ? 'active' : ''} type="button" onClick={() => applyPreset('edited')}>{t('registry.onlyEdited')}</button>
+              <button className={changeFilter === 'all' ? 'active' : ''} type="button" onClick={() => applyPreset('all')}>{t('registry.viewAll')}</button>
             </div>
           ) : null}
           <div className="registry-export-group">
-            <button className="ghost-btn" type="button" onClick={() => void exportRows('csv')}><Download size={16} /> CSV</button>
-            <button className="ghost-btn" type="button" onClick={() => void exportRows('excel')}><Download size={16} /> Excel</button>
-            <button className="ghost-btn" type="button" onClick={() => void exportRows('json')}><Download size={16} /> JSON</button>
+            <button className="ghost-btn" type="button" onClick={() => void exportRows('csv')}><Download size={16} /> {t('registry.exportCsv')}</button>
+            <button className="ghost-btn" type="button" onClick={() => void exportRows('excel')}><Download size={16} /> {t('registry.exportExcel')}</button>
+            <button className="ghost-btn" type="button" onClick={() => void exportRows('json')}><Download size={16} /> {t('registry.exportJson')}</button>
           </div>
         </div>
       </section>
@@ -639,10 +707,10 @@ export default function RegistryView({
         <div className="registry-filter-chips">
           {activeFilterChips.length ? activeFilterChips.map((chip) => (
             <span className="filter-chip" key={chip}>{chip}</span>
-          )) : <span className="filter-chip neutral">Brak dodatkowych filtrow</span>}
+          )) : <span className="filter-chip neutral">{t('registry.noFilters')}</span>}
         </div>
         <div className="registry-filter-actions">
-          <button className="ghost-btn" disabled={!hasActiveFilters} type="button" onClick={resetFilters}>Wyczysc filtry</button>
+          <button className="ghost-btn" disabled={!hasActiveFilters} type="button" onClick={resetFilters}>{t('registry.clearFilters')}</button>
           {canAdvanceStatuses ? <span className="hint-text">Najpierw ustaw filtr, potem zaznaczaj widoczne karty do przesuniecia.</span> : null}
           {isViewer ? <span className="hint-text">Lista zawiera wyłącznie oceny zatwierdzone przez lidera.</span> : null}
         </div>
@@ -650,24 +718,24 @@ export default function RegistryView({
 
       <section className="registry-summary">
         <div className="status-chip">Wynik filtra: {rows.length}</div>
-        {isViewer ? <div className="status-chip">Status: zatwierdzone</div> : <div className="status-chip">Edytowane karty: {editedCount}</div>}
-        {isViewer ? <div className="status-chip">Tryb: tylko odczyt</div> : <div className="status-chip">Aktywne 72h: {recentCount}</div>}
-        {!isViewer ? <div className="status-chip">Do decyzji: {decisionCount}</div> : null}
+        {isViewer ? <div className="status-chip">{t('registry.viewMode')}</div> : <div className="status-chip">{t('registry.changed')}: {editedCount}</div>}
+        {isViewer ? <div className="status-chip">{t('registry.readOnlyMode')}</div> : <div className="status-chip">{t('registry.active')}: {recentCount}</div>}
+        {!isViewer ? <div className="status-chip">{t('registry.toDecision')}: {decisionCount}</div> : null}
       </section>
 
       <section className="data-panel">
-        <div className="section-title"><span>Kolejka decyzji</span><small>najblizsze karty do przejrzenia</small></div>
+        <div className="section-title"><span>{t('registry.queueTitle')}</span><small>{t('registry.queueSubtitle')}</small></div>
         <div className="registry-queue-head">
           <div className="registry-queue-copy">
-            <strong>{decisionQueue.length} kart w szybkiej kolejce</strong>
-            <small>Pokazujemy pierwsze pozycje zgodne z biezacym widokiem i zakresem roli.</small>
+            <strong>{decisionQueue.length} {t('registry.queueCount')}</strong>
+            <small>{t('registry.queueHint')}</small>
           </div>
           {canAdvanceStatuses ? (
             <div className="bulk-actions">
-              <span>{visibleSelectedIds.length} zaznaczonych</span>
-              <button className="ghost-btn" disabled={!rows.length} type="button" onClick={toggleSelectAllVisible}>Zaznacz widoczne</button>
-              <button className="ghost-btn" disabled={!visibleSelectedIds.length} type="button" onClick={() => setSelectedIds((current) => current.filter((id) => !visibleSelectedIds.includes(id)))}>Wyczysc wybor</button>
-              <button className="primary-btn" disabled={!selectedAdvanceable.length} type="button" onClick={() => void advanceSelected()}><ShieldCheck size={15} /> Przesun status</button>
+              <span>{visibleSelectedIds.length} {t('registry.bulkSelected')}</span>
+              <button className="ghost-btn" disabled={!rows.length} type="button" onClick={toggleSelectAllVisible}>{t('registry.selectVisible')}</button>
+              <button className="ghost-btn" disabled={!visibleSelectedIds.length} type="button" onClick={() => setSelectedIds((current) => current.filter((id) => !visibleSelectedIds.includes(id)))}>{t('registry.clearSelection')}</button>
+              <button className="primary-btn" disabled={!selectedAdvanceable.length} type="button" onClick={() => void advanceSelected()}><ShieldCheck size={15} /> {t('registry.changeStatus')}</button>
             </div>
           ) : null}
         </div>
@@ -720,7 +788,22 @@ export default function RegistryView({
         </div>
       </section>
 
-      {selected ? <AssessmentPreviewModal assessment={selected} user={user} onClose={() => setSelected(null)} onPrint={printRow} onEdit={canMutate ? openEditor : undefined} onAdvance={canAdvanceStatuses ? advance : undefined} /> : null}
+      {selected ? (
+        <AssessmentPreviewModal
+          assessment={selected}
+          user={user}
+          onClose={() => {
+            setSelected(null)
+            setSelectedComments([])
+          }}
+          onPrint={printRow}
+          onEdit={canMutate ? openEditor : undefined}
+          onAdvance={canAdvanceStatuses ? advance : undefined}
+          comments={selectedComments}
+          commentsLoading={commentsLoading}
+          onAddComment={addComment && !isViewer ? addSelectedComment : undefined}
+        />
+      ) : null}
       {editing ? <AssessmentEditModal assessment={editing} user={user} onClose={() => setEditing(null)} onSave={onUpdate} /> : null}
     </main>
   )

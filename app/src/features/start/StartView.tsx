@@ -4,15 +4,16 @@ import { canCreateRole } from '../../domain/access'
 import { draftHasContent } from '../../domain/scoring'
 import type { Assessment, AssessmentDraft, AssessmentType, UserProfile } from '../../domain/types'
 import { AssessmentTable } from '../registry/AssessmentTable'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
-function roleLabel(role: UserProfile['role']): string {
-  if (role === 'admin') return 'Administrator'
-  if (role === 'director') return 'Dyrektor'
-  if (role === 'leader') return 'Lider'
-  if (role === 'assessor') return 'Oceniający'
-  return 'Specjalista'
+function roleLabel(role: UserProfile['role'], t: (key: string, fallback?: string) => string): string {
+  if (role === 'admin') return t('role.admin', 'Administrator')
+  if (role === 'director') return t('role.director', 'Dyrektor')
+  if (role === 'leader') return t('role.leader', 'Lider')
+  if (role === 'assessor') return t('role.assessor', 'Oceniający')
+  return t('role.viewer', 'Specjalista')
 }
 
 export default function StartView({
@@ -32,6 +33,7 @@ export default function StartView({
   onResumeDraft: (type: AssessmentType) => void
   onClearDraft: (type: AssessmentType) => void
 }) {
+  const { t } = useLanguage()
   const active = assessments.filter((item) => item.status !== 'archived')
   const review = active.filter((item) => item.status === 'review').length
   const submitted = active.filter((item) => item.status === 'submitted').length
@@ -49,15 +51,15 @@ export default function StartView({
     .slice(0, 8)
   const nextActions = [
     {
-      label: 'Do decyzji',
+      label: t('start.toDecision'),
       value: decisionCount,
-      hint: 'Karty wymagające decyzji lub review.',
+      hint: t('start.decisionHint'),
       action: () => openRegistry('decision'),
     },
     {
-      label: 'Ryzyka do sprawdzenia',
+      label: t('start.belowStandard'),
       value: lowScores,
-      hint: 'Karty poniżej standardu do szybkiej kontroli.',
+      hint: t('start.quickCheck'),
       action: () => setView('dashboard'),
     },
   ].filter((item) => item.value > 0) as Array<{ label: string; value: number; hint: string; action: () => void }>
@@ -67,28 +69,28 @@ export default function StartView({
       <section className="start-hero-grid">
         <div className="hero-panel">
           <div className="section-title">
-            <span>Start dnia</span>
+            <span>{t('start.title')}</span>
             <small>{new Date().toLocaleDateString('pl-PL')}</small>
           </div>
-          <h1>Najpierw zobacz, co wymaga decyzji. Potem przejdź do nowej oceny albo dalszej pracy.</h1>
+          <h1>{t('start.hero')}</h1>
           <div className="quick-actions">
-            {canCreateRole(user.role) ? <button className="primary-btn" onClick={() => setView('form')} type="button"><Plus size={16} /> Nowa ocena</button> : null}
-            <button className="ghost-btn" onClick={() => openRegistry('all')} type="button"><ClipboardCheck size={16} /> Ewidencja</button>
+            {canCreateRole(user.role) ? <button className="primary-btn" onClick={() => setView('form')} type="button"><Plus size={16} /> {t('start.newEvaluation')}</button> : null}
+            <button className="ghost-btn" onClick={() => openRegistry('all')} type="button"><ClipboardCheck size={16} /> {t('start.registry')}</button>
           </div>
           <div className="hero-inline-note">
-            <span>Rola robocza: {roleLabel(user.role)}</span>
+            <span>{t('start.role')}: {roleLabel(user.role, t)}</span>
             <strong>{user.fullName}</strong>
-            <small className="hero-inline-meta">{decisionCount ? `${decisionCount} kart czeka na decyzję lub review` : 'Brak kart wymagających decyzji w tym momencie'}</small>
+            <small className="hero-inline-meta">{decisionCount ? `${decisionCount} ${t('start.pendingReview', 'kart czeka na decyzję lub review')}` : t('start.noPending')}</small>
           </div>
         </div>
-        <div className="metric-panel"><span>Karty do pracy</span><strong>{active.length}</strong><small>Aktualny obieg dla tej roli</small></div>
-        <div className="metric-panel"><span>Do decyzji</span><strong>{decisionCount}</strong><small>Karty wymagające decyzji lub review.</small></div>
-        <div className="metric-panel"><span>Poniżej standardu</span><strong>{lowScores}</strong><small>Karty do szybkiego sprawdzenia.</small></div>
+        <div className="metric-panel"><span>{t('start.cardsToWork')}</span><strong>{active.length}</strong><small>{t('start.currentFlow')}</small></div>
+        <div className="metric-panel"><span>{t('start.toDecision')}</span><strong>{decisionCount}</strong><small>{t('start.pendingReviewHint')}</small></div>
+        <div className="metric-panel"><span>{t('start.belowStandard')}</span><strong>{lowScores}</strong><small>{t('start.quickCheck')}</small></div>
       </section>
 
       <section className="start-center-grid">
         <div className="data-panel">
-          <div className="section-title"><span>Priorytet</span><small>co wymaga uwagi teraz</small></div>
+          <div className="section-title"><span>{t('start.priority')}</span><small>{t('start.prioritySubtitle')}</small></div>
           {nextActions.length ? (
             <div className="action-priority-list">
               {nextActions.map((item) => (
@@ -102,39 +104,39 @@ export default function StartView({
               ))}
             </div>
           ) : (
-            <div className="empty-state compact-empty">Brak pilnych zadań operacyjnych dla aktualnego zakresu.</div>
+            <div className="empty-state compact-empty">{t('start.noTasks')}</div>
           )}
         </div>
 
         <div className="data-panel">
-          <div className="section-title"><span>Skróty</span><small>najkrótsza droga dalej</small></div>
+          <div className="section-title"><span>{t('start.shortcuts')}</span><small>{t('start.shortcutsSubtitle')}</small></div>
           <div className="quick-paths">
             <button className="quick-path" type="button" onClick={() => setView('form')}>
               <Plus size={16} />
               <span>
-                <strong>Nowa ocena</strong>
-                <small>otwórz formularz od razu</small>
+                <strong>{t('start.newEvaluation')}</strong>
+                <small>{t('start.newEvaluationHint')}</small>
               </span>
             </button>
             <button className="quick-path" type="button" onClick={() => openRegistry('all')}>
               <ClipboardCheck size={16} />
               <span>
-                <strong>Ewidencja</strong>
-                <small>sprawdź karty i statusy</small>
+                <strong>{t('start.registry')}</strong>
+                <small>{t('start.registryHint')}</small>
               </span>
             </button>
             <button className="quick-path" type="button" onClick={() => setView('dashboard')}>
               <ShieldCheck size={16} />
               <span>
-                <strong>Analityka</strong>
-                <small>zobacz priorytety i trendy</small>
+                <strong>{t('start.analytics')}</strong>
+                <small>{t('start.analyticsHint')}</small>
               </span>
             </button>
             <button className="quick-path" type="button" onClick={() => setView('reports')}>
               <FileText size={16} />
               <span>
-                <strong>Raporty</strong>
-                <small>przejdź do eksportów i zestawień</small>
+                <strong>{t('start.reports')}</strong>
+                <small>{t('start.reportsHint')}</small>
               </span>
             </button>
           </div>
@@ -143,19 +145,19 @@ export default function StartView({
 
       <details className="start-details data-panel">
         <summary>
-          <span>Szczegóły</span>
-          <small>{savedDrafts.length ? `${savedDrafts.length} zapisane szkice` : 'ukryte statystyki i ostatnie karty'}</small>
+          <span>{t('start.details')}</span>
+          <small>{savedDrafts.length ? `${savedDrafts.length} ${t('start.draftsActive')}` : t('start.detailsHint')}</small>
         </summary>
         <div className="start-details-grid">
-          <div className="detail-metric"><span>Średni wynik</span><strong>{active.length ? Math.round(active.reduce((acc, item) => acc + item.avgFinal, 0) / active.length) : '-'}%</strong></div>
-          <div className="detail-metric"><span>Do decyzji</span><strong>{decisionCount}</strong></div>
-          <div className="detail-metric"><span>Poniżej standardu</span><strong>{lowScores}</strong></div>
-          <div className="detail-metric"><span>Rola</span><strong>{roleLabel(user.role)}</strong></div>
+          <div className="detail-metric"><span>{t('start.avgScore')}</span><strong>{active.length ? Math.round(active.reduce((acc, item) => acc + item.avgFinal, 0) / active.length) : '-'}%</strong></div>
+          <div className="detail-metric"><span>{t('start.toDecision')}</span><strong>{decisionCount}</strong></div>
+          <div className="detail-metric"><span>{t('start.belowStandard')}</span><strong>{lowScores}</strong></div>
+          <div className="detail-metric"><span>{t('role.label', 'Rola')}</span><strong>{roleLabel(user.role, t)}</strong></div>
         </div>
 
         <div className="section-title nested">
-          <span>Zapisane szkice</span>
-          <small>{savedDrafts.length ? `${savedDrafts.length} aktywne` : 'brak aktywnych szkiców'}</small>
+          <span>{t('start.drafts')}</span>
+          <small>{savedDrafts.length ? `${savedDrafts.length} ${t('start.draftsActive')}` : t('start.noDrafts')}</small>
         </div>
         {savedDrafts.length ? (
           <div className="draft-grid">
@@ -163,30 +165,30 @@ export default function StartView({
               <article className="draft-card" key={type}>
                 <div className="draft-card-top">
                   <span className="type-badge">{TYPE_LABELS[type]}</span>
-                  <small>{draft.savedAt ? new Date(draft.savedAt).toLocaleString('pl-PL') : 'Zapis lokalny'}</small>
+                  <small>{draft.savedAt ? new Date(draft.savedAt).toLocaleString('pl-PL') : t('start.noSaveDate')}</small>
                 </div>
-                <strong>{draft.specialist || 'Szkic bez wybranego specjalisty'}</strong>
+                <strong>{draft.specialist || t('start.draftWithoutSpecialist')}</strong>
                 <p>{draft.summary || `${draft.contactCount} kontakt(y), okres ${draft.period || '-'}`}</p>
                 <div className="draft-card-meta">
-                  <span>{draft.position || 'Brak stanowiska'}</span>
-                  <span>{draft.department || 'Brak działu'}</span>
+                  <span>{draft.position || t('start.noPosition')}</span>
+                  <span>{draft.department || t('start.noDepartment')}</span>
                 </div>
                 <div className="draft-card-actions">
                   <button className="primary-btn" type="button" onClick={() => onResumeDraft(type)}>
-                    <RotateCcw size={15} /> Wznów szkic
+                    <RotateCcw size={15} /> {t('start.resumeDraft')}
                   </button>
                   <button className="ghost-btn" type="button" onClick={() => onClearDraft(type)}>
-                    <Trash2 size={15} /> Wyczyść
+                    <Trash2 size={15} /> {t('start.clearDraft')}
                   </button>
                 </div>
               </article>
             ))}
           </div>
-        ) : <div className="empty-state">Brak zapisanych szkiców. Formularz zapisuje postęp lokalnie przy każdej zmianie.</div>}
+        ) : <div className="empty-state">{t('start.noDraftsText')}</div>}
 
         <div className="section-title nested">
-          <span>Ostatnie karty</span>
-          <small>{recentCards.length ? `Top ${recentCards.length}` : 'brak danych'}</small>
+          <span>{t('start.lastCards')}</span>
+          <small>{recentCards.length ? t('start.top', 'Top {count}').replace('{count}', String(recentCards.length)) : t('start.noData')}</small>
         </div>
         <AssessmentTable assessments={recentCards} compact />
       </details>

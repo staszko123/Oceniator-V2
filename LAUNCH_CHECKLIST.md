@@ -12,6 +12,7 @@
 
 ## 3. Stabilnosc danych
 - Utworz szkic, odswiez strone i potwierdz, ze szkic wraca.
+- W trybie Supabase potwierdz, ze szkic wraca z bazy, a nie z lokalnego demo.
 - Zapisz ocene, przejdz do ewidencji i sprawdz stan po odswiezeniu.
 - Zweryfikuj, ze po zmianie roli i wylogowaniu dane nie znikaja.
 

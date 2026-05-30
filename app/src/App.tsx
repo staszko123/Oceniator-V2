@@ -2,9 +2,9 @@
 import { BarChart3, ClipboardCheck, Database, FileBarChart, Layers3, LayoutDashboard, Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sparkles, Sun, Users } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
-import { buildDemoAdmin } from './data/seed'
+import { downloadDemoDataExport } from './data/demoExport'
 import { createProvider } from './data/supabaseProvider'
-import { canAdminRole, canCreateRole, canViewTeamRole, scopeAssessmentsForUser } from './domain/access'
+import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
@@ -12,12 +12,17 @@ import type {
   AdminConfig,
   AdminHistoryEntry,
   Assessment,
+  AssessmentComment,
   AssessmentDraft,
   AssessmentType,
   DataProvider,
   ManagedUser,
   UserProfile,
 } from './domain/types'
+import type { DashboardPrefs } from './config/dashboard'
+import { defaultDashboardPrefs, normalizeDashboardPrefs } from './config/dashboard'
+import { userPreferenceKeys } from './config/userPreferences'
+import type { Notification } from './types/notification'
 import { useTheme } from './lib/theme'
 import { useLanguage } from './i18n/LanguageContext'
 import { setProviderMode } from './services/settingsService'
@@ -37,6 +42,23 @@ const navItems: Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboar
 ]
 
 const localDemoAccounts = 'admin/admin123, lider01/lider123, lider02/lider123, lider/lider123, oceniajacy/ocena123, podglad/podglad123'
+
+function createUnavailableAdminConfig(): AdminConfig {
+  return {
+    specialists: [],
+    departments: [],
+    positions: [],
+    leaders: [],
+    periods: [],
+    goals: {
+      callsPerPeriod: 9,
+      mailsPerPeriod: 9,
+      systemsPerPeriod: 9,
+      minAvg: 92,
+      greatShare: 60,
+    },
+  }
+}
 
 const EvaluationView = lazy(() => import('./features/evaluation/EvaluationView'))
 const StartView = lazy(() => import('./features/start/StartView'))
@@ -67,7 +89,7 @@ function preloadView(view: ViewKey) {
 }
 
 function availableNavItems(user: UserProfile): typeof navItems {
-  if (user.role === 'viewer') {
+  if (isViewerRole(user.role)) {
     const startItem = navItems.find((item) => item.key === 'start')
     const registryItem = navItems.find((item) => item.key === 'registry')
     return [
@@ -127,6 +149,15 @@ function LoginScreen({
       setError(getErrorMessage(err, t('login.error.demo', 'Nie udało się uruchomić lokalnego demo.')))
     } finally {
       setBusy(false)
+    }
+  }
+
+  function exportLocalDemoData() {
+    setError('')
+    try {
+      downloadDemoDataExport()
+    } catch (err) {
+      setError(getErrorMessage(err, t('login.error.demoExport', 'Nie udało się wyeksportować danych demo.')))
     }
   }
 
@@ -200,6 +231,9 @@ function LoginScreen({
           <button className="ghost-btn wide" type="button" disabled={busy} onClick={() => void startLocalDemo()}>
             {t('login.demoButton', 'Uruchom demo lokalne')}
           </button>
+          <button className="ghost-btn wide" type="button" disabled={busy} onClick={exportLocalDemoData}>
+            {t('login.demoExportButton', 'Eksportuj dane demo')}
+          </button>
           <p className="hint-text">{t('login.demoAccounts', 'Konta testowe: ')}{localDemoAccounts}.</p>
         </div>
       </section>
@@ -214,7 +248,10 @@ function App() {
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [admin, setAdmin] = useState<AdminConfig | null>(null)
   const [adminHistory, setAdminHistory] = useState<AdminHistoryEntry[]>([])
+  const [dashboardPrefs, setDashboardPrefs] = useState<DashboardPrefs>(defaultDashboardPrefs)
+  const [shellCollapsed, setShellCollapsed] = useState(false)
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>(() => loadDiagnostics())
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [drafts, setDrafts] = useState<Record<AssessmentType, AssessmentDraft | undefined>>({ r: undefined, m: undefined, s: undefined })
   const [view, setView] = useState<ViewKey>('start')
@@ -222,6 +259,7 @@ function App() {
   const [formDraftOverride, setFormDraftOverride] = useState<AssessmentDraft | null>(null)
   const [specialistPrefill, setSpecialistPrefill] = useState<{ name: string; token: number } | null>(null)
   const [registryIntent, setRegistryIntent] = useState<{ preset: RegistryIntentPreset; token: number } | null>(null)
+  const [registryFocus, setRegistryFocus] = useState<{ assessmentId: string; token: number } | null>(null)
   const [bootError, setBootError] = useState('')
   const refreshDiagnostics = useCallback((event: Parameters<typeof recordDiagnostic>[0]) => {
     recordDiagnostic(event)
@@ -231,30 +269,53 @@ function App() {
   const loadWorkspace = useCallback(async (currentUser: UserProfile, activeProvider = provider) => {
     setBootError('')
     const canReadAdminData = canAdminRole(currentUser.role)
-    const [adminResult, historyResult, assessmentsResult, draftsResult, usersResult] = await Promise.allSettled([
+    const [adminResult, historyResult, assessmentsResult, draftsResult, usersResult, notificationsResult, dashboardPrefsResult, shellCollapsedResult] = await Promise.allSettled([
       activeProvider.loadAdmin(),
       canReadAdminData && activeProvider.loadAdminHistory ? activeProvider.loadAdminHistory() : Promise.resolve([]),
       activeProvider.loadAssessments(),
       activeProvider.loadDrafts(),
       canReadAdminData && activeProvider.listUsers ? activeProvider.listUsers() : Promise.resolve([]),
+      activeProvider.loadNotifications(),
+      activeProvider.loadUserPreference<Partial<DashboardPrefs> | null>(userPreferenceKeys.dashboardPrefs),
+      activeProvider.loadUserPreference<boolean>(userPreferenceKeys.shellCollapsed),
     ])
-    const failures = [adminResult, historyResult, assessmentsResult, draftsResult, usersResult]
+    const failures = [adminResult, historyResult, assessmentsResult, draftsResult, usersResult, notificationsResult]
       .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
       .map((result) => getErrorMessage(result.reason, t('app.error.loadData', 'Błąd pobierania danych.')))
-    const nextAdmin = adminResult.status === 'fulfilled' ? adminResult.value : buildDemoAdmin()
+    const nextAdmin = adminResult.status === 'fulfilled' ? adminResult.value : createUnavailableAdminConfig()
     const nextHistory = historyResult.status === 'fulfilled' ? historyResult.value : []
     const nextAssessments = assessmentsResult.status === 'fulfilled' ? assessmentsResult.value : []
     const nextDrafts = draftsResult.status === 'fulfilled' ? draftsResult.value : { r: undefined, m: undefined, s: undefined }
     const nextUsers = usersResult.status === 'fulfilled' ? usersResult.value : []
+    const nextNotifications = notificationsResult.status === 'fulfilled' ? notificationsResult.value : []
+    const nextDashboardPrefs = dashboardPrefsResult.status === 'fulfilled'
+      ? normalizeDashboardPrefs(dashboardPrefsResult.value)
+      : defaultDashboardPrefs
+    const nextShellCollapsed = shellCollapsedResult.status === 'fulfilled'
+      ? Boolean(shellCollapsedResult.value)
+      : false
     setUser(currentUser)
     setUsers(nextUsers)
     setAdmin(nextAdmin)
     setAdminHistory(nextHistory)
+    setDashboardPrefs(nextDashboardPrefs)
+    setShellCollapsed(nextShellCollapsed)
+    setNotifications(nextNotifications)
     setAssessments(scopeAssessmentsForUser(nextAssessments, currentUser))
     setDrafts(nextDrafts)
     setFormDraftOverride(null)
-    setView(currentUser.role === 'viewer' ? 'registry' : 'start')
+    setView(isViewerRole(currentUser.role) ? 'registry' : 'start')
     if (failures.length) setBootError(`Część danych jest chwilowo niedostępna: ${failures.join(' ')}`)
+    if (failures.length) {
+      void activeProvider.pushNotification({
+        type: 'syncError',
+        title: 'Problem synchronizacji',
+        message: 'Część danych jest chwilowo niedostępna.',
+        relatedEntityType: 'settings',
+      })
+        .then(setNotifications)
+        .catch(() => undefined)
+    }
     refreshDiagnostics({
       scope: 'system',
       action: 'workspace-load',
@@ -315,6 +376,7 @@ function App() {
     setAdmin(null)
     setAdminHistory([])
     setAssessments([])
+    setNotifications([])
     setFormDraftOverride(null)
     setView('start')
     refreshDiagnostics({
@@ -355,6 +417,14 @@ function App() {
       detail: `${assessment.spec} - ${assessment.type.toUpperCase()} ${assessment.avgFinal}%`,
       level: 'success',
     })
+    const minAvg = admin?.goals.minAvg ?? 92
+    await pushWorkspaceNotification({
+      type: assessment.avgFinal < minAvg ? 'lowScore' : 'saveSuccess',
+      title: assessment.avgFinal < minAvg ? 'Niski wynik oceny' : 'Karta zapisana',
+      message: `${assessment.spec}: ${assessment.avgFinal}%`,
+      relatedEntityType: 'evaluation',
+      relatedEntityId: assessment.id,
+    })
   }
 
   async function discardDraft(type: AssessmentType) {
@@ -388,11 +458,91 @@ function App() {
     setView('registry')
   }
 
+  async function pushWorkspaceNotification(payload: Parameters<DataProvider['pushNotification']>[0]) {
+    try {
+      setNotifications(await provider.pushNotification(payload))
+    } catch (error) {
+      refreshDiagnostics({
+        scope: 'system',
+        action: 'push',
+        detail: getErrorMessage(error, 'Nie udało się zapisać powiadomienia.'),
+        level: 'warning',
+      })
+    }
+  }
+
+  async function markNotificationRead(id: string) {
+    try {
+      setNotifications(await provider.markNotificationRead(id))
+    } catch (error) {
+      refreshDiagnostics({
+        scope: 'system',
+        action: 'mark-read',
+        detail: getErrorMessage(error, 'Nie udało się oznaczyć powiadomienia.'),
+        level: 'warning',
+      })
+    }
+  }
+
+  async function markAllNotificationsRead() {
+    try {
+      setNotifications(await provider.markAllNotificationsRead())
+    } catch (error) {
+      refreshDiagnostics({
+        scope: 'system',
+        action: 'mark-all-read',
+        detail: getErrorMessage(error, 'Nie udało się oznaczyć powiadomień.'),
+        level: 'warning',
+      })
+    }
+  }
+
+  function selectNotification(notification: Notification) {
+    if (notification.relatedEntityType === 'evaluation' && notification.relatedEntityId) {
+      setRegistryIntent({ preset: 'all', token: Date.now() })
+      setRegistryFocus({ assessmentId: notification.relatedEntityId, token: Date.now() })
+      setView('registry')
+    }
+  }
+
+  async function loadAssessmentComments(assessmentId: string): Promise<AssessmentComment[]> {
+    try {
+      return await provider.loadAssessmentComments(assessmentId)
+    } catch (error) {
+      refreshDiagnostics({
+        scope: 'assessment',
+        action: 'load-comments',
+        detail: getErrorMessage(error, t('app.error.loadComments', 'Błąd pobierania komentarzy.')),
+        level: 'warning',
+      })
+      return []
+    }
+  }
+
+  async function addAssessmentComment(assessmentId: string, body: string): Promise<AssessmentComment> {
+    const comment = await provider.addAssessmentComment(assessmentId, body)
+    await pushWorkspaceNotification({
+      type: 'newComment',
+      title: 'Nowy komentarz',
+      message: `${comment.createdByName || user?.fullName || 'Użytkownik'} dodał komentarz.`,
+      relatedEntityType: 'evaluation',
+      relatedEntityId: assessmentId,
+    })
+    return comment
+  }
+
   async function updateAssessment(assessment: Assessment) {
     if (!user) return
     await provider.updateAssessment(assessment)
     const all = await provider.loadAssessments()
     setAssessments(scopeAssessmentsForUser(replaceAssessmentById(all, assessment), user))
+    await pushWorkspaceNotification({
+      type: 'systemAction',
+      title: 'Zaktualizowano ocenę',
+      message: `${assessment.spec}: ${assessment.status}`,
+      relatedEntityType: 'evaluation',
+      relatedEntityId: assessment.id,
+    })
   }
 
   async function bulkImportAssessments(imported: Assessment[]) {
@@ -452,6 +602,35 @@ function App() {
     return created
   }
 
+  async function saveDashboardPreferences(nextPrefs: DashboardPrefs) {
+    const normalized = normalizeDashboardPrefs(nextPrefs)
+    setDashboardPrefs(normalized)
+    try {
+      await provider.saveUserPreference(userPreferenceKeys.dashboardPrefs, normalized)
+    } catch (error) {
+      refreshDiagnostics({
+        scope: 'system',
+        action: 'dashboard-prefs',
+        detail: getErrorMessage(error, 'Nie udało się zapisać preferencji dashboardu.'),
+        level: 'warning',
+      })
+    }
+  }
+
+  async function saveShellCollapsedPreference(nextCollapsed: boolean) {
+    setShellCollapsed(nextCollapsed)
+    try {
+      await provider.saveUserPreference(userPreferenceKeys.shellCollapsed, nextCollapsed)
+    } catch (error) {
+      refreshDiagnostics({
+        scope: 'system',
+        action: 'shell-collapsed',
+        detail: getErrorMessage(error, 'Nie udało się zapisać układu paska bocznego.'),
+        level: 'warning',
+      })
+    }
+  }
+
   if (!user || !admin) {
     return (
       <>
@@ -469,9 +648,24 @@ function App() {
 
   return (
     <Suspense fallback={lazyViewFallback}>
-      <AppShell user={user} providerMode={provider.mode} view={effectiveView} navItems={visibleNavItems} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
+        <AppShell
+          user={user}
+          providerMode={provider.mode}
+          view={effectiveView}
+          navItems={visibleNavItems}
+          setView={setView}
+          onViewIntent={preloadView}
+          onLogout={logout}
+          systemNotice={bootError}
+          notifications={notifications}
+          onNotificationSelect={selectNotification}
+          onMarkNotificationRead={(id) => void markNotificationRead(id)}
+          onMarkAllNotificationsRead={() => void markAllNotificationsRead()}
+          collapsed={shellCollapsed}
+          onCollapsedChange={(value) => void saveShellCollapsedPreference(value)}
+        >
         {effectiveView === 'start' ? (
-          user.role === 'viewer' ? (
+          isViewerRole(user.role) ? (
             <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} />
           ) : (
             <StartView
@@ -501,12 +695,27 @@ function App() {
           />
         ) : null}
         {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={setView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} /> : null}
-        {effectiveView === 'registry' ? <RegistryView assessments={assessments} user={user} intentPreset={registryIntent?.preset} intentToken={registryIntent?.token} onUpdate={updateAssessment} onBulkImport={bulkImportAssessments} /> : null}
+        {effectiveView === 'registry' ? (
+          <RegistryView
+            assessments={assessments}
+            user={user}
+            intentPreset={registryIntent?.preset}
+            intentToken={registryIntent?.token}
+            focusAssessmentId={registryFocus?.assessmentId}
+            focusToken={registryFocus?.token}
+            onUpdate={updateAssessment}
+            onBulkImport={bulkImportAssessments}
+            loadComments={loadAssessmentComments}
+            addComment={addAssessmentComment}
+          />
+        ) : null}
         {effectiveView === 'dashboard' ? (
           <DashboardView
             userRole={user.role}
             assessments={assessments}
             goals={admin.goals}
+            prefs={dashboardPrefs}
+            onPrefsChange={saveDashboardPreferences}
             setView={setView}
             openRegistry={openRegistry}
           />

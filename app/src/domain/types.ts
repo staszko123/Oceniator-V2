@@ -1,3 +1,5 @@
+import type { Notification, NotificationEntityType, NotificationType } from '../types/notification'
+
 export type Role = 'admin' | 'director' | 'leader' | 'assessor' | 'viewer'
 
 export type AssessmentType = 'r' | 'm' | 's'
@@ -69,6 +71,32 @@ export interface AdminHistoryEntry {
   description: string
   changedBy: string
   changedAt: string
+}
+
+export interface UserDraftRecord {
+  id: string
+  userId: string
+  assessmentType: AssessmentType
+  payload: AssessmentDraft
+  savedAt: string
+  updatedAt: string
+}
+
+export interface AssessmentComment {
+  id: string
+  assessmentId: string
+  body: string
+  createdBy: string
+  createdByName?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UserPreference {
+  userId: string
+  key: string
+  value: unknown
+  updatedAt: string
 }
 
 export interface CriterionDef {
@@ -144,22 +172,68 @@ export interface Assessment {
   leaderScope: string
 }
 
-export interface DataProvider {
+export interface AuthProvider {
   mode: 'supabase' | 'local'
   signIn(email: string, password: string): Promise<UserProfile>
   signInLocal?(login: string, password: string): Promise<UserProfile>
   signOut(): Promise<void>
   getCurrentUser(): Promise<UserProfile | null>
+}
+
+export interface ConfigRepository {
   loadAdmin(): Promise<AdminConfig>
   saveAdmin(config: AdminConfig): Promise<void>
   loadAdminHistory?(): Promise<AdminHistoryEntry[]>
+}
+
+export interface UserRepository {
   listUsers?(): Promise<ManagedUser[]>
   createUser?(user: ManagedUser): Promise<ManagedUser>
   updateUser?(user: ManagedUser): Promise<ManagedUser>
+}
+
+export interface AssessmentRepository {
   loadAssessments(): Promise<Assessment[]>
   saveAssessment(assessment: Assessment): Promise<void>
   updateAssessment(assessment: Assessment): Promise<void>
   saveAssessments?(assessments: Assessment[]): Promise<void>
+}
+
+export interface DraftRepository {
   loadDrafts(): Promise<Record<AssessmentType, AssessmentDraft | undefined>>
   saveDrafts(drafts: Record<AssessmentType, AssessmentDraft | undefined>): Promise<void>
 }
+
+export interface NotificationRepository {
+  loadNotifications(): Promise<Notification[]>
+  markNotificationRead(id: string): Promise<Notification[]>
+  markAllNotificationsRead(): Promise<Notification[]>
+  pushNotification(payload: {
+    type: NotificationType
+    title: string
+    message: string
+    relatedEntityType?: NotificationEntityType
+    relatedEntityId?: string
+    userId?: string
+  }): Promise<Notification[]>
+}
+
+export interface CommentRepository {
+  loadAssessmentComments(assessmentId: string): Promise<AssessmentComment[]>
+  addAssessmentComment(assessmentId: string, body: string): Promise<AssessmentComment>
+}
+
+export interface PreferenceRepository {
+  loadUserPreference<T = unknown>(key: string): Promise<T | null>
+  saveUserPreference<T = unknown>(key: string, value: T): Promise<void>
+}
+
+export interface DataProvider
+  extends AuthProvider,
+    ConfigRepository,
+    UserRepository,
+    AssessmentRepository,
+    DraftRepository,
+    NotificationRepository,
+    CommentRepository,
+    PreferenceRepository {}

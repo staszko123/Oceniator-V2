@@ -23,12 +23,30 @@ export function canViewTeamRole(role: Role): boolean {
   return hasRole(role, TEAM_ROLES)
 }
 
+export function isViewerRole(role: Role): boolean {
+  return role === 'viewer'
+}
+
+export function canCompareLeadersRole(role: Role): boolean {
+  return role === 'admin' || role === 'director'
+}
+
+export function canAdvanceAssessmentStatusRole(role: Role): boolean {
+  return role === 'admin' || role === 'director' || role === 'leader'
+}
+
+export function canAdvanceAssessmentStatus(user: UserProfile, assessment: Pick<Assessment, 'leaderScope'>): boolean {
+  if (!canAdvanceAssessmentStatusRole(user.role)) return false
+  if (user.role !== 'leader') return true
+  return assessment.leaderScope === user.leaderScope
+}
+
 export function viewerAssessmentTokens(user: UserProfile): string[] {
   const tokens = [user.id, user.fullName, user.email]
     .map((item) => item.trim())
     .filter(Boolean)
 
-  if (user.role === 'viewer' && (user.id === 'podglad' || user.email === 'podglad@local')) {
+  if (isViewerRole(user.role) && (user.id === 'podglad' || user.email === 'podglad@local')) {
     tokens.push('Anna Kowalska')
   }
 
@@ -40,8 +58,8 @@ export function hasPermission(role: Role, permission: Permission): boolean {
 }
 
 export function scopeAssessmentsForUser(assessments: Assessment[], user: UserProfile): Assessment[] {
-  if (user.role === 'admin' || user.role === 'director') return assessments
-  if (user.role === 'viewer') {
+  if (canCompareLeadersRole(user.role)) return assessments
+  if (isViewerRole(user.role)) {
     const specialistTokens = viewerAssessmentTokens(user)
     return assessments.filter((item) => (
       item.status === 'approved'

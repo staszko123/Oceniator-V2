@@ -1,8 +1,10 @@
 import { buildDemoAdmin, buildDemoAssessments } from './seed'
+import { canAdminRole, isViewerRole } from '../domain/access'
 import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
 import { scopeAssessmentsForUser, viewerAssessmentTokens } from '../domain/access'
 import { calcContact, createDraft, emptyScores, periodOf, ratingForScore } from '../domain/scoring'
-import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentComment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import type { Notification } from '../types/notification'
 import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
 import { readStorageJson, removeStorageItem, writeStorageJson } from '../utils/storage'
 
@@ -13,6 +15,9 @@ const keys = {
   drafts: 'oc_v2_drafts',
   users: 'oc_v2_users',
   adminHistory: 'oc_v2_admin_history',
+  comments: 'oc_v2_assessment_comments',
+  notifications: 'oc_v2_notifications',
+  preferences: 'oc_v2_user_preferences',
 }
 
 const defaultLocalUsers: Array<{ login: string; password: string; role: Role; fullName: string; leaderScope: string }> = [
@@ -249,7 +254,7 @@ function buildViewerDemoAssessments(): Assessment[] {
 }
 
 function ensureViewerDemoAssessments(assessments: Assessment[], session: UserProfile | null): Assessment[] {
-  const viewerTokens = session?.role === 'viewer' ? viewerAssessmentTokens(session) : []
+  const viewerTokens = session && isViewerRole(session.role) ? viewerAssessmentTokens(session) : []
   if (!viewerTokens.length) return assessments
 
   const viewerCards = assessments.filter((item) => item.status === 'approved' && viewerTokens.some((token) => item.spec === token || item.oce === token))
@@ -262,7 +267,7 @@ function ensureViewerDemoAssessments(assessments: Assessment[], session: UserPro
   ]
 }
 
-export class LocalDataProvider implements DataProvider {
+export class DemoDataProvider implements DataProvider {
   mode = 'local' as const
   private currentUser: UserProfile | null = null
 
@@ -286,7 +291,7 @@ export class LocalDataProvider implements DataProvider {
 
   async getCurrentUser(): Promise<UserProfile | null> {
     const session = readStorageJson<UserProfile | null>(keys.session, null)
-    if (!session || session.role !== 'viewer') return session
+    if (!session || !isViewerRole(session.role)) return session
     const normalized = {
       ...session,
       email: session.email === 'podglad@local' ? 'podglad@local' : session.email,
@@ -311,14 +316,14 @@ export class LocalDataProvider implements DataProvider {
       const normalized = normalizeAssessments(existing)
       const cleaned = normalized.filter((item) => !isViewerDemoAssessment(item))
       if (cleaned.length !== normalized.length) writeStorageJson(keys.assessments, cleaned)
-      const next = session?.role === 'viewer'
+      const next = session && isViewerRole(session.role)
         ? ensureViewerDemoAssessments(cleaned, session)
         : cleaned
       return next
     }
     const assessments = buildDemoAssessments(await this.loadAdmin())
     writeStorageJson(keys.assessments, assessments)
-    return session?.role === 'viewer'
+    return session && isViewerRole(session.role)
       ? ensureViewerDemoAssessments(assessments, session)
       : assessments
   }
@@ -341,7 +346,7 @@ export class LocalDataProvider implements DataProvider {
 
   async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
     const session = this.readSessionUser()
-    if (!session || session.role === 'viewer' || session.role === 'leader' || session.role === 'assessor') return []
+    if (!session || !canAdminRole(session.role)) return []
     const history = readStorageJson<AdminHistoryEntry[]>(keys.adminHistory, [])
     return history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
   }
@@ -426,5 +431,93 @@ export class LocalDataProvider implements DataProvider {
 
   async saveDrafts(drafts: Record<AssessmentType, AssessmentDraft | undefined>): Promise<void> {
     writeStorageJson(keys.drafts, drafts)
+  }
+
+  async loadNotifications(): Promise<Notification[]> {
+    const session = this.readSessionUser()
+    const notifications = readStorageJson<Notification[]>(keys.notifications, [])
+    return session
+      ? notifications.filter((item) => !item.userId || item.userId === session.id)
+      : notifications
+  }
+
+  async markNotificationRead(id: string): Promise<Notification[]> {
+    const notifications = readStorageJson<Notification[]>(keys.notifications, [])
+    writeStorageJson(keys.notifications, notifications.map((item) => (item.id === id ? { ...item, read: true } : item)))
+    return this.loadNotifications()
+  }
+
+  async markAllNotificationsRead(): Promise<Notification[]> {
+    const session = this.readSessionUser()
+    const notifications = readStorageJson<Notification[]>(keys.notifications, [])
+    writeStorageJson(keys.notifications, notifications.map((item) => (
+      !session || !item.userId || item.userId === session.id ? { ...item, read: true } : item
+    )))
+    return this.loadNotifications()
+  }
+
+  async pushNotification(payload: Parameters<DataProvider['pushNotification']>[0]): Promise<Notification[]> {
+    const session = this.readSessionUser()
+    const notification: Notification = {
+      id: crypto.randomUUID(),
+      userId: payload.userId || session?.id,
+      type: payload.type,
+      title: payload.title,
+      message: payload.message,
+      read: false,
+      createdAt: new Date().toISOString(),
+      relatedEntityType: payload.relatedEntityType,
+      relatedEntityId: payload.relatedEntityId,
+    }
+    const notifications = readStorageJson<Notification[]>(keys.notifications, [])
+    writeStorageJson(keys.notifications, [notification, ...notifications].slice(0, 100))
+    return this.loadNotifications()
+  }
+
+  async loadAssessmentComments(assessmentId: string): Promise<AssessmentComment[]> {
+    const comments = readStorageJson<Record<string, AssessmentComment[]>>(keys.comments, {})
+    return [...(comments[assessmentId] || [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  }
+
+  async addAssessmentComment(assessmentId: string, body: string): Promise<AssessmentComment> {
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    if (isViewerRole(session.role)) throw new Error('Brak dostępu do komentowania tej oceny.')
+    if (!body.trim()) throw new Error('Komentarz nie może być pusty.')
+    const comment: AssessmentComment = {
+      id: crypto.randomUUID(),
+      assessmentId,
+      body: body.trim(),
+      createdBy: session.id,
+      createdByName: session.fullName || session.email,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    const comments = readStorageJson<Record<string, AssessmentComment[]>>(keys.comments, {})
+    writeStorageJson(keys.comments, {
+      ...comments,
+      [assessmentId]: [...(comments[assessmentId] || []), comment],
+    })
+    return comment
+  }
+
+  async loadUserPreference<T = unknown>(key: string): Promise<T | null> {
+    const session = this.readSessionUser()
+    const preferences = readStorageJson<Record<string, Record<string, unknown>>>(keys.preferences, {})
+    if (!session) return null
+    return (preferences[session.id]?.[key] as T | undefined) ?? null
+  }
+
+  async saveUserPreference<T = unknown>(key: string, value: T): Promise<void> {
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    const preferences = readStorageJson<Record<string, Record<string, unknown>>>(keys.preferences, {})
+    writeStorageJson(keys.preferences, {
+      ...preferences,
+      [session.id]: {
+        ...(preferences[session.id] || {}),
+        [key]: value,
+      },
+    })
   }
 }

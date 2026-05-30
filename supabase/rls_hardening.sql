@@ -168,3 +168,91 @@ create policy "assessments: viewer read"
       or spec = public.current_profile_email()
     )
   );
+
+alter table public.user_drafts enable row level security;
+drop policy if exists "user_drafts: owner read" on public.user_drafts;
+drop policy if exists "user_drafts: owner insert" on public.user_drafts;
+drop policy if exists "user_drafts: owner update" on public.user_drafts;
+drop policy if exists "user_drafts: owner delete" on public.user_drafts;
+create policy "user_drafts: owner read"
+  on public.user_drafts for select
+  using (user_id = auth.uid());
+create policy "user_drafts: owner insert"
+  on public.user_drafts for insert
+  with check (user_id = auth.uid());
+create policy "user_drafts: owner update"
+  on public.user_drafts for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+create policy "user_drafts: owner delete"
+  on public.user_drafts for delete
+  using (user_id = auth.uid());
+
+alter table public.assessment_comments enable row level security;
+drop policy if exists "assessment_comments: read with assessment access" on public.assessment_comments;
+drop policy if exists "assessment_comments: scoped insert" on public.assessment_comments;
+drop policy if exists "assessment_comments: owner or admin update" on public.assessment_comments;
+drop policy if exists "assessment_comments: owner or admin delete" on public.assessment_comments;
+create policy "assessment_comments: read with assessment access"
+  on public.assessment_comments for select
+  using (
+    exists (
+      select 1 from public.assessments a
+      where a.id = assessment_comments.assessment_id
+    )
+  );
+create policy "assessment_comments: scoped insert"
+  on public.assessment_comments for insert
+  with check (
+    created_by = auth.uid()
+    and public.my_role() in ('admin','director','leader','assessor')
+    and exists (
+      select 1 from public.assessments a
+      where a.id = assessment_comments.assessment_id
+    )
+  );
+create policy "assessment_comments: owner or admin update"
+  on public.assessment_comments for update
+  using (created_by = auth.uid() or public.my_role() in ('admin','director'))
+  with check (created_by = auth.uid() or public.my_role() in ('admin','director'));
+create policy "assessment_comments: owner or admin delete"
+  on public.assessment_comments for delete
+  using (created_by = auth.uid() or public.my_role() in ('admin','director'));
+
+alter table public.notifications enable row level security;
+drop policy if exists "notifications: owner read" on public.notifications;
+drop policy if exists "notifications: owner insert" on public.notifications;
+drop policy if exists "notifications: owner update" on public.notifications;
+drop policy if exists "notifications: owner delete" on public.notifications;
+create policy "notifications: owner read"
+  on public.notifications for select
+  using (user_id = auth.uid());
+create policy "notifications: owner insert"
+  on public.notifications for insert
+  with check (user_id = auth.uid());
+create policy "notifications: owner update"
+  on public.notifications for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+create policy "notifications: owner delete"
+  on public.notifications for delete
+  using (user_id = auth.uid());
+
+alter table public.user_preferences enable row level security;
+drop policy if exists "user_preferences: owner read" on public.user_preferences;
+drop policy if exists "user_preferences: owner insert" on public.user_preferences;
+drop policy if exists "user_preferences: owner update" on public.user_preferences;
+drop policy if exists "user_preferences: owner delete" on public.user_preferences;
+create policy "user_preferences: owner read"
+  on public.user_preferences for select
+  using (user_id = auth.uid());
+create policy "user_preferences: owner insert"
+  on public.user_preferences for insert
+  with check (user_id = auth.uid());
+create policy "user_preferences: owner update"
+  on public.user_preferences for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+create policy "user_preferences: owner delete"
+  on public.user_preferences for delete
+  using (user_id = auth.uid());
