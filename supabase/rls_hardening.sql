@@ -162,6 +162,7 @@ create policy "assessments: viewer read"
   on public.assessments for select
   using (
     public.my_role() = 'viewer'
+    and status = 'approved'
     and (
       spec = public.current_profile_full_name()
       or spec = public.current_profile_email()

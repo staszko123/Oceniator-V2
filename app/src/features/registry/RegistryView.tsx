@@ -66,6 +66,41 @@ function changeFilterLabel(filter: 'all' | 'recent' | 'edited' | 'decision'): st
   return 'Wszystkie zmiany'
 }
 
+const registryStatusTransitions: Record<AssessmentStatus, AssessmentStatus> = {
+  submitted: 'review',
+  review: 'approved',
+  approved: 'archived',
+  archived: 'submitted',
+}
+
+function buildRegistryStatusHistoryNote(base: string, changeReason: string, diffSummary: string[]) {
+  const parts = [base]
+  if (changeReason.trim()) parts.push(`Powod: ${changeReason.trim()}`)
+  if (diffSummary.length) parts.push(`Zakres: ${diffSummary.join('; ')}`)
+  return parts.join('. ')
+}
+
+function appendRegistryStatusHistory(
+  assessment: Assessment,
+  nextStatus: AssessmentStatus,
+  user: UserProfile,
+  note: string,
+) {
+  return {
+    ...assessment,
+    status: nextStatus,
+    statusHistory: [
+      ...(assessment.statusHistory || []),
+      {
+        status: nextStatus,
+        at: new Date().toISOString(),
+        by: user.fullName || user.email,
+        note,
+      },
+    ],
+  }
+}
+
 function AssessmentPreviewModal({
   assessment,
   onClose,
@@ -367,6 +402,7 @@ export default function RegistryView({
   const [editing, setEditing] = useState<Assessment | null>(null)
   const [notice, setNotice] = useState('')
   const lastIntentToken = useRef<number | null>(null)
+  const isViewer = user.role === 'viewer'
   const canMutate = canCreateRole(user.role)
   const canAdvanceStatuses = user.role === 'admin' || user.role === 'director' || user.role === 'leader'
 
@@ -403,10 +439,10 @@ export default function RegistryView({
     query.trim() ? `Fraza: ${query.trim()}` : null,
     type !== 'all' ? `Typ: ${typeLabel(type)}` : null,
     leader !== 'all' ? `Lider: ${leader}` : null,
-    specialist !== 'all' ? `Specjalista: ${specialist}` : null,
+    !isViewer && specialist !== 'all' ? `Specjalista: ${specialist}` : null,
     status !== 'all' ? `Status: ${statusLabels[status]}` : null,
     period !== 'all' ? `Okres: ${period}` : null,
-    changeFilter !== 'all' ? `Widok: ${changeFilterLabel(changeFilter)}` : null,
+    !isViewer && changeFilter !== 'all' ? `Widok: ${changeFilterLabel(changeFilter)}` : null,
   ].filter((item): item is string => Boolean(item))
 
   useEffect(() => {
@@ -474,30 +510,15 @@ export default function RegistryView({
       setNotice('Ta rola nie moze zmieniac statusu tej karty.')
       return
     }
+    const nextStatus = registryStatusTransitions[item.status]
 
-    const next: Record<AssessmentStatus, AssessmentStatus> = {
-      submitted: 'review',
-      review: 'approved',
-      approved: 'archived',
-      archived: 'submitted',
-    }
-
-    const nextStatus = next[item.status]
-
-    try {
-      await onUpdate({
-        ...item,
-        status: nextStatus,
-        statusHistory: [
-          ...(item.statusHistory || []),
-          {
-            status: nextStatus,
-            at: new Date().toISOString(),
-            by: user.fullName || user.email,
-            note: `Zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[nextStatus]}`,
-          },
-        ],
-      })
+  try {
+      const note = buildRegistryStatusHistoryNote(
+        `Zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[nextStatus]}`,
+        '',
+        [],
+      )
+      await onUpdate(appendRegistryStatusHistory(item, nextStatus, user, note))
       setNotice(`Status zmieniony na: ${statusLabels[nextStatus]}.`)
       recordDiagnostic({
         scope: 'registry',
@@ -515,28 +536,17 @@ export default function RegistryView({
       setNotice('Zaznacz co najmniej jedna karte mozliwa do przesuniecia.')
       return
     }
-
-    const next: Record<AssessmentStatus, AssessmentStatus> = {
-      submitted: 'review',
-      review: 'approved',
-      approved: 'archived',
-      archived: 'submitted',
-    }
-
     try {
-      await Promise.all(selectedAdvanceable.map((item) => onUpdate({
-        ...item,
-        status: next[item.status],
-        statusHistory: [
-          ...(item.statusHistory || []),
-          {
-            status: next[item.status],
-            at: new Date().toISOString(),
-            by: user.fullName || user.email,
-            note: `Masowa zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[next[item.status]]}`,
-          },
-        ],
-      })))
+      await Promise.all(selectedAdvanceable.map((item) => onUpdate(appendRegistryStatusHistory(
+        item,
+        registryStatusTransitions[item.status],
+        user,
+        buildRegistryStatusHistoryNote(
+          `Masowa zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[registryStatusTransitions[item.status]]}`,
+          '',
+          [],
+        ),
+      ))))
       setSelectedIds([])
       setNotice(`Przesunieto ${selectedAdvanceable.length} kart.`)
       recordDiagnostic({
@@ -617,7 +627,7 @@ export default function RegistryView({
   return (
     <main className="screen">
       <section className="toolbar-panel registry-toolbar">
-        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj specjalisty, dzialu lub oceniajacego" /></label>
+        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isViewer ? 'Szukaj po okresie, typie lub oceniajacym' : 'Szukaj specjalisty, dzialu lub oceniajacego'} /></label>
         <select value={period} onChange={(event) => setPeriod(event.target.value)}>
           <option value="all">Wszystkie okresy</option>
           {periods.map((item) => <option key={item} value={item}>{item}</option>)}
@@ -628,6 +638,8 @@ export default function RegistryView({
           <option value="m">Maile</option>
           <option value="s">Systemy</option>
         </select>
+        {!isViewer ? (
+          <>
         <select value={leader} onChange={(event) => setLeader(event.target.value)}>
           <option value="all">Wszyscy liderzy</option>
           {leaders.map((item) => <option key={item} value={item}>{item}</option>)}
@@ -643,9 +655,11 @@ export default function RegistryView({
         <button className="ghost-btn" type="button" onClick={() => setAdvancedFiltersOpen((value) => !value)}>
           Więcej filtrów
         </button>
+          </>
+        ) : null}
       </section>
 
-      {advancedFiltersOpen ? (
+      {advancedFiltersOpen && !isViewer ? (
         <section className="registry-advanced-filters">
           <select value={status} onChange={(event) => setStatus(event.target.value as AssessmentStatus | 'all')}>
             <option value="all">Wszystkie statusy</option>
@@ -662,17 +676,21 @@ export default function RegistryView({
 
       <section className="registry-ops-bar">
         <div className="registry-ops-copy">
-          <span className="registry-ops-kicker">Widok operacyjny</span>
-          <strong>{rows.length} kart po filtrach</strong>
-          <p>{notice || 'Filtruj tabele, przejdz przez kolejke decyzji i domykaj statusy bez zmiany kontekstu.'}</p>
+          <span className="registry-ops-kicker">{isViewer ? 'Tryb tylko do odczytu' : 'Widok operacyjny'}</span>
+          <strong>{isViewer ? `${rows.length} zatwierdzonych ocen` : `${rows.length} kart po filtrach`}</strong>
+          <p>{notice || (isViewer
+            ? 'Widzisz tylko swoje oceny zatwierdzone przez lidera. Karty robocze i weryfikowane nie sa tu pokazywane.'
+            : 'Filtruj tabele, przejdz przez kolejke decyzji i domykaj statusy bez zmiany kontekstu.')}</p>
         </div>
         <div className="registry-ops-actions">
-          <div className="quick-filter-group">
-            <button className={changeFilter === 'decision' ? 'active' : ''} type="button" onClick={() => applyPreset('decision')}>Do decyzji</button>
-            <button className={changeFilter === 'recent' ? 'active' : ''} type="button" onClick={() => applyPreset('recent')}>Ostatnie 72h</button>
-            <button className={changeFilter === 'edited' ? 'active' : ''} type="button" onClick={() => applyPreset('edited')}>Edytowane</button>
-            <button className={changeFilter === 'all' ? 'active' : ''} type="button" onClick={() => applyPreset('all')}>Pelny widok</button>
-          </div>
+          {!isViewer ? (
+            <div className="quick-filter-group">
+              <button className={changeFilter === 'decision' ? 'active' : ''} type="button" onClick={() => applyPreset('decision')}>Do decyzji</button>
+              <button className={changeFilter === 'recent' ? 'active' : ''} type="button" onClick={() => applyPreset('recent')}>Ostatnie 72h</button>
+              <button className={changeFilter === 'edited' ? 'active' : ''} type="button" onClick={() => applyPreset('edited')}>Edytowane</button>
+              <button className={changeFilter === 'all' ? 'active' : ''} type="button" onClick={() => applyPreset('all')}>Pelny widok</button>
+            </div>
+          ) : null}
           <div className="registry-export-group">
             <button className="ghost-btn" type="button" onClick={() => void exportRows('csv')}><Download size={16} /> CSV</button>
             <button className="ghost-btn" type="button" onClick={() => void exportRows('excel')}><Download size={16} /> Excel</button>
@@ -690,14 +708,15 @@ export default function RegistryView({
         <div className="registry-filter-actions">
           <button className="ghost-btn" disabled={!hasActiveFilters} type="button" onClick={resetFilters}>Wyczysc filtry</button>
           {canAdvanceStatuses ? <span className="hint-text">Najpierw ustaw filtr, potem zaznaczaj widoczne karty do przesuniecia.</span> : null}
+          {isViewer ? <span className="hint-text">Lista zawiera wyłącznie oceny zatwierdzone przez lidera.</span> : null}
         </div>
       </section>
 
       <section className="registry-summary">
         <div className="status-chip">Wynik filtra: {rows.length}</div>
-        <div className="status-chip">Edytowane karty: {editedCount}</div>
-        <div className="status-chip">Aktywne 72h: {recentCount}</div>
-        <div className="status-chip">Do decyzji: {decisionCount}</div>
+        {isViewer ? <div className="status-chip">Status: zatwierdzone</div> : <div className="status-chip">Edytowane karty: {editedCount}</div>}
+        {isViewer ? <div className="status-chip">Tryb: tylko odczyt</div> : <div className="status-chip">Aktywne 72h: {recentCount}</div>}
+        {!isViewer ? <div className="status-chip">Do decyzji: {decisionCount}</div> : null}
       </section>
 
       <section className="data-panel">

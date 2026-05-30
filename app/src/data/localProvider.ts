@@ -1,7 +1,9 @@
 import { buildDemoAdmin, buildDemoAssessments } from './seed'
 import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
-import { createDraft } from '../domain/scoring'
+import { scopeAssessmentsForUser, viewerAssessmentTokens } from '../domain/access'
+import { calcContact, createDraft, emptyScores, periodOf, ratingForScore } from '../domain/scoring'
 import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
 
 const keys = {
   session: 'oc_v2_session',
@@ -21,6 +23,18 @@ const defaultLocalUsers: Array<{ login: string; password: string; role: Role; fu
   { login: 'oceniajacy', password: 'ocena123', role: 'assessor', fullName: 'Mateusz Cieslak', leaderScope: 'Mateusz Cieslak' },
   { login: 'podglad', password: 'podglad123', role: 'viewer', fullName: 'Anna Kowalska', leaderScope: 'Alicja Wrona' },
 ]
+
+const viewerDemoAssessmentIds = [
+  'viewer-demo-approved-1',
+  'viewer-demo-approved-2',
+  'viewer-demo-approved-3',
+  'viewer-demo-approved-4',
+  'viewer-demo-approved-5',
+] as const
+
+function isViewerDemoAssessment(item: Assessment): boolean {
+  return viewerDemoAssessmentIds.includes(item.id as (typeof viewerDemoAssessmentIds)[number])
+}
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -79,12 +93,13 @@ function localUsers(): ManagedUser[] {
 }
 
 function localProfile(user: ManagedUser): UserProfile {
+  const isViewerDemo = user.login === 'podglad' || user.email === 'podglad@local'
   return {
     id: user.id,
-    email: user.email,
-    fullName: user.fullName,
-    role: user.role,
-    leaderScope: user.leaderScope,
+    email: isViewerDemo ? 'podglad@local' : user.email,
+    fullName: isViewerDemo ? 'Anna Kowalska' : user.fullName,
+    role: isViewerDemo ? 'viewer' : user.role,
+    leaderScope: isViewerDemo ? 'Alicja Wrona' : user.leaderScope,
     isActive: user.isActive,
     source: 'local',
   }
@@ -139,8 +154,129 @@ function normalizeAssessments(value: Assessment[]): Assessment[] {
   })
 }
 
+function buildViewerDemoAssessments(): Assessment[] {
+  const configs = [
+    {
+      id: 'viewer-demo-approved-1',
+      type: 'r' as AssessmentType,
+      date: '2026-01-16',
+      leaderScope: 'Alicja Wrona',
+      tweaks: [
+        ['mery', 0, 0, 0.5], ['jak', 1, 1, 0], ['sys', 0, 2, 0.5],
+      ],
+      note: 'Utrzymac strukture rozmowy i dopracowac rozpoznanie potrzeb.',
+    },
+    {
+      id: 'viewer-demo-approved-2',
+      type: 'm' as AssessmentType,
+      date: '2026-02-24',
+      leaderScope: 'Alicja Wrona',
+      tweaks: [
+        ['mery', 2, 0, 0.5], ['mery', 3, 1, 0], ['jak', 0, 1, 0.5],
+      ],
+      note: 'Mocny wynik w mailach, do podniesienia precyzja finalnego domkniecia.',
+    },
+    {
+      id: 'viewer-demo-approved-3',
+      type: 's' as AssessmentType,
+      date: '2026-03-19',
+      leaderScope: 'Alicja Wrona',
+      tweaks: [
+        ['obs', 0, 0, 0.5], ['dok', 1, 1, 0.5],
+      ],
+      note: 'Stabilna obsluga systemowa, do poprawy dokumentacja zgloszen.',
+    },
+    {
+      id: 'viewer-demo-approved-4',
+      type: 'r' as AssessmentType,
+      date: '2026-05-04',
+      leaderScope: 'Alicja Wrona',
+      tweaks: [
+        ['mery', 4, 1, 0], ['jak', 3, 2, 0.5],
+      ],
+      note: 'Najmocniejszy rezultat z ostatniego okresu.',
+    },
+    {
+      id: 'viewer-demo-approved-5',
+      type: 'm' as AssessmentType,
+      date: '2026-05-17',
+      leaderScope: 'Alicja Wrona',
+      tweaks: [
+        ['mery', 1, 0, 0.5], ['jak', 2, 1, 0], ['jak', 4, 0, 0.5],
+      ],
+      note: 'Zatwierdzona karta demo dla widoku specjalisty.',
+    },
+  ] as const
+
+  return configs.map((config, index) => {
+    const contactCount = config.type === 'r' ? 3 : 2
+    const scores = emptyScores(config.type, contactCount)
+    config.tweaks.forEach(([sectionKey, criterionIndex, contactIndex, value]) => {
+      scores[sectionKey][criterionIndex][contactIndex] = value
+    })
+    const contactResults = Array.from({ length: contactCount }, (_, contactIndex) => calcContact(config.type, scores, contactIndex))
+    const avgFinal = Math.round(contactResults.reduce((acc, result) => acc + result.pct, 0) / contactResults.length)
+    const secAvg = Object.fromEntries(
+      Object.keys(scores).map((sectionKey) => {
+        const values = contactResults.map((result) => result.parts[sectionKey] ?? 100)
+        return [sectionKey, Math.round(values.reduce((acc, value) => acc + value, 0) / values.length)]
+      }),
+    )
+
+    return {
+      id: config.id,
+      type: config.type,
+      spec: 'Anna Kowalska',
+      stand: 'Specjalista ds. Obslugi Klienta',
+      dzial: 'Dzial Obslugi Klienta PeP',
+      oce: 'Alicja Wrona',
+      data: config.date,
+      period: periodOf(config.date),
+      avgFinal,
+      secAvg,
+      contactResults,
+      rating: ratingForScore(avgFinal),
+      notes: config.note,
+      contactCount,
+      ids: Array.from({ length: contactCount }, (_, itemIndex) => `${config.type.toUpperCase()}-${config.date.replaceAll('-', '')}-${index + 1}-${itemIndex + 1}`),
+      snapshotScores: scores,
+      snapshotNotes: Object.fromEntries(
+        Object.keys(scores).map((sectionKey) => [sectionKey, Array.from({ length: contactCount }, () => '')]),
+      ) as Assessment['snapshotNotes'],
+      gold: Array.from({ length: contactCount }, () => 0),
+      goldDesc: '',
+      status: 'approved',
+      statusHistory: [
+        {
+          status: 'approved',
+          at: `${config.date}T09:00:00.000Z`,
+          by: 'Alicja Wrona',
+          note: 'Zatwierdzono karte demo specjalisty.',
+        },
+      ],
+      createdAt: `${config.date}T09:00:00.000Z`,
+      leaderScope: config.leaderScope,
+    }
+  })
+}
+
+function ensureViewerDemoAssessments(assessments: Assessment[], session: UserProfile | null): Assessment[] {
+  const viewerTokens = session?.role === 'viewer' ? viewerAssessmentTokens(session) : []
+  if (!viewerTokens.length) return assessments
+
+  const viewerCards = assessments.filter((item) => item.status === 'approved' && viewerTokens.some((token) => item.spec === token || item.oce === token))
+  if (viewerCards.length >= 5) return assessments
+
+  const viewerDemoAssessments = buildViewerDemoAssessments()
+  return [
+    ...viewerDemoAssessments.filter((item) => !assessments.some((existing) => existing.id === item.id)),
+    ...assessments,
+  ]
+}
+
 export class LocalDataProvider implements DataProvider {
   mode = 'local' as const
+  private currentUser: UserProfile | null = null
 
   async signIn(email: string, password: string): Promise<UserProfile> {
     return this.signInLocal(email, password)
@@ -151,15 +287,52 @@ export class LocalDataProvider implements DataProvider {
     if (!user) throw new Error('Nieprawidlowy login lub haslo.')
     const profile = localProfile(user)
     writeJson(keys.session, profile)
+    this.currentUser = profile
     return profile
   }
 
   async signOut(): Promise<void> {
     localStorage.removeItem(keys.session)
+    this.currentUser = null
   }
 
   async getCurrentUser(): Promise<UserProfile | null> {
-    return readJson<UserProfile | null>(keys.session, null)
+    const session = readJson<UserProfile | null>(keys.session, null)
+    if (!session || session.role !== 'viewer') return session
+    const normalized = {
+      ...session,
+      email: session.email === 'podglad@local' ? 'podglad@local' : session.email,
+      fullName: session.id === 'podglad' || session.email === 'podglad@local' ? 'Anna Kowalska' : session.fullName,
+      leaderScope: session.id === 'podglad' || session.email === 'podglad@local' ? 'Alicja Wrona' : session.leaderScope,
+    }
+    if (normalized.fullName !== session.fullName || normalized.email !== session.email || normalized.leaderScope !== session.leaderScope) {
+      writeJson(keys.session, normalized)
+    }
+    this.currentUser = normalized
+    return normalized
+  }
+
+  private readSessionUser(): UserProfile | null {
+    return this.currentUser || readJson<UserProfile | null>(keys.session, null)
+  }
+
+  private async loadAllAssessments(): Promise<Assessment[]> {
+    const session = this.readSessionUser()
+    const existing = readJson<Assessment[] | null>(keys.assessments, null)
+    if (existing) {
+      const normalized = normalizeAssessments(existing)
+      const cleaned = normalized.filter((item) => !isViewerDemoAssessment(item))
+      if (cleaned.length !== normalized.length) writeJson(keys.assessments, cleaned)
+      const next = session?.role === 'viewer'
+        ? ensureViewerDemoAssessments(cleaned, session)
+        : cleaned
+      return next
+    }
+    const assessments = buildDemoAssessments(await this.loadAdmin())
+    writeJson(keys.assessments, assessments)
+    return session?.role === 'viewer'
+      ? ensureViewerDemoAssessments(assessments, session)
+      : assessments
   }
 
   async loadAdmin(): Promise<AdminConfig> {
@@ -171,20 +344,31 @@ export class LocalDataProvider implements DataProvider {
   }
 
   async saveAdmin(config: AdminConfig): Promise<void> {
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    assertCanAdmin(session, 'Brak dostepu do zapisu konfiguracji administratora.')
     writeJson(keys.admin, config)
     appendAdminHistory(describeAdminConfigSave(config))
   }
 
   async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
+    const session = this.readSessionUser()
+    if (!session || session.role === 'viewer' || session.role === 'leader' || session.role === 'assessor') return []
     const history = readJson<AdminHistoryEntry[]>(keys.adminHistory, [])
     return history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
   }
 
   async listUsers(): Promise<ManagedUser[]> {
+    const session = this.readSessionUser()
+    if (!session) return []
+    assertCanAdmin(session, 'Brak dostepu do listy uzytkownikow.')
     return localUsers()
   }
 
   async createUser(user: ManagedUser): Promise<ManagedUser> {
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    assertCanAdmin(session, 'Brak dostepu do tworzenia uzytkownikow.')
     const users = localUsers()
     const login = user.login?.trim() || user.email.split('@')[0]
     if (users.some((item) => item.login === login || item.email === user.email)) {
@@ -206,38 +390,43 @@ export class LocalDataProvider implements DataProvider {
   }
 
   async updateUser(user: ManagedUser): Promise<ManagedUser> {
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    assertCanAdmin(session, 'Brak dostepu do edycji uzytkownikow.')
     const users = localUsers()
     const next = users.map((item) => (item.id === user.id ? { ...item, ...user, source: 'local' as const } : item))
     writeJson(keys.users, next)
-    const session = readJson<UserProfile | null>(keys.session, null)
-    if (session?.id === user.id) writeJson(keys.session, localProfile({ ...user, source: 'local' }))
+    if (session.id === user.id) writeJson(keys.session, localProfile({ ...user, source: 'local' }))
     appendAdminHistory(describeUserUpdate({ ...user, source: 'local' }))
     return { ...user, source: 'local' }
   }
 
   async loadAssessments(): Promise<Assessment[]> {
-    const existing = readJson<Assessment[] | null>(keys.assessments, null)
-    if (existing) {
-      const normalized = normalizeAssessments(existing)
-      if (normalized.length !== existing.length) writeJson(keys.assessments, normalized)
-      return normalized
-    }
-    const assessments = buildDemoAssessments(await this.loadAdmin())
-    writeJson(keys.assessments, assessments)
-    return assessments
+    const session = this.readSessionUser()
+    const assessments = await this.loadAllAssessments()
+    return session ? scopeAssessmentsForUser(assessments, session) : assessments
   }
 
   async saveAssessment(assessment: Assessment): Promise<void> {
-    const assessments = await this.loadAssessments()
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    assertCanEditAssessment(session, assessment, 'Brak dostepu do zapisu tej karty.')
+    const assessments = await this.loadAllAssessments()
     writeJson(keys.assessments, [assessment, ...assessments.filter((item) => item.id !== assessment.id)])
   }
 
   async updateAssessment(assessment: Assessment): Promise<void> {
-    const assessments = await this.loadAssessments()
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    assertCanEditAssessment(session, assessment, 'Brak dostepu do edycji tej karty.')
+    const assessments = await this.loadAllAssessments()
     writeJson(keys.assessments, assessments.map((item) => (item.id === assessment.id ? assessment : item)))
   }
 
   async saveAssessments(assessments: Assessment[]): Promise<void> {
+    const session = this.readSessionUser()
+    if (!session) throw new Error('Brak aktywnej sesji.')
+    assessments.forEach((assessment) => assertCanEditAssessment(session, assessment, 'Brak dostepu do importu wybranych kart.'))
     writeJson(keys.assessments, assessments)
   }
 

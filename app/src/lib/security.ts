@@ -20,6 +20,14 @@ export function canEditAssessment(user: UserProfile, assessment: Pick<Assessment
   return false
 }
 
+export function assertCanAdmin(user: UserProfile, message = 'Brak dostepu do tej sekcji.'): void {
+  if (!canAdmin(user)) throw new Error(message)
+}
+
+export function assertCanEditAssessment(user: UserProfile, assessment: Pick<Assessment, 'oce' | 'leaderScope'>, message = 'Brak dostepu do tej karty.'): void {
+  if (!canEditAssessment(user, assessment)) throw new Error(message)
+}
+
 export function isLeaderScoped(user: UserProfile): boolean {
   return user.role === 'leader' && !!user.leaderScope
 }

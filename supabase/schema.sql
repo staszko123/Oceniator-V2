@@ -361,6 +361,7 @@ create policy "assessments: viewer odczyt"
   on public.assessments for select
   using (
     public.current_role_name() = 'viewer'
+    and status = 'approved'
     and (
       spec = public.current_profile_full_name()
       or spec = public.current_profile_email()

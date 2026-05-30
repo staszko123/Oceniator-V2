@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Assessment, UserProfile } from '../domain/types'
-import { canAdmin, canCreate, canEditAssessment, canViewTeam, getLeaderScope, isLeaderScoped } from './security'
+import { assertCanAdmin, assertCanEditAssessment, canAdmin, canCreate, canEditAssessment, canViewTeam, getLeaderScope, isLeaderScoped } from './security'
 
 function makeUser(overrides: Partial<UserProfile>): UserProfile {
   return {
@@ -82,5 +82,10 @@ describe('security guards', () => {
     expect(isLeaderScoped(makeUser({ role: 'leader', leaderScope: '' }))).toBe(false)
     expect(getLeaderScope(makeUser({ role: 'admin', leaderScope: 'Anna Lider' }))).toBeNull()
     expect(getLeaderScope(makeUser({ role: 'leader', leaderScope: 'Anna Lider' }))).toBe('Anna Lider')
+  })
+
+  it('throws on forbidden admin and assessment writes', () => {
+    expect(() => assertCanAdmin(makeUser({ role: 'viewer' }))).toThrow('Brak dostepu')
+    expect(() => assertCanEditAssessment(makeUser({ role: 'viewer' }), makeAssessment({}))).toThrow('Brak dostepu')
   })
 })

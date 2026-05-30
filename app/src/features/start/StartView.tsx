@@ -57,14 +57,8 @@ export default function StartView({
     {
       label: 'Ryzyka do sprawdzenia',
       value: lowScores,
-      hint: 'Karty ponizej standardu do szybkiego sprawdzenia.',
+      hint: 'Karty ponizej standardu do szybkiej kontroli.',
       action: () => setView('dashboard'),
-    },
-    {
-      label: 'Zapisane szkice',
-      value: savedDrafts.length,
-      hint: 'Wznowisz prace bez szukania formularza.',
-      action: () => onResumeDraft(savedDrafts[0][0]),
     },
   ].filter((item) => item.value > 0) as Array<{ label: string; value: number; hint: string; action: () => void }>
 
@@ -77,8 +71,6 @@ export default function StartView({
           <div className="quick-actions">
             {canCreateRole(user.role) ? <button className="primary-btn" onClick={() => setView('form')} type="button"><Plus size={16} /> Nowa ocena</button> : null}
             <button className="ghost-btn" onClick={() => openRegistry('all')} type="button"><ClipboardCheck size={16} /> Ewidencja</button>
-            <button className="ghost-btn" onClick={() => setView('dashboard')} type="button"><ShieldCheck size={16} /> Analityka</button>
-            <button className="ghost-btn" onClick={() => setView('reports')} type="button"><FileText size={16} /> Raporty</button>
           </div>
           <div className="hero-inline-note">
             <span>Rola robocza: {roleLabel(user.role)}</span>
@@ -93,7 +85,7 @@ export default function StartView({
 
       <section className="start-center-grid">
         <div className="data-panel">
-          <div className="section-title"><span>Co zrobic teraz</span><small>priorytety operacyjne</small></div>
+          <div className="section-title"><span>Priorytet</span><small>co wymaga uwagi teraz</small></div>
           {nextActions.length ? (
             <div className="action-priority-list">
               {nextActions.map((item) => (
@@ -112,7 +104,7 @@ export default function StartView({
         </div>
 
         <div className="data-panel">
-          <div className="section-title"><span>Szybkie przejścia</span><small>najkrótsza droga dalej</small></div>
+          <div className="section-title"><span>Skróty</span><small>najkrótsza droga dalej</small></div>
           <div className="quick-paths">
             <button className="quick-path" type="button" onClick={() => setView('form')}>
               <Plus size={16} />

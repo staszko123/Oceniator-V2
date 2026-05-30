@@ -11,6 +11,7 @@ import StartView from './features/start/StartView'
 import { AssessmentTable } from './features/registry/AssessmentTable'
 import RegistryView from './features/registry/RegistryView'
 import TeamView from './features/team/TeamView'
+import ViewerPortalView from './features/viewer/ViewerPortalView'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
 import type {
@@ -61,6 +62,14 @@ function preloadView(view: ViewKey) {
 }
 
 function availableNavItems(user: UserProfile): typeof navItems {
+  if (user.role === 'viewer') {
+    const startItem = navItems.find((item) => item.key === 'start')
+    const registryItem = navItems.find((item) => item.key === 'registry')
+    return [
+      startItem ? { ...startItem, label: 'Mój portal', icon: ShieldCheck } : null,
+      registryItem ? { ...registryItem, label: 'Moje oceny' } : null,
+    ].filter((item): item is (typeof navItems)[number] => Boolean(item))
+  }
   return navItems.filter((item) => {
     if (item.key === 'form') return canCreateRole(user.role)
     if (item.key === 'team') return canViewTeamRole(user.role)
@@ -219,12 +228,13 @@ function App() {
 
   const loadWorkspace = useCallback(async (currentUser: UserProfile, activeProvider = provider) => {
     setBootError('')
+    const canReadAdminData = canAdminRole(currentUser.role)
     const [adminResult, historyResult, assessmentsResult, draftsResult, usersResult] = await Promise.allSettled([
       activeProvider.loadAdmin(),
-      activeProvider.loadAdminHistory ? activeProvider.loadAdminHistory() : Promise.resolve([]),
+      canReadAdminData && activeProvider.loadAdminHistory ? activeProvider.loadAdminHistory() : Promise.resolve([]),
       activeProvider.loadAssessments(),
       activeProvider.loadDrafts(),
-      activeProvider.listUsers ? activeProvider.listUsers() : Promise.resolve([]),
+      canReadAdminData && activeProvider.listUsers ? activeProvider.listUsers() : Promise.resolve([]),
     ])
     const failures = [adminResult, historyResult, assessmentsResult, draftsResult, usersResult]
       .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -241,6 +251,7 @@ function App() {
     setAssessments(scopeAssessmentsForUser(nextAssessments, currentUser))
     setDrafts(nextDrafts)
     setFormDraftOverride(null)
+    setView(currentUser.role === 'viewer' ? 'registry' : 'start')
     if (failures.length) setBootError(`Czesc danych jest chwilowo niedostepna: ${failures.join(' ')}`)
     refreshDiagnostics({
       scope: 'system',
@@ -457,15 +468,19 @@ function App() {
   return (
     <AppShell user={user} providerMode={provider.mode} view={effectiveView} navItems={visibleNavItems} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
       {effectiveView === 'start' ? (
-        <StartView
-          user={user}
-          assessments={assessments}
-          drafts={drafts}
-          setView={setView}
-          openRegistry={openRegistry}
-          onResumeDraft={resumeDraft}
-          onClearDraft={(type) => void discardDraft(type)}
-        />
+        user.role === 'viewer' ? (
+          <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} />
+        ) : (
+          <StartView
+            user={user}
+            assessments={assessments}
+            drafts={drafts}
+            setView={setView}
+            openRegistry={openRegistry}
+            onResumeDraft={resumeDraft}
+            onClearDraft={(type) => void discardDraft(type)}
+          />
+        )
       ) : null}
       {effectiveView === 'form' && canCreateRole(user.role) ? (
         <EvaluationView

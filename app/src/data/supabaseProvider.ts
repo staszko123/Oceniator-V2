@@ -1,7 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { LocalDataProvider } from './localProvider'
 import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
+import { scopeAssessmentsForUser } from '../domain/access'
 import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
+import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
 
 const supabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || 'https://oemqmxqngwtxmhlmwubq.supabase.co',
@@ -156,7 +158,8 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async saveAdmin(config: AdminConfig): Promise<void> {
-    await this.local.saveAdmin(config)
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    assertCanAdmin(this.currentUser, 'Brak dostepu do zapisu konfiguracji administratora.')
     const goals = config.goals
     await Promise.all([
       this.client
@@ -223,6 +226,7 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
+    if (!this.currentUser || !['admin', 'director'].includes(this.currentUser.role)) return []
     const { data, error } = await this.client
       .from('admin_history')
       .select('id,description,changed_by,changed_at')
@@ -238,6 +242,7 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async listUsers(): Promise<ManagedUser[]> {
+    if (!this.currentUser || !['admin', 'director'].includes(this.currentUser.role)) return []
     const { data, error } = await this.client
       .from('profiles')
       .select('id,email,full_name,role,leader_scope,is_active,created_at')
@@ -256,6 +261,8 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async updateUser(user: ManagedUser): Promise<ManagedUser> {
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    assertCanAdmin(this.currentUser, 'Brak dostepu do edycji uzytkownikow.')
     const payload = {
       full_name: user.fullName,
       role: user.role,
@@ -279,6 +286,8 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async createUser(user: ManagedUser): Promise<ManagedUser> {
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    assertCanAdmin(this.currentUser, 'Brak dostepu do tworzenia uzytkownikow.')
     const { data: sessionData } = await this.client.auth.getSession()
     const token = sessionData.session?.access_token
     if (!token) throw new Error('Brak aktywnej sesji Supabase.')
@@ -313,15 +322,20 @@ export class SupabaseDataProvider implements DataProvider {
   async loadAssessments(): Promise<Assessment[]> {
     const { data, error } = await this.client.from('assessments').select('*').order('assessment_date', { ascending: false })
     if (error) throw error
-    return (data || []).map(mapRow)
+    const mapped = (data || []).map(mapRow)
+    return this.currentUser ? scopeAssessmentsForUser(mapped, this.currentUser) : mapped
   }
 
   async saveAssessment(assessment: Assessment): Promise<void> {
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    assertCanEditAssessment(this.currentUser, assessment, 'Brak dostepu do zapisu tej karty.')
     const { error } = await this.client.from('assessments').upsert(mapAssessment(assessment, this.currentUser), { onConflict: 'id' })
     if (error) throw error
   }
 
   async updateAssessment(assessment: Assessment): Promise<void> {
+    if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
+    assertCanEditAssessment(this.currentUser, assessment, 'Brak dostepu do edycji tej karty.')
     await this.saveAssessment(assessment)
   }
 

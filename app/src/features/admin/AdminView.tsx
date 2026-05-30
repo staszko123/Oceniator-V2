@@ -422,7 +422,7 @@ export default function AdminView({
                   onClick={() => setSelectedSpecialistId(specialist.id)}
                 >
                   <strong>{specialist.name || 'Nowy specjalista'}</strong>
-                  <small>{specialist.leader || 'Bez lidera'} • {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
+                  <small>{specialist.leader || 'Bez lidera'} - {specialist.active ? 'aktywny' : 'nieaktywny'}</small>
                 </button>
               ))}
               {!filteredSpecialists.length ? <div className="empty-state compact-empty">Brak specjalistow dla tego filtra.</div> : null}
@@ -463,7 +463,7 @@ export default function AdminView({
                   onClick={() => setSelectedUserId(account.id)}
                 >
                   <strong>{account.fullName || account.email || account.login}</strong>
-                  <small>{roleLabels[account.role]} • {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
+                  <small>{roleLabels[account.role]} - {account.isActive ? 'aktywny' : 'nieaktywny'}</small>
                 </button>
               ))}
               {!filteredUsers.length ? <div className="empty-state compact-empty">Brak uzytkownikow dla tego filtra.</div> : null}

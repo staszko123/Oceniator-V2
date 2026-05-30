@@ -78,9 +78,10 @@ describe('access helpers', () => {
 
     const viewerView = scopeAssessmentsForUser(
       [
-        makeAssessment({ id: 'assessment-1', spec: 'Anna Kowalska' }),
-        makeAssessment({ id: 'assessment-2', spec: 'anna@example.com' }),
-        makeAssessment({ id: 'assessment-3', spec: 'Ktos Inny' }),
+        makeAssessment({ id: 'assessment-1', spec: 'Anna Kowalska', status: 'approved' }),
+        makeAssessment({ id: 'assessment-2', spec: 'anna@example.com', status: 'approved' }),
+        makeAssessment({ id: 'assessment-3', spec: 'Anna Kowalska', status: 'review' }),
+        makeAssessment({ id: 'assessment-4', spec: 'Ktos Inny', status: 'approved' }),
       ],
       makeUser({ role: 'viewer', fullName: 'Anna Kowalska', email: 'anna@example.com' }),
     )

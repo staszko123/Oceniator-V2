@@ -21,11 +21,26 @@ export function canViewTeamRole(role: Role): boolean {
   return hasRole(role, TEAM_ROLES)
 }
 
+export function viewerAssessmentTokens(user: UserProfile): string[] {
+  const tokens = [user.id, user.fullName, user.email]
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  if (user.role === 'viewer' && (user.id === 'podglad' || user.email === 'podglad@local')) {
+    tokens.push('Anna Kowalska')
+  }
+
+  return [...new Set(tokens)]
+}
+
 export function scopeAssessmentsForUser(assessments: Assessment[], user: UserProfile): Assessment[] {
   if (user.role === 'admin' || user.role === 'director') return assessments
   if (user.role === 'viewer') {
-    const specialistTokens = [user.fullName, user.email].map((item) => item.trim()).filter(Boolean)
-    return assessments.filter((item) => specialistTokens.some((token) => item.spec === token))
+    const specialistTokens = viewerAssessmentTokens(user)
+    return assessments.filter((item) => (
+      item.status === 'approved'
+      && specialistTokens.some((token) => item.spec === token || item.oce === token)
+    ))
   }
   return assessments.filter((item) => item.leaderScope === user.leaderScope || item.oce === user.leaderScope)
 }

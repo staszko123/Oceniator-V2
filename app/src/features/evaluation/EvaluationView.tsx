@@ -79,7 +79,7 @@ export default function EvaluationView({
   const workflowSteps = [
     { label: 'Dane oceny', done: Boolean(draft.specialist.trim() && draft.date && draft.position.trim() && draft.department.trim()) },
     { label: 'Kontakty lub sprawy', done: filledIds > 0 },
-    { label: 'Ocena kryteriow', done: hasCriteriaChanges },
+    { label: 'Ocena kryteriów', done: hasCriteriaChanges },
     { label: 'Komentarze', done: noteCount > 0 || draft.goldDescription.trim().length > 0 },
     { label: 'Podsumowanie', done: draft.summary.trim().length > 0 },
     { label: 'Zapis', done: Boolean(draft.savedAt) },
@@ -87,7 +87,7 @@ export default function EvaluationView({
   const workflowSectionMap: Record<string, string> = {
     'Dane oceny': 'section-data',
     'Kontakty lub sprawy': 'section-contacts',
-    'Ocena kryteriow': 'section-criteria',
+    'Ocena kryteriów': 'section-criteria',
     'Komentarze': 'section-comments',
     'Podsumowanie': 'section-summary',
     'Zapis': 'section-summary',
@@ -242,16 +242,16 @@ export default function EvaluationView({
 
         <section className="workflow-banner">
           <div className="workflow-banner-copy">
-            <span>{completedStepCount}/{workflowSteps.length} krokow gotowe</span>
+            <span>{completedStepCount}/{workflowSteps.length} kroków gotowe</span>
             <strong>{nextStep.label}</strong>
-            <p>{focusMode ? 'Tryb skupienia pokazuje tylko glowny przeplyw i panel zapisu.' : 'Nastepny krok jest wskazany ponizej. Wejdz tam, gdzie formularz wymaga decyzji.'}</p>
+            <p>{focusMode ? 'Tryb skupienia pokazuje tylko główny przepływ i panel zapisu.' : 'Następny krok jest wskazany poniżej. Wejdź tam, gdzie formularz wymaga decyzji.'}</p>
           </div>
           <div className="workflow-banner-actions">
             <div className="workflow-banner-pill">
               {completion}% kompletności
             </div>
             <button className="primary-btn" type="button" onClick={() => jumpToSection(workflowSectionMap[nextStep.label])}>
-              Przejdz do kroku
+              Przejdź do kroku
             </button>
           </div>
         </section>
@@ -360,7 +360,7 @@ export default function EvaluationView({
                 <p>Wypełnij tabelę i zaznacz uwagi tylko tam, gdzie są potrzebne.</p>
               </div>
             </div>
-            <small>{lowScoreCount} obnizonych ocen</small>
+                <small>{lowScoreCount} obniżonych ocen</small>
           </header>
 
           {def.sections.map((section) => (
@@ -425,7 +425,7 @@ export default function EvaluationView({
           {!focusMode ? (
             <details className="subdetails gold-callout">
               <summary>
-                <span>DODAJ ZŁOTY PUNKT</span>
+                <span>Złoty punkt</span>
                 <small>jedna sekcja na bonus i uzasadnienie</small>
               </summary>
               <div className="gold-single-card">
@@ -495,11 +495,7 @@ export default function EvaluationView({
                 {assistantResult?.summary || 'Po sprawdzeniu karty pojawi się tu krótka wskazówka do podsumowania.'}
               </div>
             </div>
-          </div>          {!focusMode ? (
-            <div className="section-note">
-              <span>Uwagi do sekcji sa wpisywane przy kryteriach. To pole sluzy tylko do kontekstu bonusów.</span>
-            </div>
-          ) : null}
+          </div>
         </section>
 
         <section className="form-card step-card" id="section-summary">
@@ -540,7 +536,7 @@ export default function EvaluationView({
       <aside className="right-rail">
         <section className="rail-card result-card">
           <div className="section-title">
-            <span>Wynik koncowy</span>
+            <span>Wynik końcowy</span>
             <small>{ratingLabel(calculated.rating)}</small>
           </div>
           <div className={scoreClass(calculated.avgFinal)}>{calculated.avgFinal}%</div>
@@ -559,7 +555,7 @@ export default function EvaluationView({
 
         <section className="rail-card">
           <div className="section-title">
-            <span>Kompletnosc</span>
+            <span>Kompletność</span>
             <small>co brakuje do zapisu</small>
           </div>
           {missingItems.length ? (
@@ -576,7 +572,7 @@ export default function EvaluationView({
               <CheckCircle2 size={16} />
               <div>
                 <strong>Wszystko gotowe</strong>
-                <span>Karta ma komplet podstawowych danych i moze zostac zapisana.</span>
+                <span>Karta ma komplet podstawowych danych i może zostać zapisana.</span>
               </div>
             </div>
           )}
@@ -591,11 +587,11 @@ export default function EvaluationView({
             <section className="rail-card assistant-card">
               <div className="section-title">
                 <span>Asystent oceny</span>
-                <small>kontrola jakosci i podsumowanie</small>
+                <small>kontrola jakości i podsumowanie</small>
               </div>
               <div className="assistant-actions">
                 <button className="ghost-btn wide" type="button" onClick={runDraftGuard}>
-                  <ShieldCheck size={16} /> Sprawdz karte
+                  <ShieldCheck size={16} /> Sprawdź kartę
                 </button>
                 <button className="ghost-btn wide" type="button" onClick={generateSummary}>
                   <FileText size={16} /> Wygeneruj podsumowanie
@@ -622,16 +618,9 @@ export default function EvaluationView({
                     </div>
                   ) : null}
                 </div>
-              ) : <p className="hint-text">Uzyj kontroli jakosci przed zapisem albo wygeneruj pierwsza wersje komentarza koncowego.</p>}
+              ) : <p className="hint-text">Użyj kontroli jakości przed zapisem albo wygeneruj pierwszą wersję komentarza końcowego.</p>}
             </section>
-
-            <section className="rail-card">
-              <div className="section-title">
-                <span>Kontekst</span>
-                <small>{draft.specialist || 'Brak specjalisty'}</small>
-              </div>
-              <p className="hint-text">Panel po prawej zbiera wynik, gotowosc i pomocnicze akcje. W trybie skupienia pokazuje tylko to, co potrzebne do zapisu.</p>
-            </section>
+            <p className="hint-text">Panel po prawej zbiera wynik, gotowość i pomocnicze akcje. W trybie skupienia pokazuje tylko to, co potrzebne do zapisu.</p>
           </details>
         ) : null}
       </aside>

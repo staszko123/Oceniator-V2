@@ -95,9 +95,9 @@ export default function ReportsView({
   const goalGap = activeAvg - 82
 
   const exportReadiness = [
-    activeReview ? { label: 'Do decyzji', value: activeReview, hint: 'Warto dolaczyc liste kart w review.' } : null,
-    activeBelow ? { label: 'Ponizej standardu', value: activeBelow, hint: 'To naturalna lista do feedbacku i planu naprawczego.' } : null,
-    activeGreat ? { label: 'Bardzo dobry', value: activeGreat, hint: 'Mozesz wydzielic mocne przyklady do kalibracji.' } : null,
+    activeReview ? { label: 'Do decyzji', value: activeReview, hint: 'Karty do domknięcia review.' } : null,
+    activeBelow ? { label: 'Poniżej standardu', value: activeBelow, hint: 'Lista do feedbacku i korekty.' } : null,
+    activeGreat ? { label: 'Bardzo dobry', value: activeGreat, hint: 'Mocne przykłady do kalibracji.' } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string }>
 
   const reportActions = [
@@ -130,27 +130,27 @@ export default function ReportsView({
             <span>Raporty</span>
             <small>{filtered.length} kart po filtrach</small>
           </div>
-          <h1>Najpierw ustaw filtr, potem pobierz tylko to, co pomoze podjac decyzje.</h1>
+          <h1>Najpierw ustaw filtr, potem pobierz tylko to, co pomaga podjąć decyzję.</h1>
           <p>{notice || reportTable.description}</p>
         </div>
         <div className="report-hero-actions">
           <button className="primary-btn" type="button" onClick={() => openRegistry('decision')}>
-            <ClipboardCheck size={16} /> Przejdz do ewidencji
+            <ClipboardCheck size={16} /> Przejdź do ewidencji
           </button>
-          <span className="hint-text">Tryby, eksporty i tabele pomocnicze sa nizej.</span>
+          <span className="hint-text">Tryby, eksporty i tabele pomocnicze są niżej.</span>
         </div>
       </section>
 
       <section className="report-kpi-grid">
-        <div className="metric-panel"><span>Sredni wynik</span><strong>{activeAvg || '-'}</strong><small>w aktywnym filtrze</small></div>
+        <div className="metric-panel"><span>Średni wynik</span><strong>{activeAvg || '-'}</strong><small>w aktywnym filtrze</small></div>
         <div className="metric-panel"><span>Karty</span><strong>{filtered.length}</strong><small>aktywny zakres</small></div>
-        <div className="metric-panel"><span>Ponizej standardu</span><strong>{activeBelow}</strong><small>wymagaja reakcji</small></div>
-        <div className="metric-panel"><span>Roznica do celu</span><strong>{goalGap ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>progiem jest 82%</small></div>
+        <div className="metric-panel"><span>Poniżej standardu</span><strong>{activeBelow}</strong><small>wymagają reakcji</small></div>
+        <div className="metric-panel"><span>Różnica do celu</span><strong>{goalGap ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>progiem jest 82%</small></div>
       </section>
 
       <section className="report-ops-grid">
         <div className="data-panel">
-          <div className="section-title"><span>Jak czytac ten raport</span><small>kontekst biezacego zestawu</small></div>
+          <div className="section-title"><span>Sygnały</span><small>kontekst bieżącego zestawu</small></div>
           {exportReadiness.length ? (
             <div className="action-priority-list">
               {exportReadiness.map((item) => (
@@ -164,7 +164,7 @@ export default function ReportsView({
               ))}
             </div>
           ) : (
-            <div className="empty-state compact-empty">Biezacy filtr nie pokazuje sygnalow wymagajacych pilnego komentarza.</div>
+            <div className="empty-state compact-empty">Bieżący filtr nie pokazuje sygnałów wymagających pilnego komentarza.</div>
           )}
         </div>
 
@@ -195,18 +195,18 @@ export default function ReportsView({
 
       <details className="report-more" open={showMore} onToggle={(event) => setShowMore(event.currentTarget.open)}>
         <summary>
-          <span>Wiecej</span>
-          <small>tryby, eksporty, akcje i rankingi</small>
+          <span>Narzędzia</span>
+          <small>tryby, eksporty i rankingi</small>
         </summary>
         <div className="report-more-body">
           <section className="data-panel">
-            <div className="section-title"><span>Tryb raportu</span><small>wybierz jeden format na raz</small></div>
+            <div className="section-title"><span>Format</span><small>wybierz jeden widok na raz</small></div>
             <div className="report-mode-group">
               <button className={mode === 'detail' ? 'active' : ''} type="button" onClick={() => setMode('detail')}>
-                <FileText size={15} /> Szczegolowy
+                <FileText size={15} /> Szczegółowy
               </button>
               <button className={mode === 'summary' ? 'active' : ''} type="button" onClick={() => setMode('summary')}>
-                <Users size={15} /> Specjalisci
+                <Users size={15} /> Specjaliści
               </button>
               <button className={mode === 'trend' ? 'active' : ''} type="button" onClick={() => setMode('trend')}>
                 <TrendingUp size={15} /> Trendy
@@ -226,7 +226,7 @@ export default function ReportsView({
 
           <section className="report-action-grid">
             <article className="data-panel">
-              <div className="section-title"><span>Co zrobic dalej</span><small>na podstawie aktywnego filtra</small></div>
+              <div className="section-title"><span>Następny krok</span><small>na podstawie aktywnego filtra</small></div>
               <div className="report-action-list">
                 {reportActions.map((item) => (
                   <button className="report-action-card" key={item.label} type="button" onClick={item.action}>
@@ -238,13 +238,13 @@ export default function ReportsView({
             </article>
 
             <article className="data-panel">
-              <div className="section-title"><span>Specjalisci do szybkiego wejscia</span><small>{bySpecialist.length ? 'najslabsze srednie w filtrze' : 'brak danych'}</small></div>
+              <div className="section-title"><span>Szybki dostęp</span><small>{bySpecialist.length ? 'najniższe średnie w filtrze' : 'brak danych'}</small></div>
               <div className="report-specialist-shortlist">
                 {bySpecialist.slice(0, 6).map((item) => (
                   <button className="report-specialist-card" key={item.specialist} type="button" onClick={() => setSelectedSpecialistProfile(item.specialist)}>
                     <div>
                       <strong>{item.specialist}</strong>
-                      <span>{item.leader || 'Brak lidera'} • {item.lastDate || 'Brak daty'}</span>
+                      <span>{item.leader || 'Brak lidera'} - {item.lastDate || 'Brak daty'}</span>
                     </div>
                     <span className={scoreClass(item.avg)}>{item.avg}%</span>
                   </button>
@@ -253,10 +253,10 @@ export default function ReportsView({
             </article>
           </section>
 
-          <section className="data-panel">
+        <section className="data-panel">
             <div className="section-title">
-              <span>Raport liderow</span>
-              <small>agregacja w biezacym filtrze</small>
+              <span>Liderzy</span>
+              <small>agregacja w bieżącym filtrze</small>
             </div>
             <div className="table-wrap">
               <table className="data-table">
@@ -277,11 +277,11 @@ export default function ReportsView({
             </div>
           </section>
 
-          <section className="data-panel">
-            <div className="section-title"><span>Specjalisci do uwagi</span><small>najsłabsze średnie w filtrze</small></div>
+        <section className="data-panel">
+            <div className="section-title"><span>Najniższe średnie</span><small>najsłabsze średnie w filtrze</small></div>
             <div className="table-wrap">
               <table className="data-table">
-                <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Srednia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
+                <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Średnia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
                 <tbody>
                   {bySpecialist.map((item) => (
                     <tr key={item.specialist}>

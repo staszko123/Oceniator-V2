@@ -141,5 +141,70 @@ export function buildDemoAssessments(admin: AdminConfig): Assessment[] {
     })
   })
 
+  const viewerScores = {
+    mery: [
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+    ],
+    jak: [
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+    ],
+    sys: [
+      [1 as ScoreValue, 1 as ScoreValue],
+      [1 as ScoreValue, 1 as ScoreValue],
+    ],
+  }
+  const viewerContactCount = 2
+  const viewerType: AssessmentType = 'm'
+  const viewerContactResults = Array.from({ length: viewerContactCount }, (_, contactIndex) => calcContact(viewerType, viewerScores, contactIndex))
+  const viewerAvg = Math.round(viewerContactResults.reduce((acc, result) => acc + result.pct, 0) / viewerContactResults.length)
+  assessments.unshift({
+    id: crypto.randomUUID(),
+    type: viewerType,
+    spec: 'Anna Kowalska',
+    stand: 'Specjalista ds. Obslugi Klienta',
+    dzial: 'Dzial Obslugi Klienta PeP',
+    oce: 'Alicja Wrona',
+    data: '2026-05-17',
+    period: periodOf('2026-05-17'),
+    avgFinal: viewerAvg,
+    secAvg: {
+      mery: 100,
+      jak: 100,
+      sys: 100,
+    },
+    contactResults: viewerContactResults,
+    rating: ratingForScore(viewerAvg),
+    notes: 'Zatwierdzona karta demo dla widoku specjalisty.',
+    contactCount: viewerContactCount,
+    ids: ['M-20260517-1', 'M-20260517-2'],
+    snapshotScores: viewerScores,
+    snapshotNotes: {
+      mery: ['', ''],
+      jak: ['', ''],
+      sys: ['', ''],
+    },
+    gold: [0, 0],
+    goldDesc: '',
+    status: 'approved',
+    statusHistory: [
+      {
+        status: 'approved',
+        at: '2026-05-17T09:00:00.000Z',
+        by: 'Alicja Wrona',
+        note: 'Zatwierdzono karte demo specjalisty.',
+      },
+    ],
+    createdAt: '2026-05-17T09:00:00.000Z',
+    leaderScope: 'Alicja Wrona',
+  })
+
   return assessments.sort((a, b) => b.data.localeCompare(a.data))
 }

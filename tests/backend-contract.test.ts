@@ -20,11 +20,13 @@ describe('backend contract', () => {
     expect(schema).toContain('create trigger trg_assessments_write_guard')
     expect(schema).toContain('current_profile_full_name()')
     expect(schema).toContain('current_profile_email()')
+    expect(schema).toContain("and status = 'approved'")
     expect(schema).toContain('spec = public.current_profile_full_name()')
     expect(schema).toContain('spec = public.current_profile_email()')
     expect(schema).toContain('admin_history: admin i dyrektor wstawiaja')
 
     expect(hardening).toContain('admin_history: admin i dyrektor wstawiaja')
+    expect(hardening).toContain("and status = 'approved'")
     expect(edgeFunction).toContain('admin_history')
     expect(edgeFunction).toContain('Utworzono konto:')
   })

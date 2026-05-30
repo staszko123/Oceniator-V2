@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, Database, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, UserRound } from 'lucide-react'
+import { Database, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, UserRound } from 'lucide-react'
 import type { DataProvider, UserProfile } from '../../domain/types'
 import { useTheme } from '../../lib/theme'
 
@@ -51,6 +51,17 @@ const viewMeta: Record<ViewKey, { eyebrow: string; description: string }> = {
   },
 }
 
+function resolveActiveMeta(view: ViewKey, role: UserProfile['role']): { eyebrow: string; description: string } {
+  const baseMeta = viewMeta[view]
+  if (view === 'start' && role === 'viewer') {
+    return { eyebrow: 'Portal / Specjalista', description: 'Osobiste centrum wynikow, trendow i priorytetow jakosci.' }
+  }
+  if (view === 'registry' && role === 'viewer') {
+    return { eyebrow: 'Portal / Specjalista', description: 'Ewidencja Twoich ocen zatwierdzonych przez lidera.' }
+  }
+  return baseMeta
+}
+
 export default function AppShell({
   user,
   providerMode,
@@ -73,10 +84,7 @@ export default function AppShell({
   systemNotice?: string
 }) {
   const activeTitle = navItems.find((item) => item.key === view)?.label || 'Oceniator'
-  const baseMeta = viewMeta[view]
-  const activeMeta = view === 'registry' && user.role === 'viewer'
-    ? { eyebrow: baseMeta.eyebrow, description: 'Twoje oceny i eksporty w trybie tylko do odczytu.' }
-    : baseMeta
+  const activeMeta = resolveActiveMeta(view, user.role)
   const { theme, toggleTheme } = useTheme()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -139,8 +147,6 @@ export default function AppShell({
           <div className="topbar-copy">
             <div className="topbar-eyebrow">
               <span>{activeMeta.eyebrow}</span>
-              <ChevronRight size={14} />
-              <strong>{activeTitle}</strong>
             </div>
             <h2>{activeTitle}</h2>
             <p>{activeMeta.description}</p>

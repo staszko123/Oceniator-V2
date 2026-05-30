@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDashboard, Maximize2, RotateCcw, Settings, ShieldCheck, TrendingUp, Trophy } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDashboard, Maximize2, RotateCcw, Settings, Trophy } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, AssessmentType, Role } from '../../domain/types'
 import { AnalyticsFilterBar } from '../analytics/shared'
@@ -116,7 +116,7 @@ export default function DashboardView({
     reviewCount ? { label: 'Do decyzji', value: reviewCount, hint: 'Najpierw domknij submitted i review.', tone: 'alert', suffix: '', action: () => openRegistry('decision') } : null,
     belowCount ? { label: 'Ponizej standardu', value: belowCount, hint: 'To naturalna lista do feedbacku i kalibracji.', tone: 'risk', suffix: '', action: () => setView('team') } : null,
     goalGap < 0 ? { label: 'Pod celem', value: Math.abs(goalGap), hint: 'Srednia jest ponizej celu o tyle punktow procentowych.', tone: 'risk', suffix: ' pp', action: () => setView('reports') } : null,
-    greatShare ? { label: 'Bardzo dobry', value: greatShare, hint: 'Udzial wysokich wynikow w aktywnym filtrze.', tone: 'positive', suffix: '%', action: () => setView('reports') } : null,
+    active.length ? { label: 'Bardzo dobry', value: greatShare, hint: `Udzial wysokich wynikow w aktywnym filtrze. Cel ${goals.greatShare}%.`, tone: 'positive', suffix: '%', action: () => setView('reports') } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string; tone: 'alert' | 'risk' | 'positive'; suffix: string; action: () => void }>
 
   useEffect(() => {
@@ -240,7 +240,7 @@ export default function DashboardView({
             </div>
             <div className="trend-label">
               <span>{item.period}</span>
-              <small>{item.below} nisko • {item.review} decyzji</small>
+              <small>{item.below} nisko - {item.review} decyzji</small>
             </div>
           </div>
         ))}
@@ -269,7 +269,7 @@ export default function DashboardView({
                 </div>
                 <div className="trend-label">
                   <span>{item.period}</span>
-                  <small>{item.below} nisko • {item.review} decyzji</small>
+                  <small>{item.below} nisko - {item.review} decyzji</small>
                 </div>
               </div>
             ))}
@@ -329,14 +329,13 @@ export default function DashboardView({
     if (panel === 'leaders') {
       return (
         <DashboardWidget panel={panel} title="Ranking liderow" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
-          {/* Marker: Ranking liderów */}
           <div className="leader-board">
             {leaders.map((item, index) => (
               <div className="leader-row" key={item.leader}>
                 <div className="leader-rank">{index < 3 ? <Trophy size={15} /> : index + 1}</div>
                 <div>
                   <strong>{item.leader}</strong>
-                  <span>{item.count} kart • {item.review} do decyzji • {item.below} nisko</span>
+                  <span>{item.count} kart - {item.review} do decyzji - {item.below} nisko</span>
                 </div>
                 <span className={scoreClass(item.avg)}>{item.avg}%</span>
               </div>
@@ -368,9 +367,9 @@ export default function DashboardView({
       <AnalyticsFilterBar assessments={assessments} filters={filters} onChange={setFilters} />
       <section className="dashboard-grid kpi-grid">
         <div className="metric-panel premium"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
+        <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}%</small></div>
         <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
         <div className="metric-panel premium"><span>Ponizej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
-        <div className="metric-panel premium"><span>Roznica do celu</span><strong>{goalGap ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>{goalGap >= 0 ? 'ponad celem' : 'pod celem'}</small></div>
       </section>
       <section className="dashboard-focus-grid">
         <div className="data-panel">
@@ -468,182 +467,6 @@ export default function DashboardView({
           </div>
         </div>
       </details>
-    </main>
-  )
-
-  return (
-    <main className={`screen dashboard-screen density-${prefs.density} layout-${prefs.layout}`}>
-      <section className="dashboard-hero">
-        <div className="dashboard-hero-copy">
-          <div className="section-title"><span>Dashboard jakosci</span><small>{active.length} kart w aktywnym filtrze</small></div>
-          <h1>Interaktywny pulpit wynikow, celow i ryzyk zespolu.</h1>
-          <p className="hint-text">Przeciagaj sekcje za uchwyt, ukrywaj mniej potrzebne widgety i przelaczaj gestosc ukladu. Preferencje zapisza sie lokalnie.</p>
-        </div>
-        <div className="quality-ring" style={{ ['--score' as string]: `${avg || 0}%` }}>
-          <div>
-            <strong>{avg || '-'}%</strong>
-            <span>cel {goals.minAvg}%</span>
-          </div>
-        </div>
-        <div className="dashboard-pulse">
-          <span><TrendingUp size={14} /> {goalGap >= 0 ? 'Ponad celem' : 'Pod celem'}</span>
-          <strong>{avg ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong>
-          <small>{reviewCount} kart w kolejce decyzyjnej</small>
-        </div>
-      </section>
-      <AnalyticsFilterBar assessments={assessments} filters={filters} onChange={setFilters} />
-      <section className="dashboard-focus-grid">
-        <div className="data-panel">
-          <div className="section-title"><span>Priorytety dashboardu</span><small>co wymaga reakcji w pierwszej kolejnosci</small></div>
-          {dashboardPriorities.length ? (
-            <div className="dashboard-priority-list actionable">
-              {dashboardPriorities.map((item) => (
-                <button className={`dashboard-priority-card ${item.tone}`} key={item.label} type="button" onClick={item.action}>
-                  <div>
-                    <span>{item.label}</span>
-                    <strong>{item.value}{item.suffix}</strong>
-                  </div>
-                  <small>{item.hint}</small>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state compact-empty">Brak pilnych sygnalow w biezacym filtrze dashboardu.</div>
-          )}
-        </div>
-        <div className="data-panel">
-          <div className="section-title"><span>Konsekwencje filtra</span><small>co jest widoczne w tym zakresie</small></div>
-          <div className="dashboard-context-list">
-            <div className="dashboard-context-item">
-              <ShieldCheck size={16} />
-              <div>
-                <strong>{reviewItems.length} kart w szybkiej kolejce</strong>
-                <span>Najslabsze i oczekujace karty trafiaja potem do widgetu z najpilniejszymi pozycjami.</span>
-              </div>
-            </div>
-            <div className="dashboard-context-item">
-              <TrendingUp size={16} />
-              <div>
-                <strong>{trend.length} okresow trendu</strong>
-                <span>Trend i rozklad typow licza sie tylko dla aktywnego filtra i zakresu roli.</span>
-              </div>
-            </div>
-            <div className="dashboard-context-item">
-              <AlertTriangle size={16} />
-              <div>
-                <strong>{canCompareLeaders ? 'Porownanie liderow aktywne' : 'Porownanie liderow ukryte'}</strong>
-                <span>{canCompareLeaders ? 'Ranking liderow jest dostepny tylko dla admina i dyrektora.' : 'Dla lidera dashboard nie pokazuje porownan do innych liderow.'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="dashboard-action-grid">
-        <article className="data-panel">
-          <div className="section-title"><span>Szybkie przejscia</span><small>skrot do wlasciwego modulu</small></div>
-          <div className="dashboard-action-list">
-            <button className="dashboard-action-card" type="button" onClick={() => openRegistry('decision')}>
-              <strong>Przejdz do ewidencji</strong>
-              <span>Domknij statusy, kolejke review i karty oczekujace na decyzje.</span>
-            </button>
-            <button className="dashboard-action-card" type="button" onClick={() => setView('team')}>
-              <strong>Przejdz do zespolu</strong>
-              <span>Wejdz do profili specjalistow i wybierz osoby do rozmow 1:1.</span>
-            </button>
-            <button className="dashboard-action-card" type="button" onClick={() => setView('reports')}>
-              <strong>Przejdz do raportow</strong>
-              <span>Sprawdz trend, eksporty i komunikacje dla szerszego przegladu wynikow.</span>
-            </button>
-          </div>
-        </article>
-        <article className="data-panel">
-          <div className="section-title"><span>Kolejka do decyzji</span><small>{reviewItems.length ? 'najslabsze lub otwarte karty' : 'brak kart w review'}</small></div>
-          {reviewItems.length ? (
-            <div className="dashboard-review-queue">
-              {reviewItems.map((item) => (
-                <button className="dashboard-review-card" key={item.id} type="button" onClick={() => openRegistry('decision')}>
-                  <div>
-                    <strong>{item.spec}</strong>
-                    <span>{TYPE_LABELS[item.type]} • {item.period}</span>
-                  </div>
-                  <div className="dashboard-review-meta">
-                    <span className={`status ${item.status}`}>{item.status === 'submitted' ? 'Do weryfikacji' : 'W weryfikacji'}</span>
-                    <span className={scoreClass(item.avgFinal)}>{item.avgFinal}%</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state compact-empty">Biezacy filtr nie pokazuje kart wymagajacych decyzji.</div>
-          )}
-        </article>
-      </section>
-      <section className="dashboard-controls">
-        <div className="dashboard-toggle-group">
-          <button className={prefs.layout === 'grid' ? 'active' : ''} type="button" onClick={() => updatePrefs({ layout: 'grid' })}><LayoutDashboard size={15} /> Siatka</button>
-          <button className={prefs.layout === 'focus' ? 'active' : ''} type="button" onClick={() => updatePrefs({ layout: 'focus' })}><Maximize2 size={15} /> Fokus</button>
-        </div>
-        <div className="dashboard-toggle-group">
-          <button className={prefs.density === 'comfortable' ? 'active' : ''} type="button" onClick={() => updatePrefs({ density: 'comfortable' })}>Komfort</button>
-          <button className={prefs.density === 'compact' ? 'active' : ''} type="button" onClick={() => updatePrefs({ density: 'compact' })}>Kompakt</button>
-        </div>
-        {prefs.hidden.length ? (
-          <div className="dashboard-hidden">
-            {prefs.hidden
-              .filter((panel) => canCompareLeaders || panel !== 'leaders')
-              .map((panel) => <button key={panel} type="button" onClick={() => showPanel(panel)}>{dashboardPanelLabels[panel]}</button>)}
-          </div>
-        ) : null}
-        <button className="ghost-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Reset ukladu</button>
-        <button className="ghost-btn" type="button" onClick={exportDashboardCsv}><Download size={15} /> Eksport CSV</button>
-        <button className="ghost-btn" type="button" onClick={() => setShowDiagnostics((value) => !value)}><Settings size={15} /> Diagnostyka</button>
-      </section>
-      {showDiagnostics ? (
-        <section className="dashboard-diagnostics">
-          {dashboardDiagnostics().map(([label, value]) => (
-            <div key={label}><span>{label}</span><strong>{value}</strong></div>
-          ))}
-        </section>
-      ) : null}
-      <section className="dashboard-config">
-        <div className="section-title"><span>Konfiguracja widgetow</span><small>kolejnosc i widocznosc</small></div>
-        <div className="widget-config-list">
-          {prefs.order
-            .filter((panel) => canCompareLeaders || panel !== 'leaders')
-            .map((panel, index) => {
-              const isHidden = prefs.hidden.includes(panel)
-              const visibleOrder = prefs.order.filter((item) => canCompareLeaders || item !== 'leaders')
-              return (
-                <div className={isHidden ? 'widget-config-row muted' : 'widget-config-row'} key={panel}>
-                  <button className="widget-toggle" type="button" onClick={() => togglePanel(panel)}>
-                    {isHidden ? <EyeOff size={15} /> : <Eye size={15} />}
-                    {dashboardPanelLabels[panel]}
-                  </button>
-                  <div>
-                    <button type="button" disabled={index === 0} onClick={() => shiftPanel(panel, -1)} title="Przesun wyzej"><ChevronUp size={15} /></button>
-                    <button type="button" disabled={index === visibleOrder.length - 1} onClick={() => shiftPanel(panel, 1)} title="Przesun nizej"><ChevronDown size={15} /></button>
-                  </div>
-                </div>
-              )
-            })}
-        </div>
-      </section>
-      <section className="dashboard-grid kpi-grid">
-        <div className="metric-panel premium"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
-        <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}% udzialu</small></div>
-        <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
-        <div className="metric-panel premium"><span>Ponizej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
-      </section>
-      <div className="analytics-grid movable-grid">
-        {extraPanels.length === 0 ? (
-          <section className="empty-dashboard">
-            <Settings size={34} />
-            <h3>Wszystkie widgety sa ukryte</h3>
-            <p>Przywroc wybrane panele w konfiguracji albo zresetuj caly uklad dashboardu.</p>
-            <button className="primary-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Przywroc domyslny uklad</button>
-          </section>
-        ) : visiblePanels.map((panel) => renderPanel(panel))}
-      </div>
     </main>
   )
 }
