@@ -1,4 +1,5 @@
 import type { AssessmentType } from './types'
+import { readStorageJson, removeStorageItem, writeStorageJson } from '../utils/storage'
 
 export type DiagnosticLevel = 'info' | 'success' | 'warning' | 'error'
 
@@ -13,28 +14,14 @@ export interface DiagnosticEvent {
 
 const key = 'oc_v2_diagnostics'
 const maxEvents = 120
-let memoryEvents: DiagnosticEvent[] = []
-
-function canUseStorage(): boolean {
-  return typeof localStorage !== 'undefined'
-}
 
 function readEvents(): DiagnosticEvent[] {
-  if (!canUseStorage()) return memoryEvents
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) as DiagnosticEvent[] : []
-  } catch {
-    return memoryEvents
-  }
+  const events = readStorageJson<DiagnosticEvent[]>(key, [])
+  return Array.isArray(events) ? events : []
 }
 
 function writeEvents(events: DiagnosticEvent[]): void {
-  if (!canUseStorage()) {
-    memoryEvents = events.slice(0, maxEvents)
-    return
-  }
-  localStorage.setItem(key, JSON.stringify(events.slice(0, maxEvents)))
+  writeStorageJson(key, events.slice(0, maxEvents))
 }
 
 export function loadDiagnostics(): DiagnosticEvent[] {
@@ -53,11 +40,7 @@ export function recordDiagnostic(event: Omit<DiagnosticEvent, 'id' | 'at'>): Dia
 }
 
 export function clearDiagnostics(): void {
-  if (!canUseStorage()) {
-    memoryEvents = []
-    return
-  }
-  localStorage.removeItem(key)
+  removeStorageItem(key)
 }
 
 export function scopeLabel(scope: DiagnosticEvent['scope'] | AssessmentType): string {

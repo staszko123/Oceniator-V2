@@ -5,6 +5,7 @@ import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, UserProfile } from '../../domain/types'
 import { scoreClass } from '../../lib/display'
 import { AssessmentTable } from '../registry/AssessmentTable'
+import { AssessmentDetailModal } from '../registry/AssessmentDetailModal'
 import { statusLabels } from '../registry/registryExports'
 import { SpecialistProfileModal } from '../specialists/profile'
 
@@ -38,6 +39,7 @@ export default function TeamView({
   }, [admin.leaders, user])
   const [leader, setLeader] = useState(() => leaderOptions[0] || '')
   const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
+  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null)
   const [recentWindow] = useState(() => new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10))
   const activeLeader = leaderOptions.includes(leader) ? leader : leaderOptions[0] || ''
 
@@ -79,9 +81,9 @@ export default function TeamView({
   const below = rows.filter((item) => item.rating === 'below').length
   const staleSpecialists = specialistRows.filter((item) => !item.last || item.last.data < recentWindow)
   const teamFocus = [
-    pending ? { label: 'Kolejka decyzji', value: pending, hint: 'Karty submitted i review czekaja na domkniecie.', tone: 'alert' as const } : null,
-    below ? { label: 'Ponizej standardu', value: below, hint: 'Przygotuj feedback i plan dzialan dla slabszych wynikow.', tone: 'warning' as const } : null,
-    staleSpecialists.length ? { label: 'Bez swiezej karty', value: staleSpecialists.length, hint: 'Czesc zespolu nie ma oceny z ostatnich 14 dni.', tone: 'neutral' as const } : null,
+    pending ? { label: 'Kolejka decyzji', value: pending, hint: 'Karty submitted i review czekają na domknięcie.', tone: 'alert' as const } : null,
+    below ? { label: 'Poniżej standardu', value: below, hint: 'Przygotuj feedback i plan działań dla słabszych wyników.', tone: 'warning' as const } : null,
+    staleSpecialists.length ? { label: 'Bez świeżej karty', value: staleSpecialists.length, hint: 'Część zespołu nie ma oceny z ostatnich 14 dni.', tone: 'neutral' as const } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string; tone: 'alert' | 'warning' | 'neutral' }>
 
   const prioritySpecialists = [...specialistRows]
@@ -105,13 +107,13 @@ export default function TeamView({
     <main className="screen">
       <section className="team-hero data-panel">
         <div className="team-hero-copy">
-          <div className="section-title"><span>Moj zespol</span><small>{activeLeader || 'Pelny zakres'}</small></div>
+          <div className="section-title"><span>Mój zespół</span><small>{activeLeader || 'Pełny zakres'}</small></div>
           <h1>Operacyjny widok pracy lidera na jednym ekranie.</h1>
-          <p>Najpierw domknij kolejke decyzji, potem sprawdz osoby bez swiezej karty i wejdz prosto do profilu specjalisty bez przeskakiwania po modulach.</p>
+          <p>Najpierw domknij kolejkę decyzji, potem sprawdź osoby bez świeżej karty i wejdź prosto do profilu specjalisty bez przeskakiwania po modułach.</p>
           <div className="status-chips">
-            <span className="status-chip neutral">{specialists.length} aktywnych specjalistow</span>
+            <span className="status-chip neutral">{specialists.length} aktywnych specjalistów</span>
             <span className={pending ? 'status-chip' : 'status-chip success'}>{pending ? `${pending} kart do decyzji` : 'Brak kolejki decyzyjnej'}</span>
-            <span className={below ? 'status-chip' : 'status-chip success'}>{below ? `${below} kart ponizej standardu` : 'Brak kart ponizej standardu'}</span>
+            <span className={below ? 'status-chip' : 'status-chip success'}>{below ? `${below} kart poniżej standardu` : 'Brak kart poniżej standardu'}</span>
           </div>
         </div>
         <div className="team-actions">
@@ -128,15 +130,15 @@ export default function TeamView({
       </section>
 
       <section className="dashboard-grid">
-        <div className="metric-panel"><span>Specjalisci</span><strong>{specialists.length}</strong><small>aktywni w zakresie</small></div>
+        <div className="metric-panel"><span>Specjaliści</span><strong>{specialists.length}</strong><small>aktywni w zakresie</small></div>
         <div className="metric-panel"><span>Karty aktywne</span><strong>{rows.length}</strong><small>bez archiwum</small></div>
-        <div className="metric-panel"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>dla zespolu</small></div>
+        <div className="metric-panel"><span>Średni wynik</span><strong>{avg || '-'}%</strong><small>dla zespołu</small></div>
         <div className="metric-panel"><span>Do reakcji</span><strong>{pending + below}</strong><small>status lub niski wynik</small></div>
       </section>
 
       <section className="team-ops-grid">
         <article className="data-panel">
-          <div className="section-title"><span>Priorytety dnia</span><small>{teamFocus.length ? 'co domknac najpierw' : 'bez pilnych sygnalow'}</small></div>
+          <div className="section-title"><span>Priorytety dnia</span><small>{teamFocus.length ? 'co domknąć najpierw' : 'bez pilnych sygnałów'}</small></div>
           <div className="team-focus-grid">
             {teamFocus.length ? teamFocus.map((item) => (
               <button
@@ -149,12 +151,12 @@ export default function TeamView({
                 <span>{item.label}</span>
                 <small>{item.hint}</small>
               </button>
-            )) : <div className="empty-state compact-empty">Brak pilnych sygnalow. Zespol nie ma zaleglych kart ani slabych wynikow.</div>}
+            )) : <div className="empty-state compact-empty">Brak pilnych sygnałów. Zespół nie ma zaległych kart ani słabych wyników.</div>}
           </div>
         </article>
 
         <article className="data-panel">
-          <div className="section-title"><span>Osoby do rozmowy 1:1</span><small>{prioritySpecialists.length ? 'najwieksze ryzyko lub brak swiezej karty' : 'brak pilnych rozmow'}</small></div>
+          <div className="section-title"><span>Osoby do rozmowy 1:1</span><small>{prioritySpecialists.length ? 'największe ryzyko lub brak świeżej karty' : 'brak pilnych rozmów'}</small></div>
           <div className="team-priority-list">
             {prioritySpecialists.length ? prioritySpecialists.map((item) => (
               <button className="team-priority-card" key={item.specialist.id} type="button" onClick={() => setSelectedSpecialistProfile(item.specialist.name)}>
@@ -169,13 +171,13 @@ export default function TeamView({
                   {item.last && item.staleDays !== null && item.staleDays > 21 ? <span><TimerReset size={14} /> {item.staleDays} dni od ostatniej</span> : null}
                 </div>
               </button>
-            )) : <div className="empty-state compact-empty">Brak specjalistow wymagajacych pilnego wejscia w profil.</div>}
+            )) : <div className="empty-state compact-empty">Brak specjalistów wymagających pilnego wejścia w profil.</div>}
           </div>
         </article>
       </section>
 
       <section className="data-panel">
-        <div className="section-title"><span>Specjalisci zespolu</span><small>{specialistRows.length} osob w aktywnym zakresie</small></div>
+        <div className="section-title"><span>Specjaliści zespołu</span><small>{specialistRows.length} osób w aktywnym zakresie</small></div>
         <div className="team-specialist-grid">
           {specialistRows.map((item) => (
             <article className="team-specialist-card" key={item.specialist.id}>
@@ -189,7 +191,7 @@ export default function TeamView({
               <div className="team-specialist-meta">
                 <span>{item.count} kart</span>
                 <span>{item.pending} do decyzji</span>
-                <span>{item.below} ponizej standardu</span>
+                <span>{item.below} poniżej standardu</span>
               </div>
               <p className="hint-text">
                 {item.last
@@ -213,7 +215,7 @@ export default function TeamView({
 
       <section className="data-panel">
         <div className="section-title"><span>Najpilniejsze karty</span><small>niskie wyniki i otwarta kolejka decyzyjna</small></div>
-        <AssessmentTable assessments={queueRows} compact />
+        <AssessmentTable assessments={queueRows} compact onPreview={setSelectedAssessment} />
       </section>
 
       {selectedSpecialistProfile ? (
@@ -222,6 +224,13 @@ export default function TeamView({
           assessments={rows}
           onStartAssessment={() => onStartAssessmentForSpecialist?.(selectedSpecialistProfile) || setView('form')}
           onClose={() => setSelectedSpecialistProfile(null)}
+        />
+      ) : null}
+      {selectedAssessment ? (
+        <AssessmentDetailModal
+          assessment={selectedAssessment}
+          user={user}
+          onClose={() => setSelectedAssessment(null)}
         />
       ) : null}
     </main>

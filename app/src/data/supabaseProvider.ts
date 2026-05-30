@@ -4,6 +4,7 @@ import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from 
 import { scopeAssessmentsForUser } from '../domain/access'
 import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
 import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
+import { getProviderMode } from '../services/settingsService'
 
 const supabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || 'https://oemqmxqngwtxmhlmwubq.supabase.co',
@@ -117,43 +118,48 @@ export class SupabaseDataProvider implements DataProvider {
 
   async loadAdmin(): Promise<AdminConfig> {
     const fallback = await this.local.loadAdmin()
-    const [goals, specialists, departments, positions, periods] = await Promise.all([
-      this.client.from('goals').select('*').eq('id', '00000000-0000-0000-0000-000000000001').maybeSingle(),
-      this.client.from('specialists').select('*').order('sort_order'),
-      this.client.from('departments').select('*').order('sort_order'),
-      this.client.from('positions').select('*').order('sort_order'),
-      this.client.from('periods').select('*').order('sort_order'),
-    ])
+    try {
+      const [goals, specialists, departments, positions, periods] = await Promise.all([
+        this.client.from('goals').select('*').eq('id', '00000000-0000-0000-0000-000000000001').maybeSingle(),
+        this.client.from('specialists').select('*').order('sort_order'),
+        this.client.from('departments').select('*').order('sort_order'),
+        this.client.from('positions').select('*').order('sort_order'),
+        this.client.from('periods').select('*').order('sort_order'),
+      ])
 
-    if (specialists.error) return fallback
+      if (goals.error || specialists.error || departments.error || positions.error || periods.error) return fallback
 
-    return {
-      goals: goals.data
-        ? {
-            callsPerPeriod: goals.data.calls_per_period,
-            mailsPerPeriod: goals.data.mails_per_period,
-            systemsPerPeriod: goals.data.systems_per_period,
-            minAvg: goals.data.min_avg,
-            greatShare: goals.data.great_share,
-          }
-        : fallback.goals,
-      specialists: (specialists.data || []).map((item) => ({
-        id: item.id,
-        name: item.name,
-        leader: item.leader_scope || '',
-        department: item.department || '',
-        position: item.position || '',
-        active: item.is_active !== false,
-      })),
-      departments: (departments.data || []).map((item) => item.name),
-      positions: (positions.data || []).map((item) => item.name),
-      leaders: [...new Set((specialists.data || []).map((item) => item.leader_scope).filter(Boolean))],
-      periods: (periods.data || []).map((item) => ({
-        code: item.code,
-        name: item.name,
-        from: item.date_from,
-        to: item.date_to,
-      })),
+      return {
+        goals: goals.data
+          ? {
+              callsPerPeriod: goals.data.calls_per_period,
+              mailsPerPeriod: goals.data.mails_per_period,
+              systemsPerPeriod: goals.data.systems_per_period,
+              minAvg: goals.data.min_avg,
+              greatShare: goals.data.great_share,
+            }
+          : fallback.goals,
+        specialists: (specialists.data || []).map((item) => ({
+          id: item.id,
+          name: item.name,
+          leader: item.leader_scope || '',
+          department: item.department || '',
+          position: item.position || '',
+          active: item.is_active !== false,
+        })),
+        departments: (departments.data || []).map((item) => item.name),
+        positions: (positions.data || []).map((item) => item.name),
+        leaders: [...new Set((specialists.data || []).map((item) => item.leader_scope).filter(Boolean))],
+        periods: (periods.data || []).map((item) => ({
+          code: item.code,
+          name: item.name,
+          from: item.date_from,
+          to: item.date_to,
+        })),
+      }
+    } catch (error) {
+      console.warn('Supabase admin load failed, using local fallback:', error)
+      return fallback
     }
   }
 
@@ -227,37 +233,47 @@ export class SupabaseDataProvider implements DataProvider {
 
   async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
     if (!this.currentUser || !['admin', 'director'].includes(this.currentUser.role)) return []
-    const { data, error } = await this.client
-      .from('admin_history')
-      .select('id,description,changed_by,changed_at')
-      .order('changed_at', { ascending: false })
-      .limit(12)
-    if (error) throw error
-    return (data || []).map((item) => ({
-      id: item.id,
-      description: item.description,
-      changedBy: item.changed_by,
-      changedAt: item.changed_at,
-    }))
+    try {
+      const { data, error } = await this.client
+        .from('admin_history')
+        .select('id,description,changed_by,changed_at')
+        .order('changed_at', { ascending: false })
+        .limit(12)
+      if (error) return []
+      return (data || []).map((item) => ({
+        id: item.id,
+        description: item.description,
+        changedBy: item.changed_by,
+        changedAt: item.changed_at,
+      }))
+    } catch (error) {
+      console.warn('Supabase admin history load failed:', error)
+      return []
+    }
   }
 
   async listUsers(): Promise<ManagedUser[]> {
     if (!this.currentUser || !['admin', 'director'].includes(this.currentUser.role)) return []
-    const { data, error } = await this.client
-      .from('profiles')
-      .select('id,email,full_name,role,leader_scope,is_active,created_at')
-      .order('email', { ascending: true })
-    if (error) throw error
-    return (data || []).map((item) => ({
-      id: item.id,
-      email: item.email || '',
-      fullName: item.full_name || item.email || '',
-      role: (item.role || 'viewer') as Role,
-      leaderScope: item.leader_scope || '',
-      isActive: item.is_active !== false,
-      source: 'supabase' as const,
-      createdAt: item.created_at || '',
-    }))
+    try {
+      const { data, error } = await this.client
+        .from('profiles')
+        .select('id,email,full_name,role,leader_scope,is_active,created_at')
+        .order('email', { ascending: true })
+      if (error) return []
+      return (data || []).map((item) => ({
+        id: item.id,
+        email: item.email || '',
+        fullName: item.full_name || item.email || '',
+        role: (item.role || 'viewer') as Role,
+        leaderScope: item.leader_scope || '',
+        isActive: item.is_active !== false,
+        source: 'supabase' as const,
+        createdAt: item.created_at || '',
+      }))
+    } catch (error) {
+      console.warn('Supabase users load failed:', error)
+      return []
+    }
   }
 
   async updateUser(user: ManagedUser): Promise<ManagedUser> {
@@ -320,10 +336,15 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async loadAssessments(): Promise<Assessment[]> {
-    const { data, error } = await this.client.from('assessments').select('*').order('assessment_date', { ascending: false })
-    if (error) throw error
-    const mapped = (data || []).map(mapRow)
-    return this.currentUser ? scopeAssessmentsForUser(mapped, this.currentUser) : mapped
+    try {
+      const { data, error } = await this.client.from('assessments').select('*').order('assessment_date', { ascending: false })
+      if (error) return this.local.loadAssessments()
+      const mapped = (data || []).map(mapRow)
+      return this.currentUser ? scopeAssessmentsForUser(mapped, this.currentUser) : mapped
+    } catch (error) {
+      console.warn('Supabase assessments load failed, using local fallback:', error)
+      return this.local.loadAssessments()
+    }
   }
 
   async saveAssessment(assessment: Assessment): Promise<void> {
@@ -348,23 +369,28 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   private async loadProfile(userId: string, email: string): Promise<UserProfile> {
-    const { data, error } = await this.client
-      .from('profiles')
-      .select('id,email,full_name,role,leader_scope,is_active')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await this.client
+        .from('profiles')
+        .select('id,email,full_name,role,leader_scope,is_active')
+        .eq('id', userId)
+        .single()
 
-    if (error) throw error
-    if (data.is_active === false) throw new Error('Konto jest nieaktywne.')
+      if (error) throw error
+      if (data.is_active === false) throw new Error('Konto jest nieaktywne.')
 
-    return {
-      id: data.id,
-      email: data.email || email,
-      fullName: data.full_name || email,
-      role: (data.role || 'viewer') as Role,
-      leaderScope: data.leader_scope || '',
-      isActive: data.is_active !== false,
-      source: 'supabase',
+      return {
+        id: data.id,
+        email: data.email || email,
+        fullName: data.full_name || email,
+        role: (data.role || 'viewer') as Role,
+        leaderScope: data.leader_scope || '',
+        isActive: data.is_active !== false,
+        source: 'supabase',
+      }
+    } catch (error) {
+      console.warn('Supabase profile load failed:', error)
+      throw error
     }
   }
 
@@ -382,7 +408,7 @@ let localProviderInstance: LocalDataProvider | null = null
 let supabaseProviderInstance: SupabaseDataProvider | null = null
 
 export function createProvider(forceLocal = false): DataProvider {
-  if (forceLocal || localStorage.getItem('oc_v2_provider') === 'local') {
+  if (forceLocal || getProviderMode() === 'local') {
     localProviderInstance ||= new LocalDataProvider()
     return localProviderInstance
   }

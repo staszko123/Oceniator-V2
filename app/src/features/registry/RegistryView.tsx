@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Download, FileText, Save, Search, ShieldCheck, Upload, X } from 'lucide-react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { Download, Save, Search, ShieldCheck, Upload, X } from 'lucide-react'
 import { canCreateRole } from '../../domain/access'
 import { getErrorMessage } from '../../domain/errors'
 import { recordDiagnostic } from '../../domain/diagnostics'
 import { ASSESSMENT_DEFS, SCORE_OPTIONS } from '../../domain/defs'
 import { hasEditHistory, lastStatusEvent } from '../../domain/history'
 import { assessmentToDraft, calculateDraft, draftToAssessment, periodOf } from '../../domain/scoring'
-import { scoreClass } from '../../lib/display'
 import { canEditAssessment as canEditAssessmentForUser } from '../../lib/security'
 import type { Assessment, AssessmentStatus, AssessmentType, ScoreValue, UserProfile } from '../../domain/types'
 import { uniqueSorted } from '../analytics/filters'
 import { AssessmentTable } from './AssessmentTable'
+import { AssessmentDetailModal } from './AssessmentDetailModal'
 import { exportCsv, exportExcel, exportJson, printAssessment, statusLabels } from './registryExports'
 
 function countFilledNotes(notes: Assessment['snapshotNotes']): number {
@@ -98,79 +98,20 @@ function appendRegistryStatusHistory(
 
 function AssessmentPreviewModal({
   assessment,
+  user,
   onClose,
   onPrint,
+  onEdit,
+  onAdvance,
 }: {
   assessment: Assessment
+  user: UserProfile
   onClose: () => void
-  onPrint: (assessment: Assessment) => void
+  onPrint?: (assessment: Assessment) => void
+  onEdit?: (assessment: Assessment) => void
+  onAdvance?: (assessment: Assessment) => void
 }) {
-  const def = ASSESSMENT_DEFS[assessment.type]
-  return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="modal-card preview-modal">
-        <header className="modal-header">
-          <div>
-            <h3>{def.name}</h3>
-            <p>{assessment.spec} • {assessment.period} • {statusLabels[assessment.status]}</p>
-          </div>
-          <button type="button" onClick={onClose}><X size={18} /></button>
-        </header>
-        <div className="preview-grid">
-          <div><span>Stanowisko</span><strong>{assessment.stand || '-'}</strong></div>
-          <div><span>Dzial</span><strong>{assessment.dzial || '-'}</strong></div>
-          <div><span>Oceniajacy</span><strong>{assessment.oce || '-'}</strong></div>
-          <div><span>Data</span><strong>{assessment.data}</strong></div>
-          <div><span>Wynik</span><strong className={scoreClass(assessment.avgFinal)}>{assessment.avgFinal}%</strong></div>
-        </div>
-        <div className="preview-meta-grid">
-          <section>
-            <h4>Podsumowanie oceny</h4>
-            <p>{assessment.notes || 'Brak opisu koncowego dla tej karty.'}</p>
-          </section>
-          <section>
-            <h4>Zakres materialu</h4>
-            <div className="preview-pill-row">
-              {assessment.ids.length ? assessment.ids.map((item) => <span key={item}>{item}</span>) : <span>Brak identyfikatorow kontaktu</span>}
-            </div>
-            <small>{assessment.goldDesc || 'Bez dodatkowych zlotych punktow.'}</small>
-          </section>
-        </div>
-        <div className="preview-sections">
-          {def.sections.map((section) => (
-            <section key={section.key}>
-              <h4>{section.label}</h4>
-              {section.criteria.map((criterion, criterionIndex) => (
-                <div className="preview-row" key={criterion.name}>
-                  <span>{criterion.name}</span>
-                  <div>
-                    {Array.from({ length: assessment.contactCount }, (_, contactIndex) => {
-                      const value = assessment.snapshotScores[section.key]?.[criterionIndex]?.[contactIndex] ?? 1
-                      return <strong key={contactIndex}>{value === 'nd' ? 'N/D' : value}</strong>
-                    })}
-                  </div>
-                </div>
-              ))}
-            </section>
-          ))}
-        </div>
-        <div className="status-timeline">
-          <h4>Historia statusu</h4>
-          {(assessment.statusHistory || []).length ? assessment.statusHistory.map((item, index) => (
-            <div className="timeline-item" key={`${item.status}-${item.at}-${index}`}>
-              <strong>{statusLabels[item.status]}</strong>
-              <span>{new Date(item.at).toLocaleString('pl-PL')} • {item.by || 'system'}</span>
-              <small>{item.note}</small>
-            </div>
-          )) : <p className="hint-text">Brak zapisanej historii statusow dla tej karty.</p>}
-        </div>
-        <footer className="modal-footer">
-          <button className="ghost-btn" type="button" onClick={() => onPrint(assessment)}><FileText size={16} /> Drukuj / PDF</button>
-          <button className="primary-btn" type="button" onClick={onClose}>Zamknij</button>
-        </footer>
-      </section>
-    </div>
-  )
+  return <AssessmentDetailModal assessment={assessment} user={user} onClose={onClose} onPrint={onPrint} onEdit={onEdit} onAdvance={onAdvance} />
 }
 
 function AssessmentEditModal({
@@ -779,8 +720,9 @@ export default function RegistryView({
         </div>
       </section>
 
-      {selected ? <AssessmentPreviewModal assessment={selected} onClose={() => setSelected(null)} onPrint={printRow} /> : null}
+      {selected ? <AssessmentPreviewModal assessment={selected} user={user} onClose={() => setSelected(null)} onPrint={printRow} onEdit={canMutate ? openEditor : undefined} onAdvance={canAdvanceStatuses ? advance : undefined} /> : null}
       {editing ? <AssessmentEditModal assessment={editing} user={user} onClose={() => setEditing(null)} onSave={onUpdate} /> : null}
     </main>
   )
 }
+

@@ -1,53 +1,85 @@
-import { useEffect, useState } from 'react'
-import { Database, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import type { ComponentType, ReactNode, RefObject } from 'react'
+import { Bell, Database, Globe, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, UserRound } from 'lucide-react'
 import type { DataProvider, UserProfile } from '../../domain/types'
+import { notificationTypeConfig } from '../../config/status'
 import { PROVIDER_LABELS, ROLE_LABELS } from '../../lib/display'
 import { useTheme } from '../../lib/theme'
+import { routeConfig, type ViewKey } from '../../config/navigation'
+import { getShellCollapsedPreference, setShellCollapsedPreference } from '../../services/settingsService'
+import { useLanguage } from '../../i18n/LanguageContext'
+import type { Notification } from '../../types/notification'
 
-type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
-
-const shellStateKey = 'oc_v2_shell_sidebar_collapsed'
-
-const viewMeta: Record<ViewKey, { eyebrow: string; description: string }> = {
-  start: {
-    eyebrow: 'Portal / Start',
-    description: 'Szybki przeglad zadan, szkicow i najwazniejszych kart do dalszej pracy.',
-  },
-  form: {
-    eyebrow: 'Portal / Ocena',
-    description: 'Tworzenie i uzupelnianie kart oceny z widocznym wynikiem i stanem szkicu.',
-  },
-  team: {
-    eyebrow: 'Portal / Zespol',
-    description: 'Zakres zespolu, wyniki specjalistow i kontekst do dalszych decyzji lidera.',
-  },
-  registry: {
-    eyebrow: 'Portal / Ewidencja',
-    description: 'Tabela operacyjna do filtrowania, podgladu, edycji i domykania statusow kart.',
-  },
-  dashboard: {
-    eyebrow: 'Portal / Analityka',
-    description: 'Wskazniki, trendy i sygnaly ryzyka do codziennego zarzadzania jakoscia.',
-  },
-  reports: {
-    eyebrow: 'Portal / Raporty',
-    description: 'Eksport i zestawienia przekrojowe do komunikacji z liderami i managementem.',
-  },
-  admin: {
-    eyebrow: 'Portal / Administracja',
-    description: 'Zarzadzanie slownikami, okresami, specjalistami i dostepami uzytkownikow.',
-  },
-}
-
-function resolveActiveMeta(view: ViewKey, role: UserProfile['role']): { eyebrow: string; description: string } {
-  const baseMeta = viewMeta[view]
+function resolveActiveMeta(view: ViewKey, role: UserProfile['role'], t: (key: string, fallback?: string) => string) {
+  const baseMeta = routeConfig[view]
   if (view === 'start' && role === 'viewer') {
-    return { eyebrow: 'Portal / Specjalista', description: 'Osobiste centrum wynikow, trendow i priorytetow jakosci.' }
+    return {
+      eyebrow: t(baseMeta.viewerEyebrowKey || baseMeta.eyebrowKey),
+      description: t(baseMeta.viewerDescriptionKey || baseMeta.descriptionKey),
+    }
   }
   if (view === 'registry' && role === 'viewer') {
-    return { eyebrow: 'Portal / Specjalista', description: 'Ewidencja Twoich ocen zatwierdzonych przez lidera.' }
+    return {
+      eyebrow: t(baseMeta.viewerEyebrowKey || baseMeta.eyebrowKey),
+      description: t(baseMeta.viewerDescriptionKey || baseMeta.descriptionKey),
+    }
   }
-  return baseMeta
+  return {
+    eyebrow: t(baseMeta.eyebrowKey),
+    description: t(baseMeta.descriptionKey),
+  }
+}
+
+function NotificationList({
+  notifications,
+  onMarkRead,
+  onMarkAllRead,
+  onSelect,
+  popoverRef,
+}: {
+  notifications: Notification[]
+  onMarkRead: (id: string) => void
+  onMarkAllRead: () => void
+  onSelect?: (notification: Notification) => void
+  popoverRef?: RefObject<HTMLDivElement | null>
+}) {
+  const { t, language } = useLanguage()
+
+  return (
+    <div className="notification-popover" id="notifications-popover" ref={popoverRef}>
+      <div className="notification-popover-head">
+        <strong>{t('notifications.title')}</strong>
+        <button type="button" className="ghost-btn" onClick={onMarkAllRead}>
+          {t('action.markAllAsRead')}
+        </button>
+      </div>
+      <div className="notification-popover-list">
+        {notifications.length ? notifications.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={item.read ? 'notification-item read' : 'notification-item'}
+            onClick={() => {
+              onMarkRead(item.id)
+              onSelect?.(item)
+            }}
+          >
+            <div className="notification-item-head">
+              <strong>{item.title}</strong>
+              <span className={`notification-chip tone-${notificationTypeConfig[item.type].tone}`}>
+                {t(notificationTypeConfig[item.type].labelKey)}
+              </span>
+            </div>
+            <span>{item.message}</span>
+            <div className="notification-item-foot">
+              <small>{new Date(item.createdAt).toLocaleString(language === 'pl' ? 'pl-PL' : 'en-US')}</small>
+              {!item.read ? <span className="notification-unread-dot" aria-hidden="true" /> : null}
+            </div>
+          </button>
+        )) : <div className="notification-empty">{t('notifications.empty')}</div>}
+      </div>
+    </div>
+  )
 }
 
 export default function AppShell({
@@ -60,28 +92,66 @@ export default function AppShell({
   children,
   onLogout,
   systemNotice,
+  onNotificationSelect,
+  notifications = [],
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
 }: {
   user: UserProfile
   providerMode: DataProvider['mode']
   view: ViewKey
-  navItems: Array<{ key: ViewKey; label: string; icon: React.ComponentType<{ size?: number }> }>
+  navItems: Array<{ key: ViewKey; label: string; icon: ComponentType<{ size?: number }> }>
   setView: (view: ViewKey) => void
   onViewIntent?: (view: ViewKey) => void
-  children: React.ReactNode
+  children: ReactNode
   onLogout: () => void
   systemNotice?: string
+  onNotificationSelect?: (notification: Notification) => void
+  notifications?: Notification[]
+  onMarkNotificationRead?: (id: string) => void
+  onMarkAllNotificationsRead?: () => void
 }) {
   const activeTitle = navItems.find((item) => item.key === view)?.label || 'Oceniator'
-  const activeMeta = resolveActiveMeta(view, user.role)
+  const { t, language, setLanguage } = useLanguage()
+  const activeMeta = resolveActiveMeta(view, user.role, t)
   const { theme, toggleTheme } = useTheme()
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem(shellStateKey) === 'true'
-  })
+  const [collapsed, setCollapsed] = useState<boolean>(() => getShellCollapsedPreference())
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const notificationsPopoverRef = useRef<HTMLDivElement | null>(null)
+  const notificationsButtonRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
-    window.localStorage.setItem(shellStateKey, String(collapsed))
+    setShellCollapsedPreference(collapsed)
   }, [collapsed])
+
+  useEffect(() => {
+    if (!notificationsOpen) return undefined
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node
+      if (notificationsPopoverRef.current?.contains(target)) return
+      if (notificationsButtonRef.current?.contains(target)) return
+      setNotificationsOpen(false)
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setNotificationsOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [notificationsOpen])
+
+  function selectNotification(notification: Notification) {
+    setNotificationsOpen(false)
+    onNotificationSelect?.(notification)
+  }
+
+  const unreadCount = notifications.filter((item) => !item.read).length
 
   return (
     <div className={collapsed ? 'app-shell sidebar-collapsed' : 'app-shell'}>
@@ -91,15 +161,15 @@ export default function AppShell({
             <span className="logo-box" />
             <div className="brand-copy">
               <strong>Oceniator</strong>
-              <small>System jakosci</small>
+              <small>{t('app.brand.subtitle', 'System jakosci')}</small>
             </div>
           </div>
           <button
             className="sidebar-toggle"
             type="button"
             onClick={() => setCollapsed((value) => !value)}
-            title={collapsed ? 'Rozwin pasek boczny' : 'Zwin pasek boczny'}
-            aria-label={collapsed ? 'Rozwin pasek boczny' : 'Zwin pasek boczny'}
+            title={collapsed ? t('action.expandSidebar') : t('action.collapseSidebar')}
+            aria-label={collapsed ? t('action.expandSidebar') : t('action.collapseSidebar')}
           >
             {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </button>
@@ -154,22 +224,48 @@ export default function AppShell({
                 <span>{user.email}</span>
               </div>
             </div>
-            <button className="topbar-theme" type="button" onClick={toggleTheme} title="Przelacz motyw">
+            <button
+              ref={notificationsButtonRef}
+              className="topbar-icon-btn"
+              type="button"
+              onClick={() => setNotificationsOpen((value) => !value)}
+              title={t('notifications.open')}
+              aria-label={t('notifications.open')}
+              aria-expanded={notificationsOpen}
+              aria-controls="notifications-popover"
+            >
+              <Bell size={15} />
+              {unreadCount > 0 ? <span className="topbar-badge">{unreadCount}</span> : null}
+            </button>
+            <button className="topbar-icon-btn" type="button" onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')} title={t('action.language')}>
+              <Globe size={15} />
+              <span>{t(`language.${language}`)}</span>
+            </button>
+            <button className="topbar-theme" type="button" onClick={toggleTheme} title={t('action.theme')}>
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            <button type="button" onClick={onLogout}>
+            <button type="button" onClick={onLogout} title={t('action.logout')}>
               <LogOut size={15} />
-              Wyloguj
+              {t('action.logout')}
             </button>
           </div>
         </header>
+        {notificationsOpen ? (
+          <NotificationList
+            notifications={notifications}
+            onMarkRead={onMarkNotificationRead || (() => {})}
+            onMarkAllRead={onMarkAllNotificationsRead || (() => {})}
+            onSelect={selectNotification}
+            popoverRef={notificationsPopoverRef}
+          />
+        ) : null}
         {systemNotice ? <div className="system-notice">{systemNotice}</div> : null}
         {children}
       </section>
       <div className="desktop-guard">
         <div className="desktop-guard-card">
-          <strong>Aplikacja wymaga wiekszego ekranu</strong>
-          <p>Oceniator jest projektowany pod prace desktopowa. Uzyj szerokosci minimum 960 px.</p>
+          <strong>{t('layout.desktopOnlyTitle')}</strong>
+          <p>{t('layout.desktopOnlyDescription')}</p>
         </div>
       </div>
     </div>

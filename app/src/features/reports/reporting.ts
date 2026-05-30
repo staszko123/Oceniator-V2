@@ -51,8 +51,8 @@ export async function exportTableExcel(table: ReportTable) {
 export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTable {
   if (mode === 'detail') {
     return {
-      title: 'Raport szczegolowy',
-      description: 'Jeden wiersz na karte z podstawowymi polami operacyjnymi.',
+      title: 'Raport szczegółowy',
+      description: 'Jeden wiersz na kartę z podstawowymi polami operacyjnymi.',
       fileName: 'oceniator-raport-szczegolowy',
       columns: ['Data', 'Okres', 'Typ', 'Specjalista', 'Lider', 'Dział', 'Stanowisko', 'Wynik', 'Ocena', 'Status', 'Kontakty'],
       rows: [...rows]
@@ -113,8 +113,8 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
     trendBuckets.set(key, [...(trendBuckets.get(key) || []), item])
   })
   return {
-    title: 'Raport trendow',
-    description: 'Zestawienie wynikow per specjalista i okres rozliczeniowy.',
+    title: 'Raport trendów',
+    description: 'Zestawienie wyników per specjalista i okres rozliczeniowy.',
     fileName: 'oceniator-raport-trendy',
     columns: ['Specjalista', 'Okres', 'Lider', 'Dział', 'Kart', 'Średnia', 'Bardzo dobry', 'Poniżej standardu', 'Do decyzji'],
     rows: [...trendBuckets.entries()]

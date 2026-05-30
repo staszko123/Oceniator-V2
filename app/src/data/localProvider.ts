@@ -4,6 +4,7 @@ import { scopeAssessmentsForUser, viewerAssessmentTokens } from '../domain/acces
 import { calcContact, createDraft, emptyScores, periodOf, ratingForScore } from '../domain/scoring'
 import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
 import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
+import { readStorageJson, removeStorageItem, writeStorageJson } from '../utils/storage'
 
 const keys = {
   session: 'oc_v2_session',
@@ -36,29 +37,16 @@ function isViewerDemoAssessment(item: Assessment): boolean {
   return viewerDemoAssessmentIds.includes(item.id as (typeof viewerDemoAssessmentIds)[number])
 }
 
-function readJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) as T : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function writeJson(key: string, value: unknown): void {
-  localStorage.setItem(key, JSON.stringify(value))
-}
-
 function appendAdminHistory(description: string): void {
-  const history = readJson<AdminHistoryEntry[]>(keys.adminHistory, [])
-  const session = readJson<UserProfile | null>(keys.session, null)
+  const history = readStorageJson<AdminHistoryEntry[]>(keys.adminHistory, [])
+  const session = readStorageJson<UserProfile | null>(keys.session, null)
   history.unshift({
     id: crypto.randomUUID(),
     description,
     changedBy: session?.fullName || session?.email || 'local',
     changedAt: new Date().toISOString(),
   })
-  writeJson(keys.adminHistory, history.slice(0, 250))
+  writeStorageJson(keys.adminHistory, history.slice(0, 250))
 }
 
 function defaultManagedUsers(): ManagedUser[] {
@@ -78,17 +66,17 @@ function defaultManagedUsers(): ManagedUser[] {
 
 function localUsers(): ManagedUser[] {
   const defaults = defaultManagedUsers()
-  const existing = readJson<ManagedUser[] | null>(keys.users, null)
+  const existing = readStorageJson<ManagedUser[] | null>(keys.users, null)
   if (existing) {
     const merged = [
       ...existing,
       ...defaults.filter((user) => !existing.some((item) => item.login === user.login || item.email === user.email)),
     ]
-    if (merged.length !== existing.length) writeJson(keys.users, merged)
+    if (merged.length !== existing.length) writeStorageJson(keys.users, merged)
     return merged
   }
   const seeded = defaults
-  writeJson(keys.users, seeded)
+  writeStorageJson(keys.users, seeded)
   return seeded
 }
 
@@ -286,18 +274,18 @@ export class LocalDataProvider implements DataProvider {
     const user = localUsers().find((item) => (item.login === login || item.email === login) && item.password === password && item.isActive)
     if (!user) throw new Error('Nieprawidlowy login lub haslo.')
     const profile = localProfile(user)
-    writeJson(keys.session, profile)
+    writeStorageJson(keys.session, profile)
     this.currentUser = profile
     return profile
   }
 
   async signOut(): Promise<void> {
-    localStorage.removeItem(keys.session)
+    removeStorageItem(keys.session)
     this.currentUser = null
   }
 
   async getCurrentUser(): Promise<UserProfile | null> {
-    const session = readJson<UserProfile | null>(keys.session, null)
+    const session = readStorageJson<UserProfile | null>(keys.session, null)
     if (!session || session.role !== 'viewer') return session
     const normalized = {
       ...session,
@@ -306,40 +294,40 @@ export class LocalDataProvider implements DataProvider {
       leaderScope: session.id === 'podglad' || session.email === 'podglad@local' ? 'Alicja Wrona' : session.leaderScope,
     }
     if (normalized.fullName !== session.fullName || normalized.email !== session.email || normalized.leaderScope !== session.leaderScope) {
-      writeJson(keys.session, normalized)
+      writeStorageJson(keys.session, normalized)
     }
     this.currentUser = normalized
     return normalized
   }
 
   private readSessionUser(): UserProfile | null {
-    return this.currentUser || readJson<UserProfile | null>(keys.session, null)
+    return this.currentUser || readStorageJson<UserProfile | null>(keys.session, null)
   }
 
   private async loadAllAssessments(): Promise<Assessment[]> {
     const session = this.readSessionUser()
-    const existing = readJson<Assessment[] | null>(keys.assessments, null)
+    const existing = readStorageJson<Assessment[] | null>(keys.assessments, null)
     if (existing) {
       const normalized = normalizeAssessments(existing)
       const cleaned = normalized.filter((item) => !isViewerDemoAssessment(item))
-      if (cleaned.length !== normalized.length) writeJson(keys.assessments, cleaned)
+      if (cleaned.length !== normalized.length) writeStorageJson(keys.assessments, cleaned)
       const next = session?.role === 'viewer'
         ? ensureViewerDemoAssessments(cleaned, session)
         : cleaned
       return next
     }
     const assessments = buildDemoAssessments(await this.loadAdmin())
-    writeJson(keys.assessments, assessments)
+    writeStorageJson(keys.assessments, assessments)
     return session?.role === 'viewer'
       ? ensureViewerDemoAssessments(assessments, session)
       : assessments
   }
 
   async loadAdmin(): Promise<AdminConfig> {
-    const existing = readJson<AdminConfig | null>(keys.admin, null)
+    const existing = readStorageJson<AdminConfig | null>(keys.admin, null)
     if (existing) return existing
     const admin = buildDemoAdmin()
-    writeJson(keys.admin, admin)
+    writeStorageJson(keys.admin, admin)
     return admin
   }
 
@@ -347,14 +335,14 @@ export class LocalDataProvider implements DataProvider {
     const session = this.readSessionUser()
     if (!session) throw new Error('Brak aktywnej sesji.')
     assertCanAdmin(session, 'Brak dostepu do zapisu konfiguracji administratora.')
-    writeJson(keys.admin, config)
+    writeStorageJson(keys.admin, config)
     appendAdminHistory(describeAdminConfigSave(config))
   }
 
   async loadAdminHistory(): Promise<AdminHistoryEntry[]> {
     const session = this.readSessionUser()
     if (!session || session.role === 'viewer' || session.role === 'leader' || session.role === 'assessor') return []
-    const history = readJson<AdminHistoryEntry[]>(keys.adminHistory, [])
+    const history = readStorageJson<AdminHistoryEntry[]>(keys.adminHistory, [])
     return history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
   }
 
@@ -384,7 +372,7 @@ export class LocalDataProvider implements DataProvider {
       source: 'local',
       createdAt: new Date().toISOString(),
     }
-    writeJson(keys.users, [next, ...users])
+    writeStorageJson(keys.users, [next, ...users])
     appendAdminHistory(describeUserCreate(next))
     return next
   }
@@ -395,8 +383,8 @@ export class LocalDataProvider implements DataProvider {
     assertCanAdmin(session, 'Brak dostepu do edycji uzytkownikow.')
     const users = localUsers()
     const next = users.map((item) => (item.id === user.id ? { ...item, ...user, source: 'local' as const } : item))
-    writeJson(keys.users, next)
-    if (session.id === user.id) writeJson(keys.session, localProfile({ ...user, source: 'local' }))
+    writeStorageJson(keys.users, next)
+    if (session.id === user.id) writeStorageJson(keys.session, localProfile({ ...user, source: 'local' }))
     appendAdminHistory(describeUserUpdate({ ...user, source: 'local' }))
     return { ...user, source: 'local' }
   }
@@ -412,7 +400,7 @@ export class LocalDataProvider implements DataProvider {
     if (!session) throw new Error('Brak aktywnej sesji.')
     assertCanEditAssessment(session, assessment, 'Brak dostepu do zapisu tej karty.')
     const assessments = await this.loadAllAssessments()
-    writeJson(keys.assessments, [assessment, ...assessments.filter((item) => item.id !== assessment.id)])
+    writeStorageJson(keys.assessments, [assessment, ...assessments.filter((item) => item.id !== assessment.id)])
   }
 
   async updateAssessment(assessment: Assessment): Promise<void> {
@@ -420,23 +408,23 @@ export class LocalDataProvider implements DataProvider {
     if (!session) throw new Error('Brak aktywnej sesji.')
     assertCanEditAssessment(session, assessment, 'Brak dostepu do edycji tej karty.')
     const assessments = await this.loadAllAssessments()
-    writeJson(keys.assessments, assessments.map((item) => (item.id === assessment.id ? assessment : item)))
+    writeStorageJson(keys.assessments, assessments.map((item) => (item.id === assessment.id ? assessment : item)))
   }
 
   async saveAssessments(assessments: Assessment[]): Promise<void> {
     const session = this.readSessionUser()
     if (!session) throw new Error('Brak aktywnej sesji.')
     assessments.forEach((assessment) => assertCanEditAssessment(session, assessment, 'Brak dostepu do importu wybranych kart.'))
-    writeJson(keys.assessments, assessments)
+    writeStorageJson(keys.assessments, assessments)
   }
 
   async loadDrafts(): Promise<Record<AssessmentType, AssessmentDraft | undefined>> {
-    const drafts = normalizeDrafts(readJson<Record<AssessmentType, AssessmentDraft | undefined>>(keys.drafts, { r: undefined, m: undefined, s: undefined }))
-    writeJson(keys.drafts, drafts)
+    const drafts = normalizeDrafts(readStorageJson<Record<AssessmentType, AssessmentDraft | undefined>>(keys.drafts, { r: undefined, m: undefined, s: undefined }))
+    writeStorageJson(keys.drafts, drafts)
     return drafts
   }
 
   async saveDrafts(drafts: Record<AssessmentType, AssessmentDraft | undefined>): Promise<void> {
-    writeJson(keys.drafts, drafts)
+    writeStorageJson(keys.drafts, drafts)
   }
 }

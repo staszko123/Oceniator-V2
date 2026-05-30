@@ -1,5 +1,7 @@
 import type { Assessment, UserProfile } from './types'
 import type { Role } from './types'
+import type { Permission } from '../types/permissions'
+import { hasPermission as hasPermissionConfig } from '../config/permissions'
 
 export const OPERATIONAL_ROLES: Role[] = ['admin', 'director', 'leader', 'assessor']
 export const ADMIN_ROLES: Role[] = ['admin', 'director']
@@ -31,6 +33,10 @@ export function viewerAssessmentTokens(user: UserProfile): string[] {
   }
 
   return [...new Set(tokens)]
+}
+
+export function hasPermission(role: Role, permission: Permission): boolean {
+  return hasPermissionConfig(role, permission)
 }
 
 export function scopeAssessmentsForUser(assessments: Assessment[], user: UserProfile): Assessment[] {

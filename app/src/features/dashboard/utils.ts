@@ -1,12 +1,12 @@
-﻿import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import type { Assessment } from '../../domain/types'
+import type { DashboardPrefs } from '../../config/dashboard'
+import { dashboardPanelConfig, defaultDashboardPanelOrder } from '../../config/dashboard'
+import { getDashboardPreferences, setDashboardPreferences } from '../../services/settingsService'
 
-export type DashboardPanelKey = 'trend' | 'typeMix' | 'sections' | 'leaders' | 'weak' | 'lowScores'
-export type DashboardDensity = 'comfortable' | 'compact'
-export type DashboardLayout = 'grid' | 'focus'
-export type DashboardPrefs = { order: DashboardPanelKey[]; hidden: DashboardPanelKey[]; density: DashboardDensity; layout: DashboardLayout }
+export type { DashboardPanelKey, DashboardPrefs, DashboardDensity, DashboardLayout } from '../../config/dashboard'
 
-export const dashboardPanelLabels: Record<DashboardPanelKey, string> = {
+export const dashboardPanelLabels: Record<keyof typeof dashboardPanelConfig, string> = {
   trend: 'Trend okresowy',
   typeMix: 'Rozkład typów',
   sections: 'Sekcje jakości',
@@ -15,31 +15,14 @@ export const dashboardPanelLabels: Record<DashboardPanelKey, string> = {
   lowScores: 'Najpilniejsze karty',
 }
 
-export const defaultDashboardPanelOrder: DashboardPanelKey[] = ['trend', 'typeMix', 'sections', 'leaders', 'weak', 'lowScores']
+export { defaultDashboardPanelOrder }
 
 export function readDashboardPrefs(): DashboardPrefs {
-  const fallback: DashboardPrefs = { order: defaultDashboardPanelOrder, hidden: [], density: 'comfortable', layout: 'grid' }
-  try {
-    const parsed = JSON.parse(localStorage.getItem('oc_v2_dashboard_prefs') || 'null') as Partial<DashboardPrefs> | null
-    if (!parsed) return fallback
-    const order = (parsed.order || fallback.order).filter((item): item is DashboardPanelKey => defaultDashboardPanelOrder.includes(item as DashboardPanelKey))
-    return {
-      order: [...order, ...defaultDashboardPanelOrder.filter((item) => !order.includes(item))],
-      hidden: (parsed.hidden || []).filter((item): item is DashboardPanelKey => defaultDashboardPanelOrder.includes(item as DashboardPanelKey)),
-      density: parsed.density === 'compact' ? 'compact' : 'comfortable',
-      layout: parsed.layout === 'focus' ? 'focus' : 'grid',
-    }
-  } catch {
-    return fallback
-  }
+  return getDashboardPreferences()
 }
 
 export function writeDashboardPrefs(prefs: DashboardPrefs) {
-  try {
-    localStorage.setItem('oc_v2_dashboard_prefs', JSON.stringify(prefs))
-  } catch {
-    // UI preferences are optional.
-  }
+  setDashboardPreferences(prefs)
 }
 
 function sectionAverage(assessment: Assessment, sectionKey: string): number {

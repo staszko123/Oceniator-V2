@@ -1,4 +1,4 @@
-import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+﻿import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
 
 const statusLabels: Record<AssessmentStatus, string> = {
@@ -59,8 +59,8 @@ export function specialistProfileData(assessments: Assessment[], specialist: str
   const review = rows.filter((item) => item.status === 'review' || item.status === 'submitted').length
   const momentum = trend.length > 1 ? trend[trend.length - 1].score - trend[0].score : 0
   const recommendation = weakAreas[0]?.avg && weakAreas[0].avg < 82
-    ? `Najwiekszy potencjal poprawy jest w obszarze: ${weakAreas[0].label}.`
-    : 'Profil jest stabilny. Warto utrzymac rytm informacji zwrotnej i monitorowac ostatnie oceny.'
+    ? `Największy potencjał poprawy jest w obszarze: ${weakAreas[0].label}.`
+    : 'Profil jest stabilny. Warto utrzymać rytm informacji zwrotnej i monitorować ostatnie oceny.'
 
   return { rows, recent, trend, weakAreas, avg, great, below, review, momentum, recommendation }
 }
@@ -87,7 +87,7 @@ export function printSpecialistProfileReport(specialist: string, assessments: As
         <td>${item.count}</td>
       </tr>
     `).join('')
-    : '<tr><td colspan="3">Brak wystarczajacej liczby danych.</td></tr>'
+    : '<tr><td colspan="3">Brak wystarczającej liczby danych.</td></tr>'
 
   const recentRows = profile.recent.map((item) => `
     <tr>
@@ -122,13 +122,13 @@ export function printSpecialistProfileReport(specialist: string, assessments: As
     <div class="no-print"><button onclick="window.print()">Drukuj / Zapisz PDF</button></div>
     <header>
       <h1>${esc(specialist)}</h1>
-      <p>Profil jakosciowy specjalisty na podstawie ${profile.rows.length} kart. Sredni wynik: ${profile.avg}%. Do decyzji: ${profile.review}. Ponizej standardu: ${profile.below}.</p>
+      <p>Profil jakościowy specjalisty na podstawie ${profile.rows.length} kart. Średni wynik: ${profile.avg}%. Do decyzji: ${profile.review}. Poniżej standardu: ${profile.below}.</p>
     </header>
     <div class="kpis">
-      <div class="kpi"><span>Sredni wynik</span><strong>${profile.avg}%</strong></div>
+      <div class="kpi"><span>Średni wynik</span><strong>${profile.avg}%</strong></div>
       <div class="kpi"><span>Liczba kart</span><strong>${profile.rows.length}</strong></div>
       <div class="kpi"><span>Bardzo dobry</span><strong>${profile.great}</strong></div>
-      <div class="kpi"><span>Ponizej standardu</span><strong>${profile.below}</strong></div>
+      <div class="kpi"><span>Poniżej standardu</span><strong>${profile.below}</strong></div>
     </div>
     <section>
       <h2>Rekomendacja</h2>
@@ -140,7 +140,7 @@ export function printSpecialistProfileReport(specialist: string, assessments: As
     </section>
     <section>
       <h2>Obszary do poprawy</h2>
-      <table><thead><tr><th>Kryterium</th><th>Srednia</th><th>Liczba ocen czastkowych</th></tr></thead><tbody>${weakRows}</tbody></table>
+      <table><thead><tr><th>Kryterium</th><th>Średnia</th><th>Liczba ocen cząstkowych</th></tr></thead><tbody>${weakRows}</tbody></table>
     </section>
     <section>
       <h2>Ostatnie oceny</h2>
@@ -154,3 +154,4 @@ export function printSpecialistProfileReport(specialist: string, assessments: As
   win.document.close()
   return true
 }
+

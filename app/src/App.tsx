@@ -5,13 +5,7 @@ import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAsses
 import { buildDemoAdmin } from './data/seed'
 import { createProvider } from './data/supabaseProvider'
 import { canAdminRole, canCreateRole, canViewTeamRole, scopeAssessmentsForUser } from './domain/access'
-import EvaluationView from './features/evaluation/EvaluationView'
 import AppShell from './features/shell/AppShell'
-import StartView from './features/start/StartView'
-import { AssessmentTable } from './features/registry/AssessmentTable'
-import RegistryView from './features/registry/RegistryView'
-import TeamView from './features/team/TeamView'
-import ViewerPortalView from './features/viewer/ViewerPortalView'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
 import type {
@@ -25,6 +19,8 @@ import type {
   UserProfile,
 } from './domain/types'
 import { useTheme } from './lib/theme'
+import { useLanguage } from './i18n/LanguageContext'
+import { setProviderMode } from './services/settingsService'
 import './index.css'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
@@ -42,6 +38,11 @@ const navItems: Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboar
 
 const localDemoAccounts = 'admin/admin123, lider01/lider123, lider02/lider123, lider/lider123, oceniajacy/ocena123, podglad/podglad123'
 
+const EvaluationView = lazy(() => import('./features/evaluation/EvaluationView'))
+const StartView = lazy(() => import('./features/start/StartView'))
+const RegistryView = lazy(() => import('./features/registry/RegistryView'))
+const TeamView = lazy(() => import('./features/team/TeamView'))
+const ViewerPortalView = lazy(() => import('./features/viewer/ViewerPortalView'))
 const ReportsView = lazy(() => import('./features/reports/ReportsView'))
 const AdminView = lazy(() => import('./features/admin/AdminView'))
 const DashboardView = lazy(() => import('./features/dashboard/DashboardView'))
@@ -52,6 +53,10 @@ const lazyViewFallback = (
 )
 
 const lazyViewLoaders: Partial<Record<ViewKey, () => Promise<unknown>>> = {
+  start: () => import('./features/start/StartView'),
+  form: () => import('./features/evaluation/EvaluationView'),
+  team: () => import('./features/team/TeamView'),
+  registry: () => import('./features/registry/RegistryView'),
   dashboard: () => import('./features/dashboard/DashboardView'),
   reports: () => import('./features/reports/ReportsView'),
   admin: () => import('./features/admin/AdminView'),
@@ -87,6 +92,7 @@ function LoginScreen({
   onLogin: (login: string, password: string) => Promise<void>
   onLocalDemo: () => Promise<void>
 }) {
+  const { t } = useLanguage()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -106,7 +112,7 @@ function LoginScreen({
     try {
       await onLogin(login, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nie uda\u0142o si\u0119 zalogowa\u0107.')
+      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie udało się zalogować.'))
     } finally {
       setBusy(false)
     }
@@ -118,7 +124,7 @@ function LoginScreen({
     try {
       await onLocalDemo()
     } catch (err) {
-      setError(getErrorMessage(err, 'Nie uda\u0142o si\u0119 uruchomi\u0107 lokalnego demo.'))
+      setError(getErrorMessage(err, t('login.error.demo', 'Nie udało się uruchomić lokalnego demo.')))
     } finally {
       setBusy(false)
     }
@@ -133,73 +139,68 @@ function LoginScreen({
           <div className="login-orb orb-c" />
           <div className="login-wave" />
           <div className="login-liquid-card glass-card one">
-            <span><Sparkles size={14} /> Liquid glass</span>
-            <strong>Material start</strong>
-            <small>Miękki ruch, szkło i płynne przejścia.</small>
+            <span><Sparkles size={14} /> {t('login.hero.glass', 'Liquid glass')}</span>
+            <strong>{t('login.hero.material', 'Material start')}</strong>
+            <small>{t('login.hero.glassDesc', 'Miękki ruch, szkło i płynne przejścia.')}</small>
           </div>
           <div className="login-liquid-card glass-card two">
-            <span><Layers3 size={14} /> Portal quality</span>
-            <strong>Ocena i ewidencja</strong>
-            <small>Jedno wejście, jeden rytm pracy.</small>
+            <span><Layers3 size={14} /> {t('login.hero.portal', 'Portal quality')}</span>
+            <strong>{t('login.hero.title', 'Ocena i ewidencja')}</strong>
+            <small>{t('login.hero.portalDesc', 'Jedno wejście, jeden rytm pracy.')}</small>
           </div>
           <div className="login-liquid-signal">
             <i />
-            <span>Start sesji</span>
+            <span>{t('login.hero.session', 'Start sesji')}</span>
           </div>
         </div>
         <div className="brand-mark">
           <span />
           <div>
             <strong>Oceniator</strong>
-            <small>{'Platforma oceny jako\u015Bci'}</small>
+            <small>{t('login.brand.subtitle', 'Platforma oceny jakości')}</small>
           </div>
         </div>
         <div className="login-copy">
-          <span className="login-kicker">{'System operacyjny dla jako\u015Bci'}</span>
-          <h1>{'Ocena, ewidencja i raporty w jednym czystym miejscu.'}</h1>
-          <p>
-            {'To jest produkcyjny ekran dost\u0119pu do pracy. '}
-            {'Wchodzisz do aplikacji bez marketingowego ha\u0142asu i bez dodatkowych ekran\u00F3w po drodze.'}
-          </p>
+          <span className="login-kicker">{t('login.kicker', 'System operacyjny dla jakości')}</span>
+          <h1>{t('login.title', 'Ocena, ewidencja i raporty w jednym czystym miejscu.')}</h1>
+          <p>{t('login.description', 'To jest produkcyjny ekran dostępu do pracy. Wchodzisz do aplikacji bez marketingowego hałasu i bez dodatkowych ekranów po drodze.')}</p>
           <div className="login-points">
-            <div className="login-point"><ShieldCheck size={16} /> <span>Role i zakresy dostępu</span></div>
-            <div className="login-point"><Database size={16} /> <span>Supabase albo lokalne demo</span></div>
-            <div className="login-point"><PanelRight size={16} /> <span>Jeden login, szybkie wejście</span></div>
+            <div className="login-point"><ShieldCheck size={16} /> <span>{t('login.point.roles', 'Role i zakresy dostępu')}</span></div>
+            <div className="login-point"><Database size={16} /> <span>{t('login.point.storage', 'Supabase albo lokalne demo')}</span></div>
+            <div className="login-point"><PanelRight size={16} /> <span>{t('login.point.fast', 'Jeden login, szybkie wejście')}</span></div>
           </div>
         </div>
       </section>
       <section className="login-card">
         <div className="section-title login-card-head">
           <div>
-            <span>{provider.mode === 'supabase' ? 'Logowanie' : 'Logowanie lokalne'}</span>
-            <p className="login-card-copy">
-              {'Zaloguj si\u0119 i kontynuuj prac\u0119 bez dodatkowych ekran\u00F3w.'}
-            </p>
+            <span>{provider.mode === 'supabase' ? t('login.mode.supabase', 'Logowanie') : t('login.mode.local', 'Logowanie lokalne')}</span>
+            <p className="login-card-copy">{t('login.cardCopy', 'Zaloguj się i kontynuuj pracę bez dodatkowych ekranów.')}</p>
           </div>
-          <button className="theme-toggle" type="button" onClick={toggleTheme} title={'Prze\u0142\u0105cz motyw'}>
+          <button className="theme-toggle" type="button" onClick={toggleTheme} title={t('action.theme', 'Przełącz motyw')}>
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-            <span>{theme === 'dark' ? 'Jasny' : 'Ciemny'}</span>
+            <span>{theme === 'dark' ? t('theme.light', 'Jasny') : t('theme.dark', 'Ciemny')}</span>
           </button>
         </div>
         <form onSubmit={submit} className="stack">
           <label>
-            <span>{provider.mode === 'supabase' ? 'Adres e-mail' : 'Login lokalny'}</span>
+            <span>{provider.mode === 'supabase' ? t('login.email', 'Adres e-mail') : t('login.localLogin', 'Login lokalny')}</span>
             <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" autoFocus />
           </label>
           <label>
-            <span>{'Has\u0142o'}</span>
+            <span>{t('login.password', 'Hasło')}</span>
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
           </label>
           {error ? <div className="error-box">{error}</div> : null}
           <button className="primary-btn" disabled={busy} type="submit">
-            {busy ? 'Logowanie...' : 'Zaloguj si\u0119'}
+            {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj się')}
           </button>
         </form>
         <div className="login-footer">
           <button className="ghost-btn wide" type="button" disabled={busy} onClick={() => void startLocalDemo()}>
-            Uruchom demo lokalne
+            {t('login.demoButton', 'Uruchom demo lokalne')}
           </button>
-          <p className="hint-text">Konta testowe: {localDemoAccounts}.</p>
+          <p className="hint-text">{t('login.demoAccounts', 'Konta testowe: ')}{localDemoAccounts}.</p>
         </div>
       </section>
     </main>
@@ -207,6 +208,7 @@ function LoginScreen({
 }
 
 function App() {
+  const { t } = useLanguage()
   const [provider, setProvider] = useState<DataProvider>(() => createProvider())
   const [user, setUser] = useState<UserProfile | null>(null)
   const [users, setUsers] = useState<ManagedUser[]>([])
@@ -238,7 +240,7 @@ function App() {
     ])
     const failures = [adminResult, historyResult, assessmentsResult, draftsResult, usersResult]
       .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map((result) => getErrorMessage(result.reason, 'Blad pobierania danych.'))
+      .map((result) => getErrorMessage(result.reason, t('app.error.loadData', 'Błąd pobierania danych.')))
     const nextAdmin = adminResult.status === 'fulfilled' ? adminResult.value : buildDemoAdmin()
     const nextHistory = historyResult.status === 'fulfilled' ? historyResult.value : []
     const nextAssessments = assessmentsResult.status === 'fulfilled' ? assessmentsResult.value : []
@@ -252,7 +254,7 @@ function App() {
     setDrafts(nextDrafts)
     setFormDraftOverride(null)
     setView(currentUser.role === 'viewer' ? 'registry' : 'start')
-    if (failures.length) setBootError(`Czesc danych jest chwilowo niedostepna: ${failures.join(' ')}`)
+    if (failures.length) setBootError(`Część danych jest chwilowo niedostępna: ${failures.join(' ')}`)
     refreshDiagnostics({
       scope: 'system',
       action: 'workspace-load',
@@ -261,7 +263,7 @@ function App() {
         : `Wczytano zestaw danych dla ${currentUser.fullName || currentUser.email}`,
       level: failures.length ? 'warning' : 'success',
     })
-  }, [provider, refreshDiagnostics])
+  }, [provider, refreshDiagnostics, t])
 
   useEffect(() => {
     provider.getCurrentUser()
@@ -270,19 +272,19 @@ function App() {
         return undefined
       })
       .catch((error) => {
-        setBootError(getErrorMessage(error, 'Blad startu aplikacji.'))
+        setBootError(getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')))
         refreshDiagnostics({
           scope: 'system',
           action: 'boot-error',
-          detail: getErrorMessage(error, 'Blad startu aplikacji.'),
+          detail: getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')),
           level: 'error',
         })
       })
-  }, [provider, loadWorkspace, refreshDiagnostics])
+  }, [provider, loadWorkspace, refreshDiagnostics, t])
 
   async function login(loginValue: string, password: string) {
     const currentUser = await provider.signIn(loginValue, password)
-    if (provider.mode === 'supabase') localStorage.removeItem('oc_v2_provider')
+    setProviderMode(provider.mode)
     await loadWorkspace(currentUser)
     refreshDiagnostics({
       scope: 'auth',
@@ -293,7 +295,7 @@ function App() {
   }
 
   async function localDemo() {
-    localStorage.setItem('oc_v2_provider', 'local')
+    setProviderMode('local')
     const local = createProvider(true)
     setProvider(local)
     const currentUser = await local.signIn('admin', 'admin123')
@@ -466,72 +468,67 @@ function App() {
   const effectiveView = visibleNavItems.some((item) => item.key === view) ? view : 'start'
 
   return (
-    <AppShell user={user} providerMode={provider.mode} view={effectiveView} navItems={visibleNavItems} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
-      {effectiveView === 'start' ? (
-        user.role === 'viewer' ? (
-          <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} />
-        ) : (
-          <StartView
+    <Suspense fallback={lazyViewFallback}>
+      <AppShell user={user} providerMode={provider.mode} view={effectiveView} navItems={visibleNavItems} setView={setView} onViewIntent={preloadView} onLogout={logout} systemNotice={bootError}>
+        {effectiveView === 'start' ? (
+          user.role === 'viewer' ? (
+            <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} />
+          ) : (
+            <StartView
+              user={user}
+              assessments={assessments}
+              drafts={drafts}
+              setView={setView}
+              openRegistry={openRegistry}
+              onResumeDraft={resumeDraft}
+              onClearDraft={(type) => void discardDraft(type)}
+            />
+          )
+        ) : null}
+        {effectiveView === 'form' && canCreateRole(user.role) ? (
+          <EvaluationView
             user={user}
-            assessments={assessments}
-            drafts={drafts}
-            setView={setView}
-            openRegistry={openRegistry}
-            onResumeDraft={resumeDraft}
-            onClearDraft={(type) => void discardDraft(type)}
+            admin={admin}
+            draft={activeDraft}
+            specialistPrefillName={specialistPrefill?.name}
+            specialistPrefillToken={specialistPrefill?.token}
+            onSelectType={(type) => {
+              setActiveType(type)
+              if (formDraftOverride && formDraftOverride.type !== type) setFormDraftOverride(null)
+            }}
+            onDraftChange={updateDraft}
+            onSaveAssessment={saveAssessment}
           />
-        )
-      ) : null}
-      {effectiveView === 'form' && canCreateRole(user.role) ? (
-        <EvaluationView
-          user={user}
-          admin={admin}
-          draft={activeDraft}
-          specialistPrefillName={specialistPrefill?.name}
-          specialistPrefillToken={specialistPrefill?.token}
-          onSelectType={(type) => {
-            setActiveType(type)
-            if (formDraftOverride && formDraftOverride.type !== type) setFormDraftOverride(null)
-          }}
-          onDraftChange={updateDraft}
-          onSaveAssessment={saveAssessment}
-        />
-      ) : null}
-      {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={setView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} /> : null}
-      {effectiveView === 'registry' ? <RegistryView assessments={assessments} user={user} intentPreset={registryIntent?.preset} intentToken={registryIntent?.token} onUpdate={updateAssessment} onBulkImport={bulkImportAssessments} /> : null}
-      {effectiveView === 'dashboard' ? (
-        <Suspense fallback={lazyViewFallback}>
+        ) : null}
+        {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={setView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} /> : null}
+        {effectiveView === 'registry' ? <RegistryView assessments={assessments} user={user} intentPreset={registryIntent?.preset} intentToken={registryIntent?.token} onUpdate={updateAssessment} onBulkImport={bulkImportAssessments} /> : null}
+        {effectiveView === 'dashboard' ? (
           <DashboardView
             userRole={user.role}
             assessments={assessments}
             goals={admin.goals}
             setView={setView}
             openRegistry={openRegistry}
-            renderAssessmentTable={(rows) => <AssessmentTable assessments={rows} compact />}
           />
-        </Suspense>
-      ) : null}
-      {effectiveView === 'reports' ? (
-        <Suspense fallback={lazyViewFallback}>
+        ) : null}
+        {effectiveView === 'reports' ? (
           <ReportsView assessments={assessments} setView={setView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} />
-        </Suspense>
-      ) : null}
-      {effectiveView === 'admin' && canAdminRole(user.role) ? (
-        <Suspense fallback={lazyViewFallback}>
+        ) : null}
+        {effectiveView === 'admin' && canAdminRole(user.role) ? (
           <AdminView
             key={`${users.map((item) => item.id).join('|')}::${admin.specialists.map((item) => item.id).join('|')}::${admin.periods.map((item) => item.code).join('|')}`}
-          user={user}
-          admin={admin}
-          adminHistory={adminHistory}
-          diagnostics={diagnostics}
-          users={users}
-          onAdminChange={updateAdmin}
-          onUserSave={saveManagedUser}
+            user={user}
+            admin={admin}
+            adminHistory={adminHistory}
+            diagnostics={diagnostics}
+            users={users}
+            onAdminChange={updateAdmin}
+            onUserSave={saveManagedUser}
             onUserCreate={createManagedUser}
           />
-        </Suspense>
-      ) : null}
-    </AppShell>
+        ) : null}
+      </AppShell>
+    </Suspense>
   )
 }
 

@@ -3,11 +3,12 @@ import { ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDash
 import { TYPE_LABELS } from '../../domain/defs'
 import type { AdminConfig, Assessment, AssessmentType, Role } from '../../domain/types'
 import { scoreClass } from '../../lib/display'
+import { useLanguage } from '../../i18n/LanguageContext'
 import { AnalyticsFilterBar } from '../analytics/shared'
 import { applyAnalyticsFilters, defaultAnalyticsFilters, type AnalyticsFilters } from '../analytics/filters'
+import { dashboardPanelConfig } from '../../config/dashboard'
 import {
   dashboardLeaderRanking,
-  dashboardPanelLabels,
   dashboardTrend,
   defaultDashboardPanelOrder,
   readDashboardPrefs,
@@ -16,6 +17,8 @@ import {
   writeDashboardPrefs,
   type DashboardPanelKey,
 } from './utils'
+import { canUsePersistentStorage } from '../../utils/storage'
+import { AssessmentTable } from '../registry/AssessmentTable'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
@@ -57,7 +60,7 @@ function DashboardWidget({
       onDrop={() => onDrop(panel)}
     >
       <div className="widget-head">
-        <button className="drag-handle" type="button" title="Przeciagnij panel"><GripVertical size={16} /></button>
+        <button className="drag-handle" type="button" title="Przeciągnij panel"><GripVertical size={16} /></button>
         <div className="section-title"><span>{title}</span><small>{subtitle}</small></div>
         <button className="widget-icon-btn" type="button" onClick={() => onHide(panel)} title="Ukryj panel"><EyeOff size={15} /></button>
       </div>
@@ -72,15 +75,14 @@ export default function DashboardView({
   goals,
   setView,
   openRegistry,
-  renderAssessmentTable,
 }: {
   userRole: Role
   assessments: Assessment[]
   goals: AdminConfig['goals']
   setView: (view: ViewKey) => void
   openRegistry: (preset?: 'all' | 'decision' | 'recent' | 'edited') => void
-  renderAssessmentTable: (rows: Assessment[]) => React.ReactNode
 }) {
+  const { t } = useLanguage()
   const [filters, setFilters] = useState<AnalyticsFilters>(() => defaultAnalyticsFilters())
   const [prefs, setPrefs] = useState(() => readDashboardPrefs())
   const [dragging, setDragging] = useState<DashboardPanelKey | null>(null)
@@ -109,10 +111,12 @@ export default function DashboardView({
   const extraPanels = visiblePanels.filter((item) => item !== 'trend' && item !== 'lowScores')
   const dashboardPriorities = [
     reviewCount ? { label: 'Do decyzji', value: reviewCount, hint: 'Najpierw domknij submitted i review.', tone: 'alert', suffix: '', action: () => openRegistry('decision') } : null,
-    belowCount ? { label: 'Ponizej standardu', value: belowCount, hint: 'To naturalna lista do feedbacku i kalibracji.', tone: 'risk', suffix: '', action: () => setView('team') } : null,
-    goalGap < 0 ? { label: 'Pod celem', value: Math.abs(goalGap), hint: 'Srednia jest ponizej celu o tyle punktow procentowych.', tone: 'risk', suffix: ' pp', action: () => setView('reports') } : null,
-    active.length ? { label: 'Bardzo dobry', value: greatShare, hint: `Udzial wysokich wynikow w aktywnym filtrze. Cel ${goals.greatShare}%.`, tone: 'positive', suffix: '%', action: () => setView('reports') } : null,
+    belowCount ? { label: 'Poniżej standardu', value: belowCount, hint: 'To naturalna lista do feedbacku i kalibracji.', tone: 'risk', suffix: '', action: () => setView('team') } : null,
+    goalGap < 0 ? { label: 'Pod celem', value: Math.abs(goalGap), hint: 'Średnia jest poniżej celu o tyle punktów procentowych.', tone: 'risk', suffix: ' pp', action: () => setView('reports') } : null,
+    active.length ? { label: 'Bardzo dobry', value: greatShare, hint: `Udział wysokich wyników w aktywnym filtrze. Cel ${goals.greatShare}%.`, tone: 'positive', suffix: '%', action: () => setView('reports') } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string; tone: 'alert' | 'risk' | 'positive'; suffix: string; action: () => void }>
+  const panelLabel = (panel: DashboardPanelKey) => t(dashboardPanelConfig[panel].labelKey)
+  const panelSubtitle = (panel: DashboardPanelKey) => t(dashboardPanelConfig[panel].subtitleKey)
 
   useEffect(() => {
     writeDashboardPrefs(prefs)
@@ -168,20 +172,20 @@ export default function DashboardView({
 
   function exportDashboardCsv() {
     const summary = [
-      ['Metryka', 'Wartosc'],
-      ['Sredni wynik', `${avg || 0}%`],
-      ['Cel sredniej', `${goals.minAvg}%`],
+      ['Metryka', 'Wartość'],
+      ['Średni wynik', `${avg || 0}%`],
+      ['Cel średniej', `${goals.minAvg}%`],
       ['Bardzo dobry', `${greatShare}%`],
       ['Karty aktywne', active.length],
-      ['Ponizej standardu', belowCount],
+      ['Poniżej standardu', belowCount],
       ['Kolejka decyzyjna', reviewCount],
       ['Filtr okresu', filters.period],
       ['Filtr typu', filters.type],
       ['Filtr lidera', filters.leader],
       ['Filtr specjalisty', filters.specialist],
     ]
-    const trendRows = [['Okres', 'Karty', 'Srednia', 'Ponizej standardu', 'Do decyzji'], ...trend.map((item) => [item.period, item.count, `${item.avg}%`, item.below, item.review])]
-    const weakRows = [['Kryterium', 'Srednia', 'Liczba ocen'], ...weak.map((item) => [item.label, `${item.avg}%`, item.count])]
+    const trendRows = [['Okres', 'Karty', 'Średnia', 'Poniżej standardu', 'Do decyzji'], ...trend.map((item) => [item.period, item.count, `${item.avg}%`, item.below, item.review])]
+    const weakRows = [['Kryterium', 'Średnia', 'Liczba ocen'], ...weak.map((item) => [item.label, `${item.avg}%`, item.count])]
     const blocks = [
       ['Podsumowanie dashboardu'],
       ...summary,
@@ -189,12 +193,12 @@ export default function DashboardView({
       ['Trend okresowy'],
       ...trendRows,
       [],
-      canCompareLeaders ? ['Ranking liderow'] : ['Priorytety kart'],
+      canCompareLeaders ? ['Ranking liderów'] : ['Priorytety kart'],
       ...(canCompareLeaders
-        ? [['Lider', 'Karty', 'Srednia', 'Ponizej standardu', 'Do decyzji'], ...leaders.map((item) => [item.leader, item.count, `${item.avg}%`, item.below, item.review])]
+        ? [['Lider', 'Karty', 'Średnia', 'Poniżej standardu', 'Do decyzji'], ...leaders.map((item) => [item.leader, item.count, `${item.avg}%`, item.below, item.review])]
         : [['Specjalista', 'Status', 'Wynik'], ...reviewItems.map((item) => [item.spec, item.status, `${item.avgFinal}%`])]),
       [],
-      ['Slabe kryteria'],
+      ['Słabe kryteria'],
       ...weakRows,
     ]
     const csv = `\uFEFF${blocks.map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
@@ -202,20 +206,14 @@ export default function DashboardView({
   }
 
   function dashboardDiagnostics() {
-    let storage = 'dostepny'
-    try {
-      localStorage.setItem('oc_v2_diag_probe', '1')
-      localStorage.removeItem('oc_v2_diag_probe')
-    } catch {
-      storage = 'zablokowany'
-    }
+    const storage = canUsePersistentStorage() ? 'dostępny' : 'zablokowany'
     return [
       ['Tryb danych', assessments.length ? 'aktywny' : 'brak kart'],
       ['Karty po filtrze', String(active.length)],
       ['Wszystkie karty w zakresie', String(assessments.length)],
       ['Widoczne widgety', String(visiblePanels.length)],
       ['Ukryte widgety', String(prefs.hidden.length)],
-      ['Porownanie liderow', canCompareLeaders ? 'wlaczone' : 'ukryte dla tej roli'],
+      ['Porównanie liderów', canCompareLeaders ? 'włączone' : 'ukryte dla tej roli'],
       ['LocalStorage', storage],
     ]
   }
@@ -244,14 +242,14 @@ export default function DashboardView({
   }
 
   function renderLowScoresContent() {
-    return renderAssessmentTable([...active].sort((a, b) => a.avgFinal - b.avgFinal).slice(0, 8))
+    return <AssessmentTable assessments={[...active].sort((a, b) => a.avgFinal - b.avgFinal).slice(0, 8)} compact />
   }
 
-  function renderPanel(panel: DashboardPanelKey) {
-    if (panel === 'trend') {
+  const panelRenderers: Record<DashboardPanelKey, () => React.ReactNode> = {
+    trend: () => {
       const maxCount = Math.max(...trend.map((item) => item.count), 1)
       return (
-        <DashboardWidget panel={panel} title="Trend okresowy" subtitle="wolumen, wynik i ryzyko" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <DashboardWidget panel="trend" title={panelLabel('trend')} subtitle={panelSubtitle('trend')} onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
           <div className="trend-chart">
             {trend.map((item) => (
               <div className="trend-column" key={item.period}>
@@ -271,79 +269,75 @@ export default function DashboardView({
           </div>
         </DashboardWidget>
       )
-    }
-    if (panel === 'typeMix') {
-      return (
-        <DashboardWidget panel={panel} title="Rozklad wg typu" subtitle="udzial w aktywnym filtrze" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
-          <div className="type-orbit">
-            {byType.map(({ type, rows }, index) => {
-              const value = active.length ? Math.round(rows.length / active.length * 100) : 0
-              return (
-                <div className="type-orbit-item" key={type} style={{ ['--accent-index' as string]: index }}>
-                  <div>
-                    <span>{TYPE_LABELS[type]}</span>
-                    <strong>{rows.length}</strong>
-                  </div>
-                  <div className="orbit-track"><i style={{ width: `${value}%` }} /></div>
-                  <small>{value}% portfela</small>
+    },
+    typeMix: () => (
+      <DashboardWidget panel="typeMix" title={panelLabel('typeMix')} subtitle={panelSubtitle('typeMix')} onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <div className="type-orbit">
+          {byType.map(({ type, rows }, index) => {
+            const value = active.length ? Math.round(rows.length / active.length * 100) : 0
+            return (
+              <div className="type-orbit-item" key={type} style={{ ['--accent-index' as string]: index }}>
+                <div>
+                  <span>{TYPE_LABELS[type]}</span>
+                  <strong>{rows.length}</strong>
                 </div>
-              )
-            })}
+                <div className="orbit-track"><i style={{ width: `${value}%` }} /></div>
+                <small>{value}% portfela</small>
+              </div>
+            )
+          })}
+        </div>
+      </DashboardWidget>
+    ),
+    sections: () => (
+      <DashboardWidget panel="sections" title={panelLabel('sections')} subtitle={panelSubtitle('sections')} onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        {sections.slice(0, 8).map((item, index) => (
+          <div className="bar-row rich" key={item.label} style={{ ['--row-index' as string]: index }}>
+            <span>{item.label}</span>
+            <div><i style={{ width: `${item.avg}%` }} /></div>
+            <strong>{item.avg}%</strong>
           </div>
-        </DashboardWidget>
-      )
-    }
-    if (panel === 'sections') {
-      return (
-        <DashboardWidget panel={panel} title="Sekcje jakosci" subtitle="od najslabszej" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
-          {sections.slice(0, 8).map((item, index) => (
-            <div className="bar-row rich" key={item.label} style={{ ['--row-index' as string]: index }}>
-              <span>{item.label}</span>
-              <div><i style={{ width: `${item.avg}%` }} /></div>
-              <strong>{item.avg}%</strong>
+        ))}
+      </DashboardWidget>
+    ),
+    leaders: () => (
+      <DashboardWidget panel="leaders" title={panelLabel('leaders')} subtitle={panelSubtitle('leaders')} onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <div className="leader-board">
+          {leaders.map((item, index) => (
+            <div className="leader-row" key={item.leader}>
+              <div className="leader-rank">{index < 3 ? <Trophy size={15} /> : index + 1}</div>
+              <div>
+                <strong>{item.leader}</strong>
+                <span>{item.count} kart - {item.review} do decyzji - {item.below} nisko</span>
+              </div>
+              <span className={scoreClass(item.avg)}>{item.avg}%</span>
             </div>
           ))}
-        </DashboardWidget>
-      )
-    }
-    if (panel === 'weak') {
-      return (
-        <DashboardWidget panel={panel} title="Slabe kryteria" subtitle="kolejka coachingowa" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
-          <div className="weak-list enhanced">
-            {weak.map((item) => (
-              <div className="weak-item" key={item.label}>
-                <span>{item.label}</span>
-                <strong className={scoreClass(item.avg)}>{item.avg}%</strong>
-                <small>{item.count} ocen czastkowych</small>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-      )
-    }
-    if (panel === 'leaders') {
-      return (
-        <DashboardWidget panel={panel} title="Ranking liderow" subtitle="srednia i kolejka decyzji" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
-          <div className="leader-board">
-            {leaders.map((item, index) => (
-              <div className="leader-row" key={item.leader}>
-                <div className="leader-rank">{index < 3 ? <Trophy size={15} /> : index + 1}</div>
-                <div>
-                  <strong>{item.leader}</strong>
-                  <span>{item.count} kart - {item.review} do decyzji - {item.below} nisko</span>
-                </div>
-                <span className={scoreClass(item.avg)}>{item.avg}%</span>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-      )
-    }
-    return (
-      <DashboardWidget panel={panel} title="Najpilniejsze karty" subtitle="niskie wyniki i weryfikacja" onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
-        {renderAssessmentTable([...active].sort((a, b) => a.avgFinal - b.avgFinal).slice(0, 8))}
+        </div>
       </DashboardWidget>
-    )
+    ),
+    weak: () => (
+      <DashboardWidget panel="weak" title={panelLabel('weak')} subtitle={panelSubtitle('weak')} onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        <div className="weak-list enhanced">
+          {weak.map((item) => (
+            <div className="weak-item" key={item.label}>
+              <span>{item.label}</span>
+              <strong className={scoreClass(item.avg)}>{item.avg}%</strong>
+              <small>{item.count} ocen cząstkowych</small>
+            </div>
+          ))}
+        </div>
+      </DashboardWidget>
+    ),
+    lowScores: () => (
+      <DashboardWidget panel="lowScores" title={panelLabel('lowScores')} subtitle={panelSubtitle('lowScores')} onHide={hidePanel} onDragStart={setDragging} onDrop={movePanel}>
+        {renderLowScoresContent()}
+      </DashboardWidget>
+    ),
+  }
+
+  function renderPanel(panel: DashboardPanelKey) {
+    return panelRenderers[panel]()
   }
 
   return (
@@ -361,10 +355,10 @@ export default function DashboardView({
       </section>
       <AnalyticsFilterBar assessments={assessments} filters={filters} onChange={setFilters} />
       <section className="dashboard-grid kpi-grid">
-        <div className="metric-panel premium"><span>Sredni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
-        <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}%</small></div>
-        <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
-        <div className="metric-panel premium"><span>Ponizej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
+      <div className="metric-panel premium"><span>Średni wynik</span><strong>{avg || '-'}%</strong><small>cel {goals.minAvg}%</small></div>
+      <div className="metric-panel premium"><span>Bardzo dobry</span><strong>{greatShare}%</strong><small>cel {goals.greatShare}%</small></div>
+      <div className="metric-panel premium"><span>Karty</span><strong>{active.length}</strong><small>aktywny zakres</small></div>
+      <div className="metric-panel premium"><span>Poniżej standardu</span><strong>{belowCount}</strong><small>wymaga reakcji</small></div>
       </section>
       <section className="dashboard-focus-grid">
         <div className="data-panel">
@@ -391,13 +385,13 @@ export default function DashboardView({
         </div>
       </section>
       <section className="data-panel">
-        <div className="section-title"><span>Najnizsze karty</span><small>najpierw te, ktore wymagaja decyzji lub feedbacku</small></div>
+          <div className="section-title"><span>Najniższe karty</span><small>najpierw te, które wymagają decyzji lub feedbacku</small></div>
         {renderLowScoresContent()}
       </section>
       <details className="dashboard-more" open={showMore} onToggle={(event) => setShowMore(event.currentTarget.open)}>
         <summary>
-          <span>Wiecej</span>
-          <small>ranking, rozklad, slabe kryteria i narzedzia</small>
+          <span>Więcej</span>
+          <small>ranking, rozkład, słabe kryteria i narzędzia</small>
         </summary>
         <div className="dashboard-more-body">
           <section className="dashboard-controls">
@@ -413,7 +407,7 @@ export default function DashboardView({
               <div className="dashboard-hidden">
                 {prefs.hidden
                   .filter((panel) => canCompareLeaders || panel !== 'leaders')
-                  .map((panel) => <button key={panel} type="button" onClick={() => showPanel(panel)}>{dashboardPanelLabels[panel]}</button>)}
+                  .map((panel) => <button key={panel} type="button" onClick={() => showPanel(panel)}>{panelLabel(panel)}</button>)}
               </div>
             ) : null}
             <button className="ghost-btn" type="button" onClick={resetDashboard}><RotateCcw size={15} /> Reset ukladu</button>
@@ -439,7 +433,7 @@ export default function DashboardView({
                     <div className={isHidden ? 'widget-config-row muted' : 'widget-config-row'} key={panel}>
                       <button className="widget-toggle" type="button" onClick={() => togglePanel(panel)}>
                         {isHidden ? <EyeOff size={15} /> : <Eye size={15} />}
-                        {dashboardPanelLabels[panel]}
+                        {panelLabel(panel)}
                       </button>
                       <div>
                         <button type="button" disabled={index === 0} onClick={() => shiftPanel(panel, -1)} title="Przesun wyzej"><ChevronUp size={15} /></button>

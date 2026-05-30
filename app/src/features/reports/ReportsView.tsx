@@ -96,15 +96,15 @@ export default function ReportsView({
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string }>
 
   const reportActions = [
-    activeReview ? { label: 'Przejdz do ewidencji', hint: 'Domknij statusy submitted i review z tego zakresu.', action: () => openRegistry('decision'), icon: ClipboardCheck } : null,
-    activeBelow ? { label: 'Przejdz do zespolu', hint: 'Wejdz do profili specjalistow z najslabszymi wynikami.', action: () => setView('team'), icon: Users } : null,
-    { label: 'Przejdz do dashboardu', hint: 'Zobacz trend i priorytety dla tego samego filtra.', action: () => setView('dashboard'), icon: TrendingUp },
+    activeReview ? { label: 'Przejdź do ewidencji', hint: 'Domknij statusy submitted i review z tego zakresu.', action: () => openRegistry('decision'), icon: ClipboardCheck } : null,
+    activeBelow ? { label: 'Przejdź do zespołu', hint: 'Wejdź do profili specjalistów z najsłabszymi wynikami.', action: () => setView('team'), icon: Users } : null,
+    { label: 'Przejdź do dashboardu', hint: 'Zobacz trend i priorytety dla tego samego filtra.', action: () => setView('dashboard'), icon: TrendingUp },
   ].filter(Boolean) as Array<{ label: string; hint: string; action: () => void; icon: typeof ClipboardCheck }>
 
   function exportSpecialistPdf() {
     if (!filters.specialist || filters.specialist === 'all') return
     const exported = printSpecialistProfileReport(filters.specialist, filtered)
-    setNotice(exported ? '' : 'Przegladarka zablokowala okno drukowania lub PDF.')
+    setNotice(exported ? '' : 'Przeglądarka zablokowała okno drukowania lub PDF.')
     if (exported) {
       recordDiagnostic({
         scope: 'reports',
@@ -182,9 +182,9 @@ export default function ReportsView({
               </table>
             </div>
           ) : (
-            <div className="empty-state">Brak danych dla aktualnego zestawu filtrow.</div>
+            <div className="empty-state">Brak danych dla aktualnego zestawu filtrów.</div>
           )}
-          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pelny zakres pobierzesz z eksportu.</p> : null}
+          {reportTable.rows.length > reportPreviewRows.length ? <p className="hint-text">Pokazano pierwsze {reportPreviewRows.length} wiersze. Pełny zakres pobierzesz z eksportu.</p> : null}
         </div>
       </section>
 
@@ -208,9 +208,15 @@ export default function ReportsView({
               </button>
             </div>
             <div className="report-actions">
-              <button className="ghost-btn" type="button" onClick={() => { exportTableCsv(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `CSV ${reportTable.rows.length} wierszy`, level: 'info' }) }}><Download size={16} /> Eksport CSV</button>
-              <button className="ghost-btn" type="button" onClick={() => { void exportTableExcel(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `XLSX ${reportTable.rows.length} wierszy`, level: 'info' }) }}><Download size={16} /> Eksport XLSX</button>
-              <button className="ghost-btn" type="button" onClick={() => { exportJson(filtered); recordDiagnostic({ scope: 'reports', action: 'export', detail: `JSON ${filtered.length} kart`, level: 'info' }) }}><Download size={16} /> Karty JSON</button>
+              <button className="ghost-btn" type="button" onClick={() => { exportTableCsv(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `CSV ${reportTable.rows.length} wierszy`, level: 'info' }) }}>
+                <Download size={16} /> Eksport CSV
+              </button>
+              <button className="ghost-btn" type="button" onClick={() => { void exportTableExcel(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `XLSX ${reportTable.rows.length} wierszy`, level: 'info' }) }}>
+                <Download size={16} /> Eksport XLSX
+              </button>
+              <button className="ghost-btn" type="button" onClick={() => { exportJson(filtered); recordDiagnostic({ scope: 'reports', action: 'export', detail: `JSON ${filtered.length} kart`, level: 'info' }) }}>
+                <Download size={16} /> Karty JSON
+              </button>
               {filters.specialist !== 'all' ? (
                 <button className="ghost-btn" type="button" onClick={exportSpecialistPdf}>
                   <FileText size={16} /> Raport PDF specjalisty
@@ -248,14 +254,23 @@ export default function ReportsView({
             </article>
           </section>
 
-        <section className="data-panel">
+          <section className="data-panel">
             <div className="section-title">
               <span>Liderzy</span>
               <small>agregacja w bieżącym filtrze</small>
             </div>
             <div className="table-wrap">
               <table className="data-table">
-                <thead><tr><th>Lider</th><th>Karty</th><th>Srednia</th><th>Bardzo dobry</th><th>Ponizej standardu</th><th>Do decyzji</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Lider</th>
+                    <th>Karty</th>
+                    <th>Średnia</th>
+                    <th>Bardzo dobry</th>
+                    <th>Poniżej standardu</th>
+                    <th>Do decyzji</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {byLeader.map((item) => (
                     <tr key={item.leader}>
@@ -272,11 +287,20 @@ export default function ReportsView({
             </div>
           </section>
 
-        <section className="data-panel">
+          <section className="data-panel">
             <div className="section-title"><span>Najniższe średnie</span><small>najsłabsze średnie w filtrze</small></div>
             <div className="table-wrap">
               <table className="data-table">
-                <thead><tr><th>Specjalista</th><th>Lider</th><th>Karty</th><th>Średnia</th><th>Ostatnia karta</th><th>Profil</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Specjalista</th>
+                    <th>Lider</th>
+                    <th>Karty</th>
+                    <th>Średnia</th>
+                    <th>Ostatnia karta</th>
+                    <th>Profil</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {bySpecialist.map((item) => (
                     <tr key={item.specialist}>

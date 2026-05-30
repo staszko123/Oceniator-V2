@@ -132,7 +132,7 @@ export function buildDemoAssessments(admin: AdminConfig): Assessment[] {
             status: cardIndex % 4 === 0 ? 'review' : cardIndex % 5 === 0 ? 'approved' : 'submitted',
             at: `${date}T09:00:00.000Z`,
             by: person.leader,
-            note: 'Utworzono kartÄ™ bazowÄ…',
+            note: 'Utworzono kartę bazową',
           },
         ],
         createdAt: `${date}T09:00:00.000Z`,

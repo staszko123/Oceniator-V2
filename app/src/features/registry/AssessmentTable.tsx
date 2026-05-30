@@ -1,14 +1,20 @@
-import { Edit3, Eye, FileText, Mail, MonitorCog, PhoneCall, ShieldCheck } from 'lucide-react'
-import { TYPE_LABELS } from '../../domain/defs'
+import { useMemo } from 'react'
+import type { ReactNode } from 'react'
+import type { Assessment, Role } from '../../domain/types'
 import { lastStatusEvent, shortDateTime } from '../../domain/history'
-import type { Assessment, AssessmentType } from '../../domain/types'
-import { scoreClass } from '../../lib/display'
-import { statusLabels } from './registryExports'
+import { TYPE_LABELS } from '../../domain/defs'
+import { assessmentTableColumnMap } from '../../config/tableColumnsConfig'
+import { buildAssessmentActions } from '../../config/tableActionsConfig'
+import { assessmentStatusConfig } from '../../config/status'
+import { DataTable } from '../../components/data-table/DataTable'
+import { useLanguage } from '../../i18n/LanguageContext'
 
-function typeIcon(type: AssessmentType) {
-  if (type === 'r') return <PhoneCall size={15} />
-  if (type === 'm') return <Mail size={15} />
-  return <MonitorCog size={15} />
+function statusLabel(assessment: Assessment, t: (key: string, fallback?: string) => string) {
+  return t(assessmentStatusConfig[assessment.status].labelKey, assessment.status)
+}
+
+function defaultSearchText(item: Assessment) {
+  return `${item.spec} ${item.stand} ${item.dzial} ${item.oce} ${item.period} ${item.data} ${TYPE_LABELS[item.type]} ${item.status}`.toLowerCase()
 }
 
 export function AssessmentTable({
@@ -25,6 +31,7 @@ export function AssessmentTable({
   allVisibleSelected = false,
   onToggleSelect,
   onToggleSelectAll,
+  role = 'viewer',
 }: {
   assessments: Assessment[]
   compact?: boolean
@@ -39,75 +46,125 @@ export function AssessmentTable({
   allVisibleSelected?: boolean
   onToggleSelect?: (id: string) => void
   onToggleSelectAll?: () => void
+  role?: Role
 }) {
-  if (!assessments.length) return <div className="empty-state">Brak danych dla aktualnych filtrow.</div>
-  const hasActions = Boolean(onPreview || onPrint || onEdit || onAdvance)
-  const showSelection = selectable && !compact
+  const { t } = useLanguage()
+  const specialistColumn = assessmentTableColumnMap.spec
+  const typeColumn = assessmentTableColumnMap.type
+  const periodColumn = assessmentTableColumnMap.period
+  const createdAtColumn = assessmentTableColumnMap.data
+  const scoreColumn = assessmentTableColumnMap.avgFinal
+
+  const columns = useMemo(() => {
+    const result: Array<{
+      key: string
+      label: string
+      sortable?: boolean
+      accessor?: (row: Assessment) => string | number | boolean | Date | null | undefined
+      render?: (row: Assessment) => ReactNode
+      exportValue?: (row: Assessment) => string | number | boolean | Date | null | undefined
+    }> = [
+      {
+        ...specialistColumn,
+        label: t('table.specialist'),
+      },
+      {
+        ...typeColumn,
+        label: t('table.type'),
+      },
+      {
+        ...periodColumn,
+        label: t('table.period'),
+      },
+      {
+        ...createdAtColumn,
+        label: t('table.createdAt'),
+      },
+    ]
+
+    if (!compact) {
+      result.push({
+        key: 'oce',
+        label: t('table.evaluator'),
+        sortable: true,
+        accessor: (row) => row.oce,
+      })
+    }
+
+    result.push({
+      ...scoreColumn,
+      label: t('table.score'),
+    })
+
+    result.push({
+      key: 'status',
+      label: t('table.status'),
+      sortable: true,
+      accessor: (row) => statusLabel(row, t),
+      render: (row) => <span className={`status ${row.status}`}>{statusLabel(row, t)}</span>,
+      exportValue: (row) => statusLabel(row, t),
+    })
+
+    if (!compact) {
+      result.push({
+        key: 'lastChange',
+        label: t('table.lastChange', 'Ostatnia zmiana'),
+        sortable: true,
+        accessor: (row) => lastStatusEvent(row)?.at || '',
+        render: (row) => {
+          const lastEvent = lastStatusEvent(row)
+          return (
+            <div className="table-meta">
+              <strong>{lastEvent ? shortDateTime(lastEvent.at) : '-'}</strong>
+              <small className="table-subline">
+                {lastEvent ? `${lastEvent.by || 'system'} • ${lastEvent.note}` : 'Brak historii zmian'}
+              </small>
+            </div>
+          )
+        },
+        exportValue: (row) => lastStatusEvent(row)?.at || '',
+      })
+    }
+
+    return result
+  }, [compact, createdAtColumn, periodColumn, scoreColumn, specialistColumn, t, typeColumn])
+
+  const actions = useMemo(() => buildAssessmentActions(
+    {
+      onPreview,
+      onPrint,
+      onEdit,
+      onAdvance,
+    },
+    {
+      canEdit: canEditItem,
+      canAdvance: canAdvanceItem,
+    },
+  ), [canAdvanceItem, canEditItem, onAdvance, onEdit, onPrint, onPreview])
+
+  if (!assessments.length) {
+    return <div className="empty-state">{t('table.noData')}</div>
+  }
 
   return (
-    <div className="table-wrap">
-      <table className="data-table">
-        <thead>
-          <tr>
-            {showSelection ? (
-              <th className="select-col">
-                <input checked={allVisibleSelected} onChange={() => onToggleSelectAll?.()} type="checkbox" aria-label="Zaznacz wszystkie widoczne karty" />
-              </th>
-            ) : null}
-            <th>Specjalista</th>
-            <th>Typ</th>
-            <th>Okres</th>
-            <th>Data</th>
-            {!compact ? <th>Oceniajacy</th> : null}
-            <th>Wynik</th>
-            <th>Status</th>
-            {!compact ? <th>Ostatnia zmiana</th> : null}
-            {hasActions ? <th>Akcje</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {assessments.map((item) => {
-            const lastEvent = lastStatusEvent(item)
-            const isSelected = selectedIds.includes(item.id)
-            return (
-              <tr key={item.id} className={isSelected ? 'selected-row' : ''}>
-                {showSelection ? (
-                  <td className="select-col">
-                    <input checked={isSelected} onChange={() => onToggleSelect?.(item.id)} type="checkbox" aria-label={`Zaznacz karte ${item.spec}`} />
-                  </td>
-                ) : null}
-                <td><strong>{item.spec}</strong><small>{item.dzial}</small></td>
-                <td><span className="type-badge">{typeIcon(item.type)} {TYPE_LABELS[item.type]}</span></td>
-                <td>{item.period}</td>
-                <td>{item.data}</td>
-                {!compact ? <td>{item.oce}</td> : null}
-                <td><span className={scoreClass(item.avgFinal)}>{item.avgFinal}%</span></td>
-                <td><span className={`status ${item.status}`}>{statusLabels[item.status]}</span></td>
-                {!compact ? (
-                  <td>
-                    <div className="table-meta">
-                      <strong>{lastEvent ? shortDateTime(lastEvent.at) : '-'}</strong>
-                      <small className="table-subline">
-                        {lastEvent ? `${lastEvent.by || 'system'} • ${lastEvent.note}` : 'Brak historii zmian'}
-                      </small>
-                    </div>
-                  </td>
-                ) : null}
-                {hasActions ? (
-                  <td>
-                    <div className="table-actions">
-                      {onPreview ? <button type="button" onClick={() => onPreview(item)} title="Podglad"><Eye size={15} /></button> : null}
-                      {onPrint ? <button type="button" onClick={() => onPrint(item)} title="Drukuj"><FileText size={15} /></button> : null}
-                      {onEdit && (!canEditItem || canEditItem(item)) ? <button type="button" onClick={() => onEdit(item)} title="Edytuj"><Edit3 size={15} /></button> : null}
-                      {onAdvance && (!canAdvanceItem || canAdvanceItem(item)) ? <button type="button" onClick={() => onAdvance(item)} title="Zmien status"><ShieldCheck size={15} /></button> : null}
-                    </div>
-                  </td>
-                ) : null}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      rows={assessments}
+      columns={columns}
+      getRowId={(row) => row.id}
+      role={role}
+      rowSearchText={defaultSearchText}
+      actions={actions}
+      compact={compact}
+      selectable={selectable}
+      selectedIds={selectedIds}
+      allVisibleSelected={allVisibleSelected}
+      onToggleSelect={onToggleSelect}
+      onToggleSelectAll={onToggleSelectAll}
+      onRowClick={onPreview}
+      exportFilePrefix="oceniator-ewidencja"
+      sheetName="Ewidencja"
+    />
   )
 }
+
+export default AssessmentTable

@@ -11,7 +11,7 @@ function roleLabel(role: UserProfile['role']): string {
   if (role === 'admin') return 'Administrator'
   if (role === 'director') return 'Dyrektor'
   if (role === 'leader') return 'Lider'
-  if (role === 'assessor') return 'Oceniajacy'
+  if (role === 'assessor') return 'Oceniający'
   return 'Specjalista'
 }
 
@@ -51,13 +51,13 @@ export default function StartView({
     {
       label: 'Do decyzji',
       value: decisionCount,
-      hint: 'Karty wymagajace decyzji lub review.',
+      hint: 'Karty wymagające decyzji lub review.',
       action: () => openRegistry('decision'),
     },
     {
       label: 'Ryzyka do sprawdzenia',
       value: lowScores,
-      hint: 'Karty ponizej standardu do szybkiej kontroli.',
+      hint: 'Karty poniżej standardu do szybkiej kontroli.',
       action: () => setView('dashboard'),
     },
   ].filter((item) => item.value > 0) as Array<{ label: string; value: number; hint: string; action: () => void }>
@@ -66,8 +66,11 @@ export default function StartView({
     <main className="screen start-screen">
       <section className="start-hero-grid">
         <div className="hero-panel">
-          <div className="section-title"><span>Start dnia</span><small>{new Date().toLocaleDateString('pl-PL')}</small></div>
-          <h1>Najpierw zobacz, co wymaga decyzji. Potem przejdz do nowej oceny albo dalszej pracy.</h1>
+          <div className="section-title">
+            <span>Start dnia</span>
+            <small>{new Date().toLocaleDateString('pl-PL')}</small>
+          </div>
+          <h1>Najpierw zobacz, co wymaga decyzji. Potem przejdź do nowej oceny albo dalszej pracy.</h1>
           <div className="quick-actions">
             {canCreateRole(user.role) ? <button className="primary-btn" onClick={() => setView('form')} type="button"><Plus size={16} /> Nowa ocena</button> : null}
             <button className="ghost-btn" onClick={() => openRegistry('all')} type="button"><ClipboardCheck size={16} /> Ewidencja</button>
@@ -75,11 +78,11 @@ export default function StartView({
           <div className="hero-inline-note">
             <span>Rola robocza: {roleLabel(user.role)}</span>
             <strong>{user.fullName}</strong>
-            <small className="hero-inline-meta">{decisionCount ? `${decisionCount} kart czeka na decyzje lub review` : 'Brak kart wymagajacych decyzji w tym momencie'}</small>
+            <small className="hero-inline-meta">{decisionCount ? `${decisionCount} kart czeka na decyzję lub review` : 'Brak kart wymagających decyzji w tym momencie'}</small>
           </div>
         </div>
-        <div className="metric-panel"><span>Karty do pracy</span><strong>{active.length}</strong><small>aktualny obieg dla tej roli</small></div>
-        <div className="metric-panel"><span>Do decyzji</span><strong>{decisionCount}</strong><small>Karty wymagajace decyzji lub review.</small></div>
+        <div className="metric-panel"><span>Karty do pracy</span><strong>{active.length}</strong><small>Aktualny obieg dla tej roli</small></div>
+        <div className="metric-panel"><span>Do decyzji</span><strong>{decisionCount}</strong><small>Karty wymagające decyzji lub review.</small></div>
         <div className="metric-panel"><span>Poniżej standardu</span><strong>{lowScores}</strong><small>Karty do szybkiego sprawdzenia.</small></div>
       </section>
 
@@ -99,7 +102,7 @@ export default function StartView({
               ))}
             </div>
           ) : (
-            <div className="empty-state compact-empty">Brak pilnych zadan operacyjnych dla aktualnego zakresu.</div>
+            <div className="empty-state compact-empty">Brak pilnych zadań operacyjnych dla aktualnego zakresu.</div>
           )}
         </div>
 
@@ -152,7 +155,7 @@ export default function StartView({
 
         <div className="section-title nested">
           <span>Zapisane szkice</span>
-          <small>{savedDrafts.length ? `${savedDrafts.length} aktywne` : 'brak aktywnych szkicow'}</small>
+          <small>{savedDrafts.length ? `${savedDrafts.length} aktywne` : 'brak aktywnych szkiców'}</small>
         </div>
         {savedDrafts.length ? (
           <div className="draft-grid">
@@ -166,20 +169,20 @@ export default function StartView({
                 <p>{draft.summary || `${draft.contactCount} kontakt(y), okres ${draft.period || '-'}`}</p>
                 <div className="draft-card-meta">
                   <span>{draft.position || 'Brak stanowiska'}</span>
-                  <span>{draft.department || 'Brak dzialu'}</span>
+                  <span>{draft.department || 'Brak działu'}</span>
                 </div>
                 <div className="draft-card-actions">
                   <button className="primary-btn" type="button" onClick={() => onResumeDraft(type)}>
-                    <RotateCcw size={15} /> Wznow szkic
+                    <RotateCcw size={15} /> Wznów szkic
                   </button>
                   <button className="ghost-btn" type="button" onClick={() => onClearDraft(type)}>
-                    <Trash2 size={15} /> Wyczysc
+                    <Trash2 size={15} /> Wyczyść
                   </button>
                 </div>
               </article>
             ))}
           </div>
-        ) : <div className="empty-state">Brak zapisanych szkicow. Formularz zapisuje postep lokalnie przy kazdej zmianie.</div>}
+        ) : <div className="empty-state">Brak zapisanych szkiców. Formularz zapisuje postęp lokalnie przy każdej zmianie.</div>}
 
         <div className="section-title nested">
           <span>Ostatnie karty</span>
