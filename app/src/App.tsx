@@ -1,5 +1,5 @@
 ﻿import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { BarChart3, ClipboardCheck, Database, FileBarChart, LayoutDashboard,  Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sun, Users } from 'lucide-react'
+import { BarChart3, ClipboardCheck, Database, FileBarChart, Layers3, LayoutDashboard, Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sparkles, Sun, Users } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
 import { buildDemoAdmin } from './data/seed'
@@ -82,7 +82,13 @@ function LoginScreen({
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [introDone, setIntroDone] = useState(false)
   const { theme, toggleTheme } = useTheme()
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIntroDone(true), 5800)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -112,6 +118,26 @@ function LoginScreen({
   return (
     <main className="login-page">
       <section className="login-hero">
+        <div className={`login-intro ${introDone ? 'done' : ''}`} aria-hidden="true">
+          <div className="login-orb orb-a" />
+          <div className="login-orb orb-b" />
+          <div className="login-orb orb-c" />
+          <div className="login-wave" />
+          <div className="login-liquid-card glass-card one">
+            <span><Sparkles size={14} /> Liquid glass</span>
+            <strong>Material start</strong>
+            <small>Miękki ruch, szkło i płynne przejścia.</small>
+          </div>
+          <div className="login-liquid-card glass-card two">
+            <span><Layers3 size={14} /> Portal quality</span>
+            <strong>Ocena i ewidencja</strong>
+            <small>Jedno wejście, jeden rytm pracy.</small>
+          </div>
+          <div className="login-liquid-signal">
+            <i />
+            <span>Start sesji</span>
+          </div>
+        </div>
         <div className="brand-mark">
           <span />
           <div>
@@ -127,9 +153,9 @@ function LoginScreen({
             {'Wchodzisz do aplikacji bez marketingowego ha\u0142asu i bez dodatkowych ekran\u00F3w po drodze.'}
           </p>
           <div className="login-points">
-            <div className="login-point"><ShieldCheck size={16} /> <span>Role i zakresy dost\u0119pu</span></div>
+            <div className="login-point"><ShieldCheck size={16} /> <span>Role i zakresy dostępu</span></div>
             <div className="login-point"><Database size={16} /> <span>Supabase albo lokalne demo</span></div>
-            <div className="login-point"><PanelRight size={16} /> <span>Jeden login, szybkie wej\u015Bcie</span></div>
+            <div className="login-point"><PanelRight size={16} /> <span>Jeden login, szybkie wejście</span></div>
           </div>
         </div>
       </section>
