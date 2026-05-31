@@ -92,15 +92,15 @@ export default function ReportsView({
   const goalGap = activeAvg - 82
 
   const exportReadiness = [
-    activeReview ? { label: t('registry.onlyDecision', 'Do decyzji'), value: activeReview, hint: t('report.reviewHint', 'Karty do domknięcia review.') } : null,
+    activeReview ? { label: t('registry.onlyDecision', 'Do decyzji'), value: activeReview, hint: t('report.reviewHint', 'Karty do domknięcia weryfikacji.') } : null,
     activeBelow ? { label: t('report.belowStandard', 'Poniżej standardu'), value: activeBelow, hint: t('report.belowHint', 'Lista do feedbacku i korekty.') } : null,
     activeGreat ? { label: t('report.great', 'Bardzo dobry'), value: activeGreat, hint: t('report.greatHint', 'Mocne przykłady do kalibracji.') } : null,
   ].filter(Boolean) as Array<{ label: string; value: number; hint: string }>
 
   const reportActions = [
-    activeReview ? { label: t('report.goRegistry', 'Przejdź do ewidencji'), hint: t('report.registryHint', 'Domknij statusy submitted i review z tego zakresu.'), action: () => openRegistry('decision'), icon: ClipboardCheck } : null,
+    activeReview ? { label: t('report.goRegistry', 'Przejdź do ewidencji'), hint: t('report.registryHint', 'Domknij statusy do weryfikacji z tego zakresu.'), action: () => openRegistry('decision'), icon: ClipboardCheck } : null,
     activeBelow ? { label: t('report.goTeam', 'Przejdź do zespołu'), hint: t('report.teamHint', 'Wejdź do profili specjalistów z najsłabszymi wynikami.'), action: () => setView('team'), icon: Users } : null,
-    { label: t('report.goDashboard', 'Przejdź do dashboardu'), hint: t('report.dashboardHint', 'Zobacz trend i priorytety dla tego samego filtra.'), action: () => setView('dashboard'), icon: TrendingUp },
+    { label: t('report.goDashboard', 'Przejdź do analityki'), hint: t('report.dashboardHint', 'Zobacz trend i priorytety dla tego samego filtra.'), action: () => setView('dashboard'), icon: TrendingUp },
   ].filter(Boolean) as Array<{ label: string; hint: string; action: () => void; icon: typeof ClipboardCheck }>
 
   function exportSpecialistPdf() {
@@ -211,17 +211,17 @@ export default function ReportsView({
             </div>
             <div className="report-actions">
               <button className="ghost-btn" type="button" onClick={() => { exportTableCsv(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `CSV ${reportTable.rows.length} wierszy`, level: 'info' }) }}>
-                <Download size={16} /> {t('report.exportCsv', 'Eksport CSV')}
+                <Download size={16} /> {t('report.exportCsv', 'Pobierz CSV')}
               </button>
               <button className="ghost-btn" type="button" onClick={() => { void exportTableExcel(reportTable); recordDiagnostic({ scope: 'reports', action: 'export', detail: `XLSX ${reportTable.rows.length} wierszy`, level: 'info' }) }}>
-                <Download size={16} /> {t('report.exportXlsx', 'Eksport XLSX')}
+                <Download size={16} /> {t('report.exportXlsx', 'Pobierz XLSX')}
               </button>
               <button className="ghost-btn" type="button" onClick={() => { exportJson(filtered); recordDiagnostic({ scope: 'reports', action: 'export', detail: `JSON ${filtered.length} kart`, level: 'info' }) }}>
-                <Download size={16} /> {t('report.exportJson', 'Karty JSON')}
+                <Download size={16} /> {t('report.exportJson', 'Pobierz JSON')}
               </button>
               {filters.specialist !== 'all' ? (
                 <button className="ghost-btn" type="button" onClick={exportSpecialistPdf}>
-                  <FileText size={16} /> {t('report.specialistPdf', 'Raport PDF specjalisty')}
+                  <FileText size={16} /> {t('report.specialistPdf', 'Pobierz raport specjalisty')}
                 </button>
               ) : null}
             </div>

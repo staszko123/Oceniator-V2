@@ -13,7 +13,7 @@ export const ROLE_LABELS: Record<UserProfile['role'], string> = {
   admin: 'Administrator',
   director: 'Dyrektor',
   leader: 'Lider',
-  assessor: 'Oceniajacy',
+  assessor: 'Oceniający',
   viewer: 'Specjalista',
 }
 

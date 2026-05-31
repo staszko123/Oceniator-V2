@@ -35,6 +35,7 @@ export default function TeamView({
   onStartAssessmentForSpecialist?: (name: string) => void
 }) {
   const { t } = useLanguage()
+  const teamTitle = user.role === 'assessor' ? t('team.assessorTitle', 'Assessor scope') : t('team.title')
   const leaderOptions = useMemo(() => {
     if (canCompareLeadersRole(user.role)) return admin.leaders
     return [user.leaderScope].filter(Boolean)
@@ -109,7 +110,7 @@ export default function TeamView({
     <main className="screen">
       <section className="team-hero data-panel">
         <div className="team-hero-copy">
-          <div className="section-title"><span>{t('team.title')}</span><small>{activeLeader || t('team.fullScope', 'Pełny zakres')}</small></div>
+          <div className="section-title"><span>{teamTitle}</span><small>{activeLeader || t('team.fullScope', 'Pełny zakres')}</small></div>
           <h1>{t('team.hero')}</h1>
           <p>{t('team.heroHint')}</p>
           <div className="status-chips">

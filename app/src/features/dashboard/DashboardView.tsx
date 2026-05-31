@@ -116,7 +116,7 @@ export default function DashboardView({
   const extraPanels = visiblePanels.filter((item) => item !== 'trend' && item !== 'lowScores')
 
   const dashboardPriorities = [
-    reviewCount ? { label: t('registry.onlyDecision', 'Do decyzji'), value: reviewCount, hint: t('dashboard.priorityReviewHint', 'Najpierw domknij submitted i review.'), tone: 'alert', suffix: '', action: () => openRegistry('decision') } : null,
+    reviewCount ? { label: t('registry.onlyDecision', 'Do decyzji'), value: reviewCount, hint: t('dashboard.priorityReviewHint', 'Najpierw domknij karty do decyzji i weryfikacji.'), tone: 'alert', suffix: '', action: () => openRegistry('decision') } : null,
     belowCount ? { label: t('dashboard.belowStandard', 'Poniżej standardu'), value: belowCount, hint: t('dashboard.priorityBelowHint', 'To naturalna lista do feedbacku i kalibracji.'), tone: 'risk', suffix: '', action: () => setView('team') } : null,
     goalGap < 0 ? { label: t('dashboard.belowGoal', 'Pod celem'), value: Math.abs(goalGap), hint: t('dashboard.priorityGoalHint', 'Średnia jest poniżej celu o tyle punktów procentowych.'), tone: 'risk', suffix: ' pp', action: () => setView('reports') } : null,
     active.length ? { label: t('dashboard.greatShare', 'Bardzo dobry'), value: greatShare, hint: t('dashboard.priorityGreatHint', `Udział wysokich wyników w aktywnym filtrze. Cel ${goals.greatShare}%.`), tone: 'positive', suffix: '%', action: () => setView('reports') } : null,

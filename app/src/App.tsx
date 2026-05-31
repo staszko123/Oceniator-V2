@@ -1,9 +1,9 @@
 ﻿import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { BarChart3, ClipboardCheck, FileBarChart, LayoutDashboard, LogIn, PhoneCall, Settings, ShieldCheck, Users } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
 import { createProvider, SupabaseDataProvider } from './data/supabaseProvider'
-import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
+import { canAdminRole, canCreateRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
@@ -20,26 +20,17 @@ import type {
 } from './domain/types'
 import type { DashboardPrefs } from './config/dashboard'
 import { defaultDashboardPrefs, normalizeDashboardPrefs } from './config/dashboard'
+import { navigationConfig, type ViewKey } from './config/navigation'
+import { hasPermission } from './config/permissions'
 import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
 import { useLanguage } from './i18n/LanguageContext'
 import { setProviderMode, setThemePreference } from './services/settingsService'
 import './index.css'
 
-type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 type RegistryIntentPreset = 'all' | 'decision' | 'recent' | 'edited'
 const LOGIN_TRANSITION_KEY = 'oceniator.loginTransition'
 const LOGIN_TRANSITION_MS = 920
-
-const navItems: Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboard }> = [
-  { key: 'start', label: 'G\u0142\u00F3wna', icon: LayoutDashboard },
-  { key: 'form', label: 'Ocena rozm\u00F3w', icon: PhoneCall },
-  { key: 'team', label: 'M\u00F3j zesp\u00F3\u0142', icon: Users },
-  { key: 'registry', label: 'Ewidencja', icon: ClipboardCheck },
-  { key: 'dashboard', label: 'Analityka', icon: BarChart3 },
-  { key: 'reports', label: 'Raporty', icon: FileBarChart },
-  { key: 'admin', label: 'Administracja', icon: Settings },
-]
 
 
 function createUnavailableAdminConfig(): AdminConfig {
@@ -87,21 +78,24 @@ function preloadView(view: ViewKey) {
   void lazyViewLoaders[view]?.()
 }
 
-function availableNavItems(user: UserProfile): typeof navItems {
+function availableNavItems(user: UserProfile, t: (key: string, fallback?: string) => string) {
   if (isViewerRole(user.role)) {
-    const startItem = navItems.find((item) => item.key === 'start')
-    const registryItem = navItems.find((item) => item.key === 'registry')
-    return [
-      startItem ? { ...startItem, label: 'Mój portal', icon: ShieldCheck } : null,
-      registryItem ? { ...registryItem, label: 'Moje oceny' } : null,
-    ].filter((item): item is (typeof navItems)[number] => Boolean(item))
+    return navigationConfig
+      .filter((item) => item.key === 'start' || item.key === 'registry')
+      .map((item) => ({
+        key: item.key,
+        label: t(item.viewerLabelKey || item.labelKey),
+        icon: item.icon,
+      }))
   }
-  return navItems.filter((item) => {
-    if (item.key === 'form') return canCreateRole(user.role)
-    if (item.key === 'team') return canViewTeamRole(user.role)
-    if (item.key === 'admin') return canAdminRole(user.role)
-    return true
-  })
+
+  return navigationConfig
+    .filter((item) => !item.permission || hasPermission(user.role, item.permission))
+    .map((item) => ({
+      key: item.key,
+      label: t(item.labelKey),
+      icon: item.icon,
+    }))
 }
 
 function LoginScreen({
@@ -159,6 +153,7 @@ function LoginScreen({
 
   return (
     <main className={'login-page' + (transitioning ? ' is-transitioning' : '')}>
+      <img className="login-logo" src="/oceniator-logo-simple.png" alt="Logo Oceniator" />
       <div className={'login-transition' + (transitioning ? ' is-active' : '')} aria-hidden="true">
         <div className="login-transition-sweep" />
         <div className="login-transition-portal" />
@@ -179,7 +174,7 @@ function LoginScreen({
       </div>
       <section className="login-shell">
         <div className="brand-mark">
-          <strong>{t('login.brand.title', 'Portal jako?ci')}</strong>
+          <strong>{t('login.brand.title', 'Portal jakości')}</strong>
         </div>
         <section className="login-card">
           {provider.mode === 'supabase' ? (
@@ -196,27 +191,27 @@ function LoginScreen({
                 <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" autoFocus />
               </label>
               <label>
-                <span>{t('login.password', 'Has?o')}</span>
+                <span>{t('login.password', 'Hasło')}</span>
                 <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
               </label>
               {error ? <div className="error-box">{error}</div> : null}
               <button className="primary-btn" disabled={busy} type="submit">
-                {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj si?')}
+                {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj się')}
               </button>
             </form>
           )}
           {provider.mode === 'local' && supabaseAvailable ? (
             <div className="login-footer">
               <button className="ghost-btn wide" type="button" disabled={busy} onClick={onUseSupabase}>
-                {t('login.switchToGoogle', 'Wr?? do logowania Google')}
+                {t('login.switchToGoogle', 'Wróć do logowania Google')}
               </button>
             </div>
           ) : null}
         </section>
       </section>
       <div className="login-watermark" aria-hidden="true">
-        <span>? 2026 Portal jako?ci</span>
-        <small>W?asna praca</small>
+        <span>© 2026 Jakub Stachura</span>
+        <small>Własna praca</small>
       </div>
     </main>
   )
@@ -387,7 +382,7 @@ function App() {
     refreshDiagnostics({
       scope: 'auth',
       action: 'sign-out',
-      detail: 'Wylogowano uzytkownika',
+      detail: 'Wylogowano użytkownika',
       level: 'info',
     })
   }
@@ -575,7 +570,7 @@ function App() {
     refreshDiagnostics({
       scope: 'admin',
       action: 'save-config',
-      detail: 'Zapisano konfiguracje administratora',
+      detail: 'Zapisano konfigurację administratora',
       level: 'success',
     })
   }
@@ -595,7 +590,7 @@ function App() {
   }
 
   async function createManagedUser(nextUser: ManagedUser): Promise<ManagedUser> {
-    if (!provider.createUser) throw new Error('Provider nie obsluguje tworzenia uzytkownikow.')
+    if (!provider.createUser) throw new Error('Provider nie obsługuje tworzenia użytkowników.')
     const created = await provider.createUser(nextUser)
     setUsers(prependManagedUser(users, created))
     refreshDiagnostics({
@@ -655,7 +650,7 @@ function App() {
   const activeDraft = formDraftOverride?.type === activeType
     ? formDraftOverride
     : drafts[activeType] || createDraft(activeType)
-  const visibleNavItems = availableNavItems(user)
+  const visibleNavItems = availableNavItems(user, t)
   const effectiveView = visibleNavItems.some((item) => item.key === view) ? view : 'start'
 
   return (

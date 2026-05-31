@@ -55,6 +55,7 @@ export const rolePermissions: Record<Role, Permission[]> = {
     'evaluations.edit',
     'evaluations.export',
     'specialists.read',
+    'teams.read',
     'notifications.read',
   ],
   viewer: [
@@ -69,4 +70,3 @@ export const rolePermissions: Record<Role, Permission[]> = {
 export function hasPermission(role: Role, permission: Permission): boolean {
   return rolePermissions[role]?.includes(permission) ?? false
 }
-

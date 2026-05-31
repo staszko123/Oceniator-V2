@@ -12,15 +12,15 @@ export function hasRole(role: Role, allowedRoles: ReadonlyArray<Role>): boolean 
 }
 
 export function canCreateRole(role: Role): boolean {
-  return hasRole(role, OPERATIONAL_ROLES)
+  return hasPermissionConfig(role, 'evaluations.create')
 }
 
 export function canAdminRole(role: Role): boolean {
-  return hasRole(role, ADMIN_ROLES)
+  return hasPermissionConfig(role, 'settings.edit')
 }
 
 export function canViewTeamRole(role: Role): boolean {
-  return hasRole(role, TEAM_ROLES)
+  return hasPermissionConfig(role, 'teams.read')
 }
 
 export function isViewerRole(role: Role): boolean {
@@ -28,7 +28,7 @@ export function isViewerRole(role: Role): boolean {
 }
 
 export function canCompareLeadersRole(role: Role): boolean {
-  return role === 'admin' || role === 'director'
+  return hasPermissionConfig(role, 'users.read') && hasPermissionConfig(role, 'settings.edit')
 }
 
 export function canAdvanceAssessmentStatusRole(role: Role): boolean {

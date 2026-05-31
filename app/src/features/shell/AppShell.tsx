@@ -151,7 +151,7 @@ export default function AppShell({
       <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
         <div className="sidebar-head">
           <div className="brand-block">
-            <span className="logo-box" />
+            <img className="brand-logo" src="/oceniator-logo-simple.png" alt="" aria-hidden="true" />
             <div className="brand-copy">
               <strong>Oceniator</strong>
               <small>{t('app.brand.subtitle', 'System jakosci')}</small>

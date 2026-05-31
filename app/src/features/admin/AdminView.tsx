@@ -13,9 +13,9 @@ type AdminSection = 'goals' | 'dictionaries' | 'specialists' | 'users' | 'period
 function buildAdminSections(t: (key: string, fallback?: string) => string): Array<{ key: AdminSection; label: string; description: string }> {
   return [
     { key: 'goals', label: t('admin.sections.goals.label', 'Cele'), description: t('admin.sections.goals.description', 'Progi, wolumeny i KPI okresowe.') },
-    { key: 'dictionaries', label: t('admin.sections.dictionaries.label', 'Slowniki'), description: t('admin.sections.dictionaries.description', 'Liderzy, dzialy i stanowiska.') },
-    { key: 'specialists', label: t('admin.sections.specialists.label', 'Specjalisci'), description: t('admin.sections.specialists.description', 'Zakresy operacyjne i przypisania.') },
-    { key: 'users', label: t('admin.sections.users.label', 'Uzytkownicy'), description: t('admin.sections.users.description', 'Role, dostepy i nowe konta.') },
+    { key: 'dictionaries', label: t('admin.sections.dictionaries.label', 'Słowniki'), description: t('admin.sections.dictionaries.description', 'Liderzy, działy i stanowiska.') },
+    { key: 'specialists', label: t('admin.sections.specialists.label', 'Specjaliści'), description: t('admin.sections.specialists.description', 'Zakresy operacyjne i przypisania.') },
+    { key: 'users', label: t('admin.sections.users.label', 'Użytkownicy'), description: t('admin.sections.users.description', 'Role, dostępy i nowe konta.') },
     { key: 'periods', label: t('admin.sections.periods.label', 'Okresy'), description: t('admin.sections.periods.description', 'Okna rozliczeniowe i nazewnictwo.') },
   ]
 }
@@ -137,9 +137,9 @@ export default function AdminView({
   const canCreateUser = isSupabaseMode
     ? Boolean((newUser.email || '').trim())
     : Boolean((newUser.email || '').trim() || (newUser.login || '').trim())
-  const pendingBadges = [configDirty ? t('admin.pending.config', 'konfiguracja') : null, usersDirty ? t('admin.pending.users', 'uzytkownicy') : null].filter(Boolean) as string[]
+  const pendingBadges = [configDirty ? t('admin.pending.config', 'konfiguracja') : null, usersDirty ? t('admin.pending.users', 'użytkownicy') : null].filter(Boolean) as string[]
   const summaryStats = [
-    `${t('admin.summary.specialists', 'Specjalisci')}: ${draftAdmin.specialists.length}`,
+    `${t('admin.summary.specialists', 'Specjaliści')}: ${draftAdmin.specialists.length}`,
     `${t('admin.summary.active', 'Aktywni')}: ${draftAdmin.specialists.filter((item) => item.active).length}`,
     `${t('admin.summary.accounts', 'Konta')}: ${draftUsers.length}`,
     `${t('admin.summary.periods', 'Okresy')}: ${draftAdmin.periods.length}`,
@@ -149,7 +149,7 @@ export default function AdminView({
   if (!canAdminRole(user.role)) {
     return (
       <main className="screen">
-        <div className="empty-state">{t('admin.noAccess', 'Brak dostepu do panelu administratora dla tej roli.')}</div>
+        <div className="empty-state">{t('admin.noAccess', 'Brak dostępu do panelu administratora dla tej roli.')}</div>
       </main>
     )
   }
@@ -168,9 +168,9 @@ export default function AdminView({
     try {
       await onAdminChange(next)
       setDraftAdmin(next)
-      setNotice(`${t('admin.savedConfig', 'Zapisano konfiguracje')} ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
+      setNotice(`${t('admin.savedConfig', 'Zapisano konfigurację')} ${new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`)
     } catch (error) {
-      setNotice(getErrorMessage(error, t('admin.saveConfigError', 'Nie udalo sie zapisac konfiguracji.')))
+      setNotice(getErrorMessage(error, t('admin.saveConfigError', 'Nie udało się zapisać konfiguracji.')))
     }
   }
 
@@ -181,9 +181,9 @@ export default function AdminView({
       await onUserSave(selectedUser)
       if (isSelfDeactivation) return
       setDraftUsers((current) => current.map((item) => (item.id === selectedUser.id ? { ...selectedUser } : item)))
-      setNotice(`${t('admin.savedUser', 'Zapisano uzytkownika')} ${selectedUser.email || selectedUser.login}`)
+      setNotice(`${t('admin.savedUser', 'Zapisano użytkownika')} ${selectedUser.email || selectedUser.login}`)
     } catch (error) {
-      setNotice(getErrorMessage(error, t('admin.saveUserError', 'Nie udalo sie zapisac uzytkownika.')))
+      setNotice(getErrorMessage(error, t('admin.saveUserError', 'Nie udało się zapisać użytkownika.')))
     }
   }
 
@@ -195,7 +195,7 @@ export default function AdminView({
       id: newUser.id || login || newUser.email,
       login,
       email: newUser.email || `${login}@local`,
-      fullName: newUser.fullName || newUser.email || login || 'Nowy uzytkownik',
+      fullName: newUser.fullName || newUser.email || login || 'Nowy użytkownik',
       password: isSupabaseMode ? (newUser.password || '') : (newUser.password || 'start123'),
       source: user.source,
     }
@@ -205,9 +205,9 @@ export default function AdminView({
       setSelectedUserId(saved.id)
       setNewUser({ ...newUser, id: '', email: '', login: '', fullName: '', password: '', role: 'viewer', leaderScope: '', isActive: true })
       setSelectedSection('users')
-      setNotice(`${t('admin.createdUser', 'Dodano uzytkownika')} ${saved.email || saved.login}`)
+      setNotice(`${t('admin.createdUser', 'Dodano użytkownika')} ${saved.email || saved.login}`)
     } catch (error) {
-      setNotice(getErrorMessage(error, t('admin.createUserError', 'Nie udalo sie utworzyc uzytkownika.')))
+      setNotice(getErrorMessage(error, t('admin.createUserError', 'Nie udało się utworzyć użytkownika.')))
     }
   }
 
@@ -227,7 +227,7 @@ export default function AdminView({
   }
 
   function removeDictionary(kind: 'leaders' | 'departments' | 'positions', value: string) {
-    if (typeof window !== 'undefined' && !window.confirm(t('admin.confirm.removeDictionary', 'Usunac wartosc "{value}" ze slownika?').replace('{value}', value))) return
+    if (typeof window !== 'undefined' && !window.confirm(t('admin.confirm.removeDictionary', 'Usunąć wartość "{value}" ze słownika?').replace('{value}', value))) return
     setDraftAdmin({
       ...draftAdmin,
       [kind]: draftAdmin[kind].filter((item) => item !== value),
@@ -250,7 +250,7 @@ export default function AdminView({
 
   function removeSpecialist(id: string) {
     const specialist = draftAdmin.specialists.find((item) => item.id === id)
-    if (typeof window !== 'undefined' && !window.confirm(t('admin.confirm.removeSpecialist', 'Usunac specjaliste "{name}" z listy?').replace('{name}', specialist?.name || t('admin.specialist.unnamed', 'bez nazwy')))) return
+    if (typeof window !== 'undefined' && !window.confirm(t('admin.confirm.removeSpecialist', 'Usunąć specjalistę "{name}" z listy?').replace('{name}', specialist?.name || t('admin.specialist.unnamed', 'bez nazwy')))) return
     const next = draftAdmin.specialists.filter((item) => item.id !== id)
     setDraftAdmin({ ...draftAdmin, specialists: next })
     setSelectedSpecialistId(next[0]?.id || '')
@@ -274,7 +274,7 @@ export default function AdminView({
 
   function removePeriod(index: number) {
     const period = draftAdmin.periods[index]
-    if (typeof window !== 'undefined' && !window.confirm(t('admin.confirm.removePeriod', 'Usunac okres "{name}"?').replace('{name}', period?.name || period?.code || String(index + 1)))) return
+    if (typeof window !== 'undefined' && !window.confirm(t('admin.confirm.removePeriod', 'Usunąć okres "{name}"?').replace('{name}', period?.name || period?.code || String(index + 1)))) return
     setDraftAdmin({ ...draftAdmin, periods: draftAdmin.periods.filter((_, itemIndex) => itemIndex !== index) })
   }
 
@@ -282,14 +282,14 @@ export default function AdminView({
     <main className="screen admin-screen">
       <section className="admin-hero data-panel">
         <div>
-          <div className="section-title"><span>{t('admin.title', 'Panel administratora')}</span><small>{notice || t('admin.subtitle', 'Konfiguracja slownikow, celow i dostepow')}</small></div>
-          <p className="hint-text">{t('admin.hint', 'Ten widok zasila formularz oceny, zakresy liderow, okresy i konta. Zapis jest jawny, zeby ograniczyc przypadkowe zmiany.')}</p>
+          <div className="section-title"><span>{t('admin.title', 'Panel administratora')}</span><small>{notice || t('admin.subtitle', 'Konfiguracja słowników, celów i dostępów')}</small></div>
+          <p className="hint-text">{t('admin.hint', 'Ten widok zasila formularz oceny, zakresy liderów, okresy i konta. Zapis jest jawny, żeby ograniczyć przypadkowe zmiany.')}</p>
           <div className="status-chips">
             {summaryStats.map((item) => <span className="status-chip neutral" key={item}>{item}</span>)}
-            {pendingBadges.length ? pendingBadges.map((item) => <span className="status-chip" key={item}>{t('admin.pendingPrefix', 'Niezapisane')}: {item}</span>) : <span className="status-chip success">{t('admin.noPending', 'Brak oczekujacych zmian')}</span>}
+            {pendingBadges.length ? pendingBadges.map((item) => <span className="status-chip" key={item}>{t('admin.pendingPrefix', 'Niezapisane')}: {item}</span>) : <span className="status-chip success">{t('admin.noPending', 'Brak oczekujących zmian')}</span>}
           </div>
         </div>
-        <button className="primary-btn" disabled={!configDirty} onClick={saveGoals} type="button"><Save size={16} /> {t('admin.saveConfig', 'Zapisz konfiguracje')}</button>
+        <button className="primary-btn" disabled={!configDirty} onClick={saveGoals} type="button"><Save size={16} /> {t('admin.saveConfig', 'Zapisz konfigurację')}</button>
       </section>
 
       <section className="admin-section-nav data-panel">
@@ -311,8 +311,8 @@ export default function AdminView({
       <section className="admin-change-bar">
         <div className="admin-change-copy">
           <span className="admin-change-kicker">{t('admin.workState', 'Stan roboczy')}</span>
-          <strong>{pendingBadges.length ? t('admin.hasPending', `Masz ${pendingBadges.length} obszary z niezapisanymi zmianami`).replace('{count}', String(pendingBadges.length)) : t('admin.allSaved', 'Wszystkie zmiany sa zapisane')}</strong>
-          <p>{selectedSection === 'users' ? t('admin.workStateUsers', 'Zmiany uzytkownikow zapisujesz osobno na poziomie wybranego konta.') : t('admin.workStateOther', 'Zmiany konfiguracji slownikow, specjalistow i okresow zapisz jednym przyciskiem z naglowka.')}</p>
+          <strong>{pendingBadges.length ? t('admin.hasPending', `Masz ${pendingBadges.length} obszary z niezapisanymi zmianami`).replace('{count}', String(pendingBadges.length)) : t('admin.allSaved', 'Wszystkie zmiany są zapisane')}</strong>
+          <p>{selectedSection === 'users' ? t('admin.workStateUsers', 'Zmiany użytkowników zapisujesz osobno na poziomie wybranego konta.') : t('admin.workStateOther', 'Zmiany konfiguracji słowników, specjalistów i okresów zapisz jednym przyciskiem z nagłówka.')}</p>
         </div>
         {pendingBadges.length ? (
           <div className="admin-change-warning">
@@ -362,13 +362,13 @@ export default function AdminView({
             ))}
           </div>
         ) : (
-          <div className="empty-state compact-empty">{t('admin.diagnosticsEmpty', 'Brak zapisanych zdarzen diagnostycznych.')}</div>
+          <div className="empty-state compact-empty">{t('admin.diagnosticsEmpty', 'Brak zapisanych zdarzeń diagnostycznych.')}</div>
         )}
       </section>
 
       {selectedSection === 'goals' ? (
         <section className="data-panel">
-          <div className="section-title"><span>{t('admin.goalsTitle', 'Cele jakosciowe')}</span><small>{t('admin.goalsSubtitle', 'progi i wolumeny')}</small></div>
+          <div className="section-title"><span>{t('admin.goalsTitle', 'Cele jakościowe')}</span><small>{t('admin.goalsSubtitle', 'progi i wolumeny')}</small></div>
           <div className="field-grid two">
             <label><span>{t('admin.goal.minAvg', 'Minimum sredniej')}</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
             <label><span>{t('admin.goal.greatShare', 'Udzial bardzo dobrych')}</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
@@ -381,7 +381,7 @@ export default function AdminView({
 
       {selectedSection === 'dictionaries' ? (
         <section className="data-panel dictionary-panel">
-          <div className="section-title"><span>{t('admin.dictionaryTitle', 'Slowniki')}</span><small>{t('admin.dictionarySubtitle', 'liderzy, dzialy, stanowiska')}</small></div>
+          <div className="section-title"><span>{t('admin.dictionaryTitle', 'Słowniki')}</span><small>{t('admin.dictionarySubtitle', 'liderzy, działy, stanowiska')}</small></div>
           <div className="dictionary-columns">
             <DictionaryEditor
               title={t('admin.dictionary.leaders', 'Liderzy')}
@@ -393,7 +393,7 @@ export default function AdminView({
               t={t}
             />
             <DictionaryEditor
-              title={t('admin.dictionary.departments', 'Dzialy')}
+              title={t('admin.dictionary.departments', 'Działy')}
               values={draftAdmin.departments}
               value={newDepartment}
               onValue={setNewDepartment}
@@ -417,8 +417,8 @@ export default function AdminView({
       {selectedSection === 'specialists' ? (
         <section className="data-panel specialist-admin">
           <div className="section-title">
-            <span>{t('admin.specialistsTitle', 'Specjalisci')}</span>
-            <small>{draftAdmin.specialists.filter((item) => item.active).length} {t('admin.activeCount', 'aktywnych')} / {draftAdmin.specialists.length} {t('admin.totalCount', 'lacznie')}</small>
+            <span>{t('admin.specialistsTitle', 'Specjaliści')}</span>
+            <small>{draftAdmin.specialists.filter((item) => item.active).length} {t('admin.activeCount', 'aktywnych')} / {draftAdmin.specialists.length} {t('admin.totalCount', 'łącznie')}</small>
           </div>
           <div className="specialist-layout">
             <div className="specialist-list">
@@ -458,11 +458,11 @@ export default function AdminView({
 
       {selectedSection === 'users' ? (
         <section className="data-panel user-admin">
-          <div className="section-title"><span>{t('admin.usersTitle', 'Uzytkownicy i role')}</span><small>{draftUsers.length} {t('admin.accounts', 'kont')}</small></div>
+          <div className="section-title"><span>{t('admin.usersTitle', 'Użytkownicy i role')}</span><small>{draftUsers.length} {t('admin.accounts', 'kont')}</small></div>
           <p className="hint-text">
             {isSupabaseMode
-              ? t('admin.usersHintSupabase', 'W trybie Supabase sterujesz prawdziwymi uprawnieniami konta: rola, leader scope i aktywnosc trafiaja do profiles i od razu wplywaja na RLS.')
-              : t('admin.usersHintLocal', 'W trybie lokalnym zmiany dzialaja na danych demo i sluza tylko do testowania ukladu uprawnien.')}
+              ? t('admin.usersHintSupabase', 'W trybie Supabase sterujesz prawdziwymi uprawnieniami konta: rola, leader scope i aktywność trafiają do profiles i od razu wpływają na RLS.')
+              : t('admin.usersHintLocal', 'W trybie lokalnym zmiany działają na danych demo i służą tylko do testowania układu uprawnień.')}
           </p>
           <div className="user-layout">
             <div className="user-list">
@@ -484,7 +484,7 @@ export default function AdminView({
                   <small>{ROLE_LABELS[account.role]} - {account.isActive ? t('admin.user.active', 'aktywny') : t('admin.user.inactive', 'nieaktywny')}</small>
                 </button>
               ))}
-              {!filteredUsers.length ? <div className="empty-state compact-empty">{t('admin.userEmptyFiltered', 'Brak uzytkownikow dla tego filtra.')}</div> : null}
+              {!filteredUsers.length ? <div className="empty-state compact-empty">{t('admin.userEmptyFiltered', 'Brak użytkowników dla tego filtra.')}</div> : null}
             </div>
             <div className="user-editor">
               {selectedUser ? (
@@ -507,10 +507,10 @@ export default function AdminView({
                   </div>
                   <div className="admin-inline-actions">
                     <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> {t('admin.user.activeToggle', 'Konto aktywne')}</label>
-                    <button className="primary-btn" disabled={!selectedUserDirty} type="button" onClick={saveSelectedUser}><Save size={16} /> {t('admin.saveUser', 'Zapisz uzytkownika')}</button>
+                    <button className="primary-btn" disabled={!selectedUserDirty} type="button" onClick={saveSelectedUser}><Save size={16} /> {t('admin.saveUser', 'Zapisz użytkownika')}</button>
                   </div>
                 </>
-              ) : <div className="empty-state">{t('admin.userEmpty', 'Brak uzytkownikow.')}</div>}
+              ) : <div className="empty-state">{t('admin.userEmpty', 'Brak użytkowników.')}</div>}
             </div>
           </div>
           <div className="new-user-panel">
@@ -521,20 +521,20 @@ export default function AdminView({
               {!isSupabaseMode ? (
                 <>
                   <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
-                  <label><span>{t('admin.user.passwordStart', 'Haslo startowe')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+                  <label><span>{t('admin.user.passwordStart', 'Hasło startowe')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
                 </>
               ) : (
-                <label><span>{t('admin.user.passwordOptional', 'Haslo startowe (opcjonalne)')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+                <label><span>{t('admin.user.passwordOptional', 'Hasło startowe (opcjonalne)')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
               )}
               <label><span>{t('admin.user.role', 'Rola')}</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
               <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pelny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
             </div>
             <p className="hint-text">
               {isSupabaseMode
-                ? t('admin.createUserHintSupabase', 'Jesli haslo zostawisz puste, Supabase wysle zaproszenie na email. Role i leader scope ustawiaja dostep od razu po utworzeniu profilu.')
-                : t('admin.createUserHintLocal', 'W lokalnym trybie tworzone jest konto demo z lokalnym loginem i haslem startowym.')}
+                ? t('admin.createUserHintSupabase', 'Jeśli hasło zostawisz puste, Supabase wyśle zaproszenie na e-mail. Rola i leader scope ustawiają dostęp od razu po utworzeniu profilu.')
+                : t('admin.createUserHintLocal', 'W lokalnym trybie tworzone jest konto demo z lokalnym loginem i hasłem startowym.')}
             </p>
-            <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> {isSupabaseMode ? t('admin.createUserSupabase', 'Utworz / zapros konto') : t('admin.createUser', 'Utworz konto')}</button>
+            <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> {isSupabaseMode ? t('admin.createUserSupabase', 'Utwórz / zaproś konto') : t('admin.createUser', 'Utwórz konto')}</button>
           </div>
         </section>
       ) : null}

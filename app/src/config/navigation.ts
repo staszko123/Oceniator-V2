@@ -49,10 +49,10 @@ export const routeConfig: Record<ViewKey, { eyebrowKey: string; descriptionKey: 
 }
 
 export const navigationConfig: NavigationItemConfig[] = [
-  { key: 'start', labelKey: 'nav.start', icon: LayoutDashboard },
+  { key: 'start', labelKey: 'nav.start', icon: LayoutDashboard, viewerLabelKey: 'nav.viewerPortal' },
   { key: 'form', labelKey: 'nav.evaluation', icon: PhoneCall, permission: 'evaluations.create' },
   { key: 'team', labelKey: 'nav.team', icon: Users, permission: 'teams.read' },
-  { key: 'registry', labelKey: 'nav.registry', icon: ClipboardCheck, permission: 'evaluations.read' },
+  { key: 'registry', labelKey: 'nav.registry', icon: ClipboardCheck, permission: 'evaluations.read', viewerLabelKey: 'nav.viewerAssessments' },
   { key: 'dashboard', labelKey: 'nav.dashboard', icon: BarChart3, permission: 'dashboard.read' },
   { key: 'reports', labelKey: 'nav.reports', icon: FileBarChart, permission: 'reports.read' },
   { key: 'admin', labelKey: 'nav.admin', icon: Settings, permission: 'users.read' },
@@ -67,4 +67,3 @@ export const viewIconMap: Record<ViewKey, typeof LayoutDashboard> = {
   reports: FileBarChart,
   admin: ShieldCheck,
 }
-

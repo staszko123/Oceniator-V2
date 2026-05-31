@@ -71,7 +71,7 @@ const registryStatusTransitions: Record<AssessmentStatus, AssessmentStatus> = {
 
 function buildRegistryStatusHistoryNote(base: string, changeReason: string, diffSummary: string[]) {
   const parts = [base]
-  if (changeReason.trim()) parts.push(`Powod: ${changeReason.trim()}`)
+  if (changeReason.trim()) parts.push(`Powód: ${changeReason.trim()}`)
   if (diffSummary.length) parts.push(`Zakres: ${diffSummary.join('; ')}`)
   return parts.join('. ')
 }
@@ -417,13 +417,13 @@ export default function RegistryView({
     lastIntentToken.current = intentToken
     applyPreset(intentPreset)
     setNotice(intentPreset === 'decision'
-      ? 'Otworzono ewidencje w widoku: Do decyzji.'
+      ? t('registry.intentDecision', 'Otworzono ewidencję w widoku: Do decyzji.')
       : intentPreset === 'recent'
-        ? 'Otworzono ewidencje w widoku: Ostatnie 72h.'
+        ? t('registry.intentRecent', 'Otworzono ewidencję w widoku: Ostatnie 72 h.')
         : intentPreset === 'edited'
-          ? 'Otworzono ewidencje w widoku: Edytowane.'
-          : 'Otworzono pelny widok ewidencji.')
-  }, [intentPreset, intentToken])
+          ? t('registry.intentEdited', 'Otworzono ewidencję w widoku: Edytowane.')
+          : t('registry.intentAll', 'Otworzono pełny widok ewidencji.'))
+  }, [intentPreset, intentToken, t])
 
   useEffect(() => {
     if (!focusAssessmentId || !focusToken) return
@@ -511,7 +511,7 @@ export default function RegistryView({
 
   async function advance(item: Assessment) {
     if (!canAdvanceRow(item)) {
-      setNotice('Ta rola nie moze zmieniac statusu tej karty.')
+      setNotice('Ta rola nie może zmieniać statusu tej karty.')
       return
     }
     const nextStatus = registryStatusTransitions[item.status]
@@ -537,7 +537,7 @@ export default function RegistryView({
 
   async function advanceSelected() {
     if (!selectedAdvanceable.length) {
-      setNotice('Zaznacz co najmniej jedna karte mozliwa do przesuniecia.')
+      setNotice('Zaznacz co najmniej jedną kartę możliwą do przesunięcia.')
       return
     }
     try {
@@ -552,11 +552,11 @@ export default function RegistryView({
         ),
       ))))
       setSelectedIds([])
-      setNotice(`Przesunieto ${selectedAdvanceable.length} kart.`)
+      setNotice(`Przesunięto ${selectedAdvanceable.length} kart.`)
       recordDiagnostic({
         scope: 'registry',
         action: 'bulk-status',
-        detail: `Przesunieto ${selectedAdvanceable.length} kart`,
+        detail: `Przesunięto ${selectedAdvanceable.length} kart`,
         level: 'success',
       })
     } catch (error) {
@@ -566,7 +566,7 @@ export default function RegistryView({
 
   function openEditor(item: Assessment) {
     if (!canEditRow(item)) {
-      setNotice('Nie masz uprawnien do edycji tej karty.')
+      setNotice('Nie masz uprawnień do edycji tej karty.')
       return
     }
     setEditing(item)
@@ -583,7 +583,7 @@ export default function RegistryView({
     try {
       const text = await file.text()
       const parsed = JSON.parse(text) as Assessment[]
-      if (!Array.isArray(parsed)) throw new Error('Plik JSON musi zawierac tablice kart.')
+      if (!Array.isArray(parsed)) throw new Error('Plik JSON musi zawierać tablicę kart.')
       const valid = parsed.filter((item) => item && item.id && item.type && item.spec && item.snapshotScores)
       if (!valid.length) throw new Error('Nie znaleziono poprawnych kart do importu.')
       await onBulkImport(valid)
@@ -595,7 +595,7 @@ export default function RegistryView({
         level: 'success',
       })
     } catch (error) {
-      setNotice(getErrorMessage(error, 'Import nie powiodl sie.'))
+      setNotice(getErrorMessage(error, 'Import nie powiódł się.'))
     }
   }
 
@@ -604,7 +604,7 @@ export default function RegistryView({
       if (kind === 'csv') exportCsv(rows)
       if (kind === 'excel') await exportExcel(rows)
       if (kind === 'json') exportJson(rows)
-      setNotice(`Eksport ${kind.toUpperCase()} przygotowany dla ${rows.length} pozycji.`)
+      setNotice(t('registry.exportReady', 'Eksport {kind} przygotowany dla {count} pozycji.').replace('{kind}', kind.toUpperCase()).replace('{count}', String(rows.length)))
       recordDiagnostic({
         scope: 'registry',
         action: 'export',
@@ -612,12 +612,12 @@ export default function RegistryView({
         level: 'info',
       })
     } catch (error) {
-      setNotice(getErrorMessage(error, 'Nie udalo sie przygotowac eksportu.'))
+      setNotice(getErrorMessage(error, t('registry.exportError', 'Nie udało się przygotować eksportu.')))
     }
   }
 
   function printRow(item: Assessment) {
-    if (!printAssessment(item)) setNotice('Przegladarka zablokowala nowe okno drukowania lub PDF.')
+    if (!printAssessment(item)) setNotice(t('registry.printBlocked', 'Przeglądarka zablokowała nowe okno drukowania lub PDF.'))
     else {
       recordDiagnostic({
         scope: 'registry',
@@ -749,7 +749,7 @@ export default function RegistryView({
               </button>
             ))}
           </div>
-        ) : <div className="empty-state compact-empty">Brak kart w kolejce decyzji dla aktualnego filtra.</div>}
+        ) : <div className="empty-state compact-empty">{t('registry.noQueueShort', 'Brak kart w kolejce decyzji dla aktualnego filtra.')}</div>}
       </section>
 
       <section className="data-panel">
@@ -771,11 +771,11 @@ export default function RegistryView({
           />
         ) : (
           <div className="registry-empty-state">
-            <strong>Brak kart dla biezacych filtrow</strong>
-            <p>Sprobuj wyczyscic filtry albo przejdz do pelnego widoku, aby zobaczyc cala ewidencje.</p>
+            <strong>{t('registry.noDataTitle', 'Brak kart dla bieżących filtrów')}</strong>
+            <p>{t('registry.noDataHint')}</p>
             <div className="row-action-strip">
-              <button className="ghost-btn" type="button" onClick={resetFilters}>Wyczysc filtry</button>
-              <button className="primary-btn" type="button" onClick={() => applyPreset('all')}>Pelny widok</button>
+              <button className="ghost-btn" type="button" onClick={resetFilters}>{t('registry.clearFilters')}</button>
+              <button className="primary-btn" type="button" onClick={() => applyPreset('all')}>{t('registry.viewAll')}</button>
             </div>
           </div>
         )}
@@ -784,7 +784,7 @@ export default function RegistryView({
             <button key={item.id} className="ghost-btn" type="button" onClick={() => advance(item)}>
               {item.spec}: {statusLabels[item.status]} {'->'}
             </button>
-          )) : <span className="hint-text">Tryb tylko do odczytu: widzisz swoje oceny, a eksporty pozostaja dostepne.</span>}
+          )) : <span className="hint-text">{t('registry.visibleOnlyReadOnly')}</span>}
         </div>
       </section>
 
