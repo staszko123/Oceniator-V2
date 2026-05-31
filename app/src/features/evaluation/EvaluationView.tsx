@@ -155,7 +155,7 @@ export default function EvaluationView({
       <section className="form-main">
         <div className="form-toolbar">
           <div className="section-title">
-            <span>{t('evaluation.title', 'Ocena rozmów')}</span>
+            <span>{t('evaluation.title', 'Panel Oceny')}</span>
             <small>{draftSaveState}</small>
           </div>
           <div className="form-toolbar-actions">
@@ -175,6 +175,9 @@ export default function EvaluationView({
             </div>
           </div>
         </div>
+        <p className="form-intro">
+          {t('evaluation.stepInfo', 'Wybierz typ, specjalistę i podstawowe dane karty. Każda kolumna w tabeli niżej odpowiada jednemu kontaktowi.')}
+        </p>
 
         {validationTouched && !validation.valid ? (
           <section className="validation-panel">
@@ -281,6 +284,9 @@ export default function EvaluationView({
             </div>
             <small>{lowScoreCount} {t('evaluation.lowerScores', 'obniżonych ocen')}</small>
           </header>
+          <p className="section-guide">
+            {t('evaluation.criteriaHint', 'Wybieraj ocenę w tej samej kolumnie, w której znajduje się dany kontakt. Wiersz uwag służy do notatek pomocniczych do sekcji.')}
+          </p>
 
           {def.sections.map((section) => (
             <section className="score-section" id={`section-${section.key}`} key={section.key}>
@@ -291,17 +297,17 @@ export default function EvaluationView({
               <table className="score-table">
                 <thead>
                   <tr>
-                    <th>{t('evaluation.criterion', 'Kryterium')}</th>
-                    {Array.from({ length: draft.contactCount }, (_, index) => <th key={index}>{def.contactLabel} {index + 1}</th>)}
+                    <th scope="col">{t('evaluation.criterion', 'Kryterium')}</th>
+                    {Array.from({ length: draft.contactCount }, (_, index) => <th scope="col" key={index}>{def.contactLabel} {index + 1}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {section.criteria.map((criterion, criterionIndex) => (
                     <tr key={criterion.name}>
-                      <td>
+                      <th scope="row">
                         <strong>{criterion.name}</strong>
                         <small>{criterion.hint}</small>
-                      </td>
+                      </th>
                       {Array.from({ length: draft.contactCount }, (_, contactIndex) => {
                         const current = draft.scores[section.key]?.[criterionIndex]?.[contactIndex] ?? 1
                         return (
@@ -311,8 +317,10 @@ export default function EvaluationView({
                                 <button
                                   key={option.label}
                                   className={current === option.value ? 'selected' : ''}
+                                  aria-label={`${criterion.name}, ${def.contactLabel} ${contactIndex + 1}, ${option.title}`}
+                                  aria-pressed={current === option.value}
                                   onClick={() => setScore(section.key, criterionIndex, contactIndex, option.value)}
-                                  title={option.title}
+                                  title={`${criterion.name} · ${def.contactLabel} ${contactIndex + 1} · ${option.title}`}
                                   type="button"
                                 >
                                   {option.label}
