@@ -1,24 +1,13 @@
 ﻿import { TYPE_LABELS } from '../../domain/defs'
 import { ratingLabel } from '../../domain/scoring'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
+import { buildCsv, downloadFile } from '../../lib/fileExport'
 
 const statusLabels: Record<AssessmentStatus, string> = {
   submitted: 'Do weryfikacji',
   review: 'W weryfikacji',
   approved: 'Zatwierdzona',
   archived: 'Archiwum',
-}
-
-function downloadFile(fileName: string, mime: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 export type ReportMode = 'detail' | 'summary' | 'trend'
@@ -31,12 +20,8 @@ export type ReportTable = {
   rows: Array<Array<string | number>>
 }
 
-function buildCsv(columns: string[], rows: Array<Array<string | number>>) {
-  return `\uFEFF${[columns, ...rows].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
-}
-
 export function exportTableCsv(table: ReportTable) {
-  downloadFile(`${table.fileName}.csv`, 'text/csv;charset=utf-8', buildCsv(table.columns, table.rows))
+  downloadFile(`${table.fileName}.csv`, 'text/csv;charset=utf-8', buildCsv([table.columns, ...table.rows]))
 }
 
 export async function exportTableExcel(table: ReportTable) {

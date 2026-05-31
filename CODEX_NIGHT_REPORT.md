@@ -137,3 +137,38 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#6` next: review duplicate export helpers, but keep the first step read-only unless a tiny, behavior-neutral extraction is obvious.
+
+---
+
+## Run update 2026-05-31 23:47
+
+### Repository inspection
+
+- Re-read `package.json`, `app/package.json`, `app/src/App.tsx`, `app/src/main.tsx`, `app/src/config/navigation.ts`, and the export-related modules under `app/src/features/registry/` and `app/src/features/reports/`.
+- Confirmed the app still uses hash-based route state and that the selected change stays inside shared client-side export helpers only.
+- Preserved the pre-existing untracked [`CODEX_TESTS_RELIABILITY_REPORT.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TESTS_RELIABILITY_REPORT.md) without adding it to this run.
+
+### Selected task
+
+- Chose task `#6` from the low-risk backlog group: remove duplicated export helpers with a behavior-neutral shared utility.
+
+### Change
+
+- Added shared helper [`app/src/lib/fileExport.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/fileExport.ts) with:
+- `downloadFile` for Blob-based browser downloads,
+- `buildCsv` for BOM-prefixed CSV generation with quoted cells.
+- Updated [`app/src/features/registry/registryExports.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/registry/registryExports.ts), [`app/src/features/reports/reporting.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/reports/reporting.ts), and [`app/src/features/reports/ReportsView.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/reports/ReportsView.tsx) to use the shared helper instead of repeating local implementations.
+- Added [`app/src/lib/fileExport.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/fileExport.test.ts) to lock down CSV quoting, embedded quote escaping, and UTF-8 BOM behavior.
+- Marked task `#6` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/lib/fileExport.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-05-31.
+
+### Next recommended step
+
+- Tackle task `#7` next: add coverage for empty-filter cases in `app/src/features/analytics/filters.ts`, which stays low-risk and avoids the already modified UI-heavy files.
