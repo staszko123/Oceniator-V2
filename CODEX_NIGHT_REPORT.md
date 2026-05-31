@@ -68,3 +68,37 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#4` or `#5` next, because both stay in shared configuration/service code and avoid the currently modified UI files.
+
+---
+
+## Run update 2026-05-31 23:07
+
+### Repository inspection
+
+- Re-read `package.json`, `app/package.json`, `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, `app/src/config/navigation.ts`, and `app/src/services/settingsService.ts`.
+- Confirmed routing is still hash-based and that shared preference persistence remains isolated in `app/src/services/settingsService.ts`.
+- Preserved pre-existing local changes in `app/src/features/admin/AdminView.tsx`, `app/src/features/evaluation/EvaluationView.tsx`, `app/src/features/team/TeamView.tsx`, and `app/src/i18n/messages.ts`.
+
+### Selected task
+
+- Chose task `#4` from the low-risk backlog group: add a small persistence test for `app/src/services/settingsService.ts`.
+
+### Change
+
+- Added [`app/src/services/settingsService.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/services/settingsService.test.ts) covering:
+- forced local provider mode in `local` environment,
+- stored provider mode in `production`,
+- theme and language preference persistence with safe defaults,
+- OAuth redirect URL normalization without search/hash fragments.
+
+### Verification
+
+- `npm run test -- app/src/services/settingsService.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-05-31.
+
+### Next recommended step
+
+- Tackle task `#5` next: add a small navigation visibility test for viewer-safe items, still avoiding the currently modified UI files.
