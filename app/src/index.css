@@ -102,6 +102,10 @@ button { cursor: pointer; }
   animation: loginBackdropExit 920ms cubic-bezier(.2, .8, .2, 1) forwards;
 }
 
+.login-page.is-transitioning .login-watermark {
+  animation: loginWatermarkExit 920ms cubic-bezier(.2, .8, .2, 1) forwards;
+}
+
 .login-page.is-transitioning .brand-mark strong,
 .login-page.is-transitioning .login-card {
   animation: loginCardExit 920ms cubic-bezier(.2, .8, .2, 1) forwards;
@@ -420,6 +424,40 @@ button { cursor: pointer; }
   box-shadow:
     0 30px 90px rgba(2, 7, 18, .44),
     inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.login-watermark {
+  position: absolute;
+  right: clamp(18px, 2.7vw, 36px);
+  bottom: clamp(18px, 3vw, 34px);
+  left: auto;
+  transform: none;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  backdrop-filter: none;
+  color: rgba(237, 246, 251, .60);
+  text-align: right;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .34);
+}
+
+.login-watermark span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.login-watermark small {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .12em;
 }
 
 @media (max-width: 760px) {
@@ -4570,6 +4608,11 @@ input:focus, select:focus, textarea:focus { border-color: rgba(96,165,250,.82); 
 @keyframes loginBackdropExit {
   0% { opacity: 1; transform: scale(1); filter: saturate(1.08); }
   100% { opacity: .65; transform: scale(1.02); filter: saturate(1.18) blur(.8px); }
+}
+
+@keyframes loginWatermarkExit {
+  0% { opacity: 1; transform: translateX(0) translateY(0); }
+  100% { opacity: 0; transform: translateX(12px) translateY(10px); }
 }
 
 @keyframes loginSweep {

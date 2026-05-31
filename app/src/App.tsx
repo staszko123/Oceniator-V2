@@ -205,6 +205,10 @@ function LoginScreen({
           <p>{t('layout.desktopOnlyDescription')}</p>
         </div>
       </div>
+      <div className="login-watermark" aria-hidden="true">
+        <span>© 2026 Jakub Stachura</span>
+        <small>Własna praca</small>
+      </div>
     </main>
   )
 }
