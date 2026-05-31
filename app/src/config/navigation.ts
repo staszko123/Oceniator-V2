@@ -1,6 +1,7 @@
 import { BarChart3, ClipboardCheck, FileBarChart, LayoutDashboard, PhoneCall, Settings, ShieldCheck, Users } from 'lucide-react'
 import type { Role } from '../domain/types'
 import type { Permission } from '../types/permissions'
+import { hasPermission } from './permissions'
 
 export type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 
@@ -57,6 +58,29 @@ export const navigationConfig: NavigationItemConfig[] = [
   { key: 'reports', labelKey: 'nav.reports', icon: FileBarChart, permission: 'reports.read' },
   { key: 'admin', labelKey: 'nav.admin', icon: Settings, permission: 'users.read' },
 ]
+
+export function getVisibleNavigationItems(
+  role: Role,
+  t: (key: string, fallback?: string) => string,
+): Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboard }> {
+  if (!hasPermission(role, 'teams.read')) {
+    return navigationConfig
+      .filter((item) => item.key === 'start' || item.key === 'registry')
+      .map((item) => ({
+        key: item.key,
+        label: t(item.viewerLabelKey || item.labelKey),
+        icon: item.icon,
+      }))
+  }
+
+  return navigationConfig
+    .filter((item) => !item.permission || hasPermission(role, item.permission))
+    .map((item) => ({
+      key: item.key,
+      label: t(item.labelKey),
+      icon: item.icon,
+    }))
+}
 
 export const viewIconMap: Record<ViewKey, typeof LayoutDashboard> = {
   start: LayoutDashboard,

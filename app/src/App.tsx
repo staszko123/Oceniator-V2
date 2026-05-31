@@ -3,7 +3,7 @@ import { LogIn } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
 import { createProvider } from './data/supabaseProvider'
-import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
+import { canAdminRole, canCreateRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
@@ -20,8 +20,7 @@ import type {
 } from './domain/types'
 import type { DashboardPrefs } from './config/dashboard'
 import { defaultDashboardPrefs, normalizeDashboardPrefs } from './config/dashboard'
-import { navigationConfig, type ViewKey } from './config/navigation'
-import { hasPermission } from './config/permissions'
+import { getVisibleNavigationItems, type ViewKey } from './config/navigation'
 import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
 import { useLanguage } from './i18n/LanguageContext'
@@ -78,25 +77,7 @@ function preloadView(view: ViewKey) {
 }
 
 function availableNavItems(user: UserProfile, t: (key: string, fallback?: string) => string) {
-  const canViewTeam = canViewTeamRole(user.role)
-
-  if (!canViewTeam) {
-    return navigationConfig
-      .filter((item) => item.key === 'start' || item.key === 'registry')
-      .map((item) => ({
-        key: item.key,
-        label: t(item.viewerLabelKey || item.labelKey),
-        icon: item.icon,
-      }))
-  }
-
-  return navigationConfig
-    .filter((item) => !item.permission || hasPermission(user.role, item.permission))
-    .map((item) => ({
-      key: item.key,
-      label: t(item.labelKey),
-      icon: item.icon,
-    }))
+  return getVisibleNavigationItems(user.role, t)
 }
 
 function LoginScreen({

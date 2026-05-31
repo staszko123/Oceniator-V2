@@ -102,3 +102,38 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#5` next: add a small navigation visibility test for viewer-safe items, still avoiding the currently modified UI files.
+
+---
+
+## Run update 2026-05-31 23:27
+
+### Repository inspection
+
+- Re-read `package.json`, `app/package.json`, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, and `app/src/features/shell/AppShell.tsx`.
+- Confirmed routing remains hash-based in `app/src/lib/locationHash.ts` and that visible navigation is still resolved before view fallback logic in `App.tsx`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed, so the run only updated them in place.
+
+### Selected task
+
+- Chose task `#5` from the low-risk backlog group: add coverage for viewer-safe navigation visibility.
+
+### Change
+
+- Moved the role-based navigation visibility mapping into `app/src/config/navigation.ts` as `getVisibleNavigationItems`.
+- Kept the existing `availableNavItems` guard in `app/src/App.tsx` as a thin wrapper so the app behavior and static smoke expectations stay unchanged.
+- Added [`app/src/config/navigation.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/navigation.test.ts) covering:
+- `viewer` visibility restricted to `start` and `registry` with viewer-specific labels,
+- `assessor` visibility preserving the operational navigation set.
+- Marked task `#5` as done in `CODEX_TASKS.md`.
+
+### Verification
+
+- `npm run test -- app/src/config/navigation.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-05-31.
+
+### Next recommended step
+
+- Tackle task `#6` next: review duplicate export helpers, but keep the first step read-only unless a tiny, behavior-neutral extraction is obvious.
