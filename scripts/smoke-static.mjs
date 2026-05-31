@@ -49,9 +49,6 @@ const dashboardView = existsSync(join(root, 'app/src/features/dashboard/Dashboar
 const dashboardUtils = existsSync(join(root, 'app/src/features/dashboard/utils.ts')) ? read('app/src/features/dashboard/utils.ts') : ''
 const dashboardConfig = existsSync(join(root, 'app/src/config/dashboard.ts')) ? read('app/src/config/dashboard.ts') : ''
 const registryView = existsSync(join(root, 'app/src/features/registry/RegistryView.tsx')) ? read('app/src/features/registry/RegistryView.tsx') : ''
-for (const account of ['admin/admin123', 'lider01/lider123', 'lider02/lider123', 'podglad/podglad123']) {
-  if (!app.includes(account)) failures.push(`Login screen is missing demo account hint: ${account}`)
-}
 for (const guard of ['availableNavItems', 'canCreateRole(user.role)', 'canAdminRole(user.role)', 'canViewTeamRole(user.role)', 'getErrorMessage']) {
   if (!app.includes(guard)) failures.push(`App.tsx is missing guard/helper: ${guard}`)
 }
@@ -71,7 +68,7 @@ for (const [label, content, markers] of featureMarkers) {
 }
 
 const localProvider = existsSync(join(root, 'app/src/data/localProvider.ts')) ? read('app/src/data/localProvider.ts') : ''
-for (const login of ['lider01', 'lider02']) {
+for (const login of ['admin', 'lider01', 'lider02', 'podglad']) {
   if (!localProvider.includes(`login: '${login}'`)) failures.push(`Local provider is missing demo user ${login}`)
 }
 if (!localProvider.includes('defaultManagedUsers') || !localProvider.includes('merged.length !== existing.length')) {

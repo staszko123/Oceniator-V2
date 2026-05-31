@@ -1,8 +1,7 @@
 ﻿import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { BarChart3, ClipboardCheck, Database, FileBarChart, Layers3, LayoutDashboard, LogIn, Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sparkles, Sun, Users } from 'lucide-react'
+import { BarChart3, ClipboardCheck, FileBarChart, LayoutDashboard, LogIn, PhoneCall, Settings, ShieldCheck, Users } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
-import { downloadDemoDataExport } from './data/demoExport'
 import { createProvider, SupabaseDataProvider } from './data/supabaseProvider'
 import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
@@ -23,13 +22,14 @@ import type { DashboardPrefs } from './config/dashboard'
 import { defaultDashboardPrefs, normalizeDashboardPrefs } from './config/dashboard'
 import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
-import { useTheme } from './lib/theme'
 import { useLanguage } from './i18n/LanguageContext'
-import { isLocalDemoEnabled, setProviderMode } from './services/settingsService'
+import { setProviderMode, setThemePreference } from './services/settingsService'
 import './index.css'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
 type RegistryIntentPreset = 'all' | 'decision' | 'recent' | 'edited'
+const LOGIN_TRANSITION_KEY = 'oceniator.loginTransition'
+const LOGIN_TRANSITION_MS = 920
 
 const navItems: Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboard }> = [
   { key: 'start', label: 'G\u0142\u00F3wna', icon: LayoutDashboard },
@@ -41,7 +41,6 @@ const navItems: Array<{ key: ViewKey; label: string; icon: typeof LayoutDashboar
   { key: 'admin', label: 'Administracja', icon: Settings },
 ]
 
-const localDemoAccounts = 'admin/admin123, lider01/lider123, lider02/lider123, lider/lider123, oceniajacy/ocena123, podglad/podglad123'
 
 function createUnavailableAdminConfig(): AdminConfig {
   return {
@@ -109,30 +108,28 @@ function LoginScreen({
   provider,
   onLogin,
   onGoogleLogin,
-  onLocalDemo,
   onUseSupabase,
-  localDemoAvailable,
   supabaseAvailable,
+  transitioning,
 }: {
   provider: DataProvider
   onLogin: (login: string, password: string) => Promise<void>
   onGoogleLogin: () => Promise<void>
-  onLocalDemo: () => Promise<void>
   onUseSupabase: () => void
-  localDemoAvailable: boolean
   supabaseAvailable: boolean
+  transitioning: boolean
 }) {
   const { t } = useLanguage()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [introDone, setIntroDone] = useState(false)
-  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setIntroDone(true), 5800)
-    return () => window.clearTimeout(timer)
+    const root = document.documentElement
+    root.classList.remove('dark')
+    root.classList.add('light')
+    setThemePreference('light')
   }, [])
 
   async function submit(event: React.FormEvent) {
@@ -142,19 +139,7 @@ function LoginScreen({
     try {
       await onLogin(login, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie udało się zalogować.'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function startLocalDemo() {
-    setBusy(true)
-    setError('')
-    try {
-      await onLocalDemo()
-    } catch (err) {
-      setError(getErrorMessage(err, t('login.error.demo', 'Nie udało się uruchomić lokalnego demo.')))
+      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie uda?o si? zalogowa?.'))
     } finally {
       setBusy(false)
     }
@@ -166,125 +151,73 @@ function LoginScreen({
     try {
       await onGoogleLogin()
     } catch (err) {
-      setError(getErrorMessage(err, t('login.error.google', 'Nie udało się uruchomić logowania Google.')))
+      setError(getErrorMessage(err, t('login.error.google', 'Nie uda?o si? uruchomi? logowania Google.')))
     } finally {
       setBusy(false)
     }
   }
 
-  function exportLocalDemoData() {
-    setError('')
-    try {
-      downloadDemoDataExport()
-    } catch (err) {
-      setError(getErrorMessage(err, t('login.error.demoExport', 'Nie udało się wyeksportować danych demo.')))
-    }
-  }
-
   return (
-    <main className="login-page">
-      <section className="login-hero">
-        <div className={`login-intro ${introDone ? 'done' : ''}`} aria-hidden="true">
-          <div className="login-orb orb-a" />
-          <div className="login-orb orb-b" />
-          <div className="login-orb orb-c" />
-          <div className="login-wave" />
-          <div className="login-liquid-card glass-card one">
-            <span><Sparkles size={14} /> {t('login.hero.glass', 'Liquid glass')}</span>
-            <strong>{t('login.hero.material', 'Material start')}</strong>
-            <small>{t('login.hero.glassDesc', 'Miękki ruch, szkło i płynne przejścia.')}</small>
-          </div>
-          <div className="login-liquid-card glass-card two">
-            <span><Layers3 size={14} /> {t('login.hero.portal', 'Portal quality')}</span>
-            <strong>{t('login.hero.title', 'Ocena i ewidencja')}</strong>
-            <small>{t('login.hero.portalDesc', 'Jedno wejście, jeden rytm pracy.')}</small>
-          </div>
-          <div className="login-liquid-signal">
-            <i />
-            <span>{t('login.hero.session', 'Start sesji')}</span>
-          </div>
-        </div>
+    <main className={'login-page' + (transitioning ? ' is-transitioning' : '')}>
+      <div className={'login-transition' + (transitioning ? ' is-active' : '')} aria-hidden="true">
+        <div className="login-transition-sweep" />
+        <div className="login-transition-portal" />
+        <div className="login-transition-glow" />
+      </div>
+      <div className="login-backdrop" aria-hidden="true">
+        <div className="login-orb orb-a" />
+        <div className="login-orb orb-b" />
+        <div className="login-orb orb-c" />
+        <div className="login-orb orb-d" />
+        <div className="login-orb orb-e" />
+        <div className="login-orb orb-f" />
+        <div className="login-orb orb-g" />
+        <div className="login-orb orb-h" />
+        <div className="login-orb orb-i" />
+        <div className="login-orb orb-j" />
+        <div className="login-orb orb-k" />
+      </div>
+      <section className="login-shell">
         <div className="brand-mark">
-          <span />
-          <div>
-            <strong>Oceniator</strong>
-            <small>{t('login.brand.subtitle', 'Platforma oceny jakości')}</small>
-          </div>
+          <strong>{t('login.brand.title', 'Portal jako?ci')}</strong>
         </div>
-        <div className="login-copy">
-          <span className="login-kicker">{t('login.kicker', 'System operacyjny dla jakości')}</span>
-          <h1>{t('login.title', 'Ocena, ewidencja i raporty w jednym czystym miejscu.')}</h1>
-          <p>{t('login.description', 'To jest produkcyjny ekran dostępu do pracy. Wchodzisz do aplikacji bez marketingowego hałasu i bez dodatkowych ekranów po drodze.')}</p>
-          <div className="login-points">
-            <div className="login-point"><ShieldCheck size={16} /> <span>{t('login.point.roles', 'Role i zakresy dostępu')}</span></div>
-            <div className="login-point"><Database size={16} /> <span>{provider.mode === 'supabase' ? t('login.point.storageSupabase', 'Supabase i Google OAuth') : t('login.point.storageLocal', 'Lokalne demo i dane testowe')}</span></div>
-            <div className="login-point"><PanelRight size={16} /> <span>{t('login.point.fast', 'Jeden login, szybkie wejście')}</span></div>
-          </div>
-        </div>
-      </section>
-      <section className="login-card">
-        <div className="section-title login-card-head">
-          <div>
-            <span>{provider.mode === 'supabase' ? t('login.mode.google', 'Logowanie przez Google') : t('login.mode.local', 'Logowanie lokalne')}</span>
-            <p className="login-card-copy">
-              {provider.mode === 'supabase'
-                ? t('login.cardCopyGoogle', 'Zaloguj się kontem Google połączonym z Supabase Auth.')
-                : t('login.cardCopy', 'Zaloguj się i kontynuuj pracę bez dodatkowych ekranów.')}
-            </p>
-          </div>
-          <button className="theme-toggle" type="button" onClick={toggleTheme} title={t('action.theme', 'Przełącz motyw')}>
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-            <span>{theme === 'dark' ? t('theme.light', 'Jasny') : t('theme.dark', 'Ciemny')}</span>
-          </button>
-        </div>
-        {provider.mode === 'supabase' ? (
-          <div className="stack">
-            {error ? <div className="error-box">{error}</div> : null}
-            <button className="primary-btn" disabled={busy} type="button" onClick={() => void startGoogleLogin()}>
-              {busy ? t('login.loggingIn', 'Logowanie...') : <><LogIn size={16} /> {t('login.googleButton', 'Zaloguj przez Google')}</>}
-            </button>
-            <p className="hint-text">{t('login.googleHint', 'Użyj konta Google powiązanego z Supabase Auth.')}</p>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="stack">
-            <label>
-              <span>{t('login.localLogin', 'Login lokalny')}</span>
-              <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" autoFocus />
-            </label>
-            <label>
-              <span>{t('login.password', 'Hasło')}</span>
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
-            </label>
-            {error ? <div className="error-box">{error}</div> : null}
-            <button className="primary-btn" disabled={busy} type="submit">
-              {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj się')}
-            </button>
-          </form>
-        )}
-        <div className="login-footer">
-          {provider.mode === 'local' && supabaseAvailable ? (
-            <button className="ghost-btn wide" type="button" disabled={busy} onClick={onUseSupabase}>
-              {t('login.switchToGoogle', 'Wróć do logowania Google')}
-            </button>
-          ) : null}
-          {provider.mode === 'local' && !supabaseAvailable ? (
-            <p className="hint-text">{t('login.googleSetupRequired', 'Logowanie Google będzie dostępne po skonfigurowaniu Supabase.')}</p>
-          ) : null}
-          {localDemoAvailable ? (
-            <>
-              <button className="ghost-btn wide" type="button" disabled={busy} onClick={() => void startLocalDemo()}>
-                {t('login.demoButton', 'Uruchom demo lokalne')}
+        <section className="login-card">
+          {provider.mode === 'supabase' ? (
+            <div className="stack">
+              {error ? <div className="error-box">{error}</div> : null}
+              <button className="primary-btn" disabled={busy} type="button" onClick={() => void startGoogleLogin()}>
+                {busy ? t('login.loggingIn', 'Logowanie...') : <><LogIn size={16} /> {t('login.googleButton', 'Zaloguj przez Google')}</>}
               </button>
-              <button className="ghost-btn wide" type="button" disabled={busy} onClick={exportLocalDemoData}>
-                {t('login.demoExportButton', 'Eksportuj dane demo')}
-              </button>
-              <p className="hint-text">{t('login.demoAccounts', 'Konta testowe: ')}{localDemoAccounts}.</p>
-            </>
+            </div>
           ) : (
-            <p className="hint-text">{t('login.demoUnavailable', 'Tryb demo jest dostępny wyłącznie w lokalnym środowisku deweloperskim.')}</p>
+            <form onSubmit={submit} className="stack">
+              <label>
+                <span>{t('login.localLogin', 'Login lokalny')}</span>
+                <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" autoFocus />
+              </label>
+              <label>
+                <span>{t('login.password', 'Has?o')}</span>
+                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+              </label>
+              {error ? <div className="error-box">{error}</div> : null}
+              <button className="primary-btn" disabled={busy} type="submit">
+                {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj si?')}
+              </button>
+            </form>
           )}
-        </div>
+          {provider.mode === 'local' && supabaseAvailable ? (
+            <div className="login-footer">
+              <button className="ghost-btn wide" type="button" disabled={busy} onClick={onUseSupabase}>
+                {t('login.switchToGoogle', 'Wr?? do logowania Google')}
+              </button>
+            </div>
+          ) : null}
+        </section>
       </section>
+      <div className="login-watermark" aria-hidden="true">
+        <span>? 2026 Portal jako?ci</span>
+        <small>W?asna praca</small>
+      </div>
     </main>
   )
 }
@@ -309,7 +242,7 @@ function App() {
   const [registryIntent, setRegistryIntent] = useState<{ preset: RegistryIntentPreset; token: number } | null>(null)
   const [registryFocus, setRegistryFocus] = useState<{ assessmentId: string; token: number } | null>(null)
   const [bootError, setBootError] = useState('')
-  const localDemoAvailable = isLocalDemoEnabled()
+  const [loginTransitioning, setLoginTransitioning] = useState(false)
   const supabaseConfigured = SupabaseDataProvider.isConfigured()
   const refreshDiagnostics = useCallback((event: Parameters<typeof recordDiagnostic>[0]) => {
     recordDiagnostic(event)
@@ -377,20 +310,42 @@ function App() {
   }, [provider, refreshDiagnostics, t])
 
   useEffect(() => {
-    provider.getCurrentUser()
-      .then((currentUser) => {
-        if (currentUser) return loadWorkspace(currentUser)
-        return undefined
-      })
-      .catch((error) => {
-        setBootError(getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')))
-        refreshDiagnostics({
-          scope: 'system',
-          action: 'boot-error',
-          detail: getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')),
-          level: 'error',
-        })
-      })
+    let cancelled = false
+    const transitionRequested = typeof window !== 'undefined' && window.sessionStorage.getItem(LOGIN_TRANSITION_KEY) === '1'
+    const boot = async () => {
+      try {
+        const currentUser = await provider.getCurrentUser()
+        if (!currentUser) {
+          if (transitionRequested) window.sessionStorage.removeItem(LOGIN_TRANSITION_KEY)
+          return
+        }
+        if (transitionRequested) {
+          setLoginTransitioning(true)
+          window.sessionStorage.removeItem(LOGIN_TRANSITION_KEY)
+          await Promise.all([
+            loadWorkspace(currentUser),
+            new Promise((resolve) => window.setTimeout(resolve, LOGIN_TRANSITION_MS)),
+          ])
+          if (!cancelled) setLoginTransitioning(false)
+          return
+        }
+        await loadWorkspace(currentUser)
+      } catch (error) {
+        if (!cancelled) {
+          setBootError(getErrorMessage(error, t('app.error.boot', 'B??d startu aplikacji.')))
+          refreshDiagnostics({
+            scope: 'system',
+            action: 'boot-error',
+            detail: getErrorMessage(error, t('app.error.boot', 'B??d startu aplikacji.')),
+            level: 'error',
+          })
+        }
+      }
+    }
+    void boot()
+    return () => {
+      cancelled = true
+    }
   }, [provider, loadWorkspace, refreshDiagnostics, t])
 
   async function login(loginValue: string, password: string) {
@@ -409,6 +364,7 @@ function App() {
     if (!provider.signInWithGoogle) {
       throw new Error(t('login.error.googleUnavailable', 'Logowanie Google nie jest dostępne w tym środowisku.'))
     }
+    window.sessionStorage.setItem(LOGIN_TRANSITION_KEY, '1')
     await provider.signInWithGoogle()
   }
 
@@ -417,22 +373,6 @@ function App() {
     setProvider(new SupabaseDataProvider())
   }
 
-  async function localDemo() {
-    if (!localDemoAvailable) {
-      throw new Error(t('login.demoUnavailable', 'Tryb demo jest dostępny wyłącznie w lokalnym środowisku deweloperskim.'))
-    }
-    setProviderMode('local')
-    const local = createProvider(true)
-    setProvider(local)
-    const currentUser = await local.signIn('admin', 'admin123')
-    await loadWorkspace(currentUser, local)
-    refreshDiagnostics({
-      scope: 'auth',
-      action: 'local-demo',
-      detail: `Uruchomiono lokalne demo jako ${currentUser.fullName || currentUser.email}`,
-      level: 'success',
-    })
-  }
 
   async function logout() {
     await provider.signOut()
@@ -696,17 +636,16 @@ function App() {
     }
   }
 
-  if (!user || !admin) {
+  if (!user || !admin || loginTransitioning) {
     return (
       <>
         <LoginScreen
           provider={provider}
           onLogin={login}
           onGoogleLogin={googleLogin}
-          onLocalDemo={localDemo}
           onUseSupabase={useSupabaseProvider}
-          localDemoAvailable={localDemoAvailable}
           supabaseAvailable={supabaseConfigured}
+          transitioning={loginTransitioning}
         />
         {bootError ? <div className="floating-error">{bootError}</div> : null}
       </>
@@ -800,6 +739,7 @@ function App() {
           <AdminView
             key={`${users.map((item) => item.id).join('|')}::${admin.specialists.map((item) => item.id).join('|')}::${admin.periods.map((item) => item.code).join('|')}`}
             user={user}
+            providerMode={provider.mode}
             admin={admin}
             adminHistory={adminHistory}
             diagnostics={diagnostics}

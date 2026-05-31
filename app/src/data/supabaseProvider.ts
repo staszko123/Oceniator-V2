@@ -76,6 +76,15 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
+function isMissingTableError(error: unknown, tableName: string): boolean {
+  if (!error || typeof error !== 'object') return false
+  const candidate = error as { code?: string; message?: string }
+  const message = (candidate.message || '').toLowerCase()
+  return candidate.code === '42P01'
+    || message.includes(`could not find the table 'public.${tableName}'`)
+    || message.includes(`relation "public.${tableName}" does not exist`)
+}
+
 export class SupabaseDataProvider implements DataProvider {
   mode = 'supabase' as const
   private _client: SupabaseClient | null = null
@@ -316,7 +325,10 @@ export class SupabaseDataProvider implements DataProvider {
         target_leader_scope: payload.leader_scope || '',
         target_is_active: payload.is_active,
       })
-      if (!rpc.error) return { ...user, source: 'supabase' }
+      if (!rpc.error) {
+        await this.recordAdminHistory(describeUserUpdate({ ...user, source: 'supabase' }))
+        return { ...user, source: 'supabase' }
+      }
     }
     const { error } = await this.client.from('profiles').update(payload).eq('id', user.id)
     if (error) throw error
@@ -401,7 +413,10 @@ export class SupabaseDataProvider implements DataProvider {
       .from('user_drafts')
       .select('id,assessment_type,payload,saved_at,updated_at')
       .eq('user_id', this.currentUser.id)
-    if (error) throw error
+    if (error) {
+      if (isMissingTableError(error, 'user_drafts')) return { r: undefined, m: undefined, s: undefined }
+      throw error
+    }
     const drafts: Record<AssessmentType, AssessmentDraft | undefined> = { r: undefined, m: undefined, s: undefined }
     ;(data || []).forEach((row) => {
       const type = row.assessment_type as AssessmentType
@@ -448,7 +463,10 @@ export class SupabaseDataProvider implements DataProvider {
       .eq('user_id', this.currentUser.id)
       .order('created_at', { ascending: false })
       .limit(100)
-    if (error) throw error
+    if (error) {
+      if (isMissingTableError(error, 'notifications')) return []
+      throw error
+    }
     return (data || []).map((item) => ({
       id: item.id,
       userId: item.user_id,

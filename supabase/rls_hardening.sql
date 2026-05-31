@@ -4,22 +4,22 @@
 
 create or replace function public.my_role()
 returns text language sql stable security definer as $$
-  select role from public.profiles where id = auth.uid();
+  select role from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.my_scope()
 returns text language sql stable security definer as $$
-  select leader_scope from public.profiles where id = auth.uid();
+  select leader_scope from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.current_profile_full_name()
 returns text language sql stable security definer as $$
-  select full_name from public.profiles where id = auth.uid();
+  select full_name from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.current_profile_email()
 returns text language sql stable security definer as $$
-  select email from public.profiles where id = auth.uid();
+  select email from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create unique index if not exists idx_periods_code_unique on public.periods(code);

@@ -35,6 +35,7 @@ Jedno spójne źródło prawdy dla danych, ról i reguł biznesowych. Backend ma
 - Konto `viewer` widzi karty przypisane do własnego `full_name` lub `email` w profilu, nie cały zakres lidera.
 - UI może ukrywać funkcje, ale backend musi je egzekwować przez RLS albo funkcje serwerowe.
 - Wersja `viewer` nie jest rolą "demo"; to normalne konto specjalisty z własnym dostępem.
+- Flaga `is_active = false` ma odcinać dostęp po stronie backendu i traktujemy ją jak twardą blokadę konta.
 
 ## Operacje
 - logowanie i odczyt profilu,

@@ -43,8 +43,8 @@ export function getOAuthRedirectUrl(): string {
 }
 
 export function getThemePreference(): ThemeMode {
-  const stored = readStorageItem(keys.theme)
-  return stored === 'light' || stored === 'dark' ? stored : 'light'
+  // Start in light mode until the dark theme is fixed and explicitly re-enabled.
+  return 'light'
 }
 
 export function setThemePreference(theme: ThemeMode): void {

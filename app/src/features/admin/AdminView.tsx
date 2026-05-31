@@ -70,6 +70,7 @@ function DictionaryEditor({
 
 export default function AdminView({
   user,
+  providerMode,
   admin,
   adminHistory,
   diagnostics,
@@ -79,6 +80,7 @@ export default function AdminView({
   onUserCreate,
 }: {
   user: UserProfile
+  providerMode: 'supabase' | 'local'
   admin: AdminConfig
   adminHistory: AdminHistoryEntry[]
   diagnostics: DiagnosticEvent[]
@@ -111,6 +113,7 @@ export default function AdminView({
   const [userQuery, setUserQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserProfile['role']>('all')
   const [notice, setNotice] = useState('')
+  const isSupabaseMode = providerMode === 'supabase'
 
   const selectedSpecialist = draftAdmin.specialists.find((item) => item.id === selectedSpecialistId) || draftAdmin.specialists[0] || emptySpecialist(draftAdmin)
   const selectedUser = draftUsers.find((item) => item.id === selectedUserId) || draftUsers[0]
@@ -131,7 +134,9 @@ export default function AdminView({
     if (!sourceUser) return true
     return JSON.stringify(sourceUser) !== JSON.stringify(selectedUser)
   }, [selectedUser, users])
-  const canCreateUser = Boolean((newUser.email || '').trim() || (newUser.login || '').trim())
+  const canCreateUser = isSupabaseMode
+    ? Boolean((newUser.email || '').trim())
+    : Boolean((newUser.email || '').trim() || (newUser.login || '').trim())
   const pendingBadges = [configDirty ? t('admin.pending.config', 'konfiguracja') : null, usersDirty ? t('admin.pending.users', 'uzytkownicy') : null].filter(Boolean) as string[]
   const summaryStats = [
     `${t('admin.summary.specialists', 'Specjalisci')}: ${draftAdmin.specialists.length}`,
@@ -172,7 +177,10 @@ export default function AdminView({
   async function saveSelectedUser() {
     if (!selectedUser) return
     try {
+      const isSelfDeactivation = selectedUser.id === user.id && selectedUser.isActive === false
       await onUserSave(selectedUser)
+      if (isSelfDeactivation) return
+      setDraftUsers((current) => current.map((item) => (item.id === selectedUser.id ? { ...selectedUser } : item)))
       setNotice(`${t('admin.savedUser', 'Zapisano uzytkownika')} ${selectedUser.email || selectedUser.login}`)
     } catch (error) {
       setNotice(getErrorMessage(error, t('admin.saveUserError', 'Nie udalo sie zapisac uzytkownika.')))
@@ -180,13 +188,15 @@ export default function AdminView({
   }
 
   async function createNewUser() {
-    if (!newUser.email && !newUser.login) return
+    if (isSupabaseMode ? !newUser.email : (!newUser.email && !newUser.login)) return
+    const login = isSupabaseMode ? '' : (newUser.login || newUser.email.split('@')[0])
     const created = {
       ...newUser,
-      id: newUser.id || newUser.login || newUser.email,
-      email: newUser.email || `${newUser.login}@local`,
-      fullName: newUser.fullName || newUser.email || newUser.login || 'Nowy uzytkownik',
-      password: newUser.password || 'start123',
+      id: newUser.id || login || newUser.email,
+      login,
+      email: newUser.email || `${login}@local`,
+      fullName: newUser.fullName || newUser.email || login || 'Nowy uzytkownik',
+      password: isSupabaseMode ? (newUser.password || '') : (newUser.password || 'start123'),
       source: user.source,
     }
     try {
@@ -449,6 +459,11 @@ export default function AdminView({
       {selectedSection === 'users' ? (
         <section className="data-panel user-admin">
           <div className="section-title"><span>{t('admin.usersTitle', 'Uzytkownicy i role')}</span><small>{draftUsers.length} {t('admin.accounts', 'kont')}</small></div>
+          <p className="hint-text">
+            {isSupabaseMode
+              ? t('admin.usersHintSupabase', 'W trybie Supabase sterujesz prawdziwymi uprawnieniami konta: rola, leader scope i aktywnosc trafiaja do profiles i od razu wplywaja na RLS.')
+              : t('admin.usersHintLocal', 'W trybie lokalnym zmiany dzialaja na danych demo i sluza tylko do testowania ukladu uprawnien.')}
+          </p>
           <div className="user-layout">
             <div className="user-list">
               <div className="list-toolbar">
@@ -476,11 +491,19 @@ export default function AdminView({
                 <>
                   <div className="field-grid two">
                     <label><span>{t('admin.user.email', 'Email')}</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
-                    <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
                     <label><span>{t('admin.user.fullName', 'Imie i nazwisko')}</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
                     <label><span>{t('admin.user.role', 'Rola')}</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
                     <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pelny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-                    <label><span>{t('admin.user.password', 'Haslo lokalne / startowe')}</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
+                    {!isSupabaseMode ? (
+                      <>
+                        <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
+                        <label><span>{t('admin.user.password', 'Haslo lokalne / startowe')}</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
+                      </>
+                    ) : (
+                      <div className="empty-state compact-empty">
+                        {t('admin.user.supabaseNote', 'W Supabase login lokalny i haslo nie steruja dostepem. Zmieniaj role, zakres i aktywnosc.')}
+                      </div>
+                    )}
                   </div>
                   <div className="admin-inline-actions">
                     <label className="toggle-line"><input type="checkbox" checked={selectedUser.isActive} onChange={(event) => updateUserDraft(selectedUser.id, { isActive: event.target.checked })} /> {t('admin.user.activeToggle', 'Konto aktywne')}</label>
@@ -494,13 +517,24 @@ export default function AdminView({
             <div className="section-title"><span>{t('admin.newUserTitle', 'Nowe konto')}</span><small>{user.source === 'supabase' ? t('admin.newUserSourceSupabase', 'tworzone przez Edge Function') : t('admin.newUserSourceLocal', 'konto lokalne demo')}</small></div>
             <div className="field-grid">
               <label><span>{t('admin.user.email', 'Email')}</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
-              <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
               <label><span>{t('admin.user.fullName', 'Imie i nazwisko')}</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
-              <label><span>{t('admin.user.passwordStart', 'Haslo startowe')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+              {!isSupabaseMode ? (
+                <>
+                  <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
+                  <label><span>{t('admin.user.passwordStart', 'Haslo startowe')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+                </>
+              ) : (
+                <label><span>{t('admin.user.passwordOptional', 'Haslo startowe (opcjonalne)')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+              )}
               <label><span>{t('admin.user.role', 'Rola')}</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
               <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pelny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
             </div>
-            <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> {t('admin.createUser', 'Utworz konto')}</button>
+            <p className="hint-text">
+              {isSupabaseMode
+                ? t('admin.createUserHintSupabase', 'Jesli haslo zostawisz puste, Supabase wysle zaproszenie na email. Role i leader scope ustawiaja dostep od razu po utworzeniu profilu.')
+                : t('admin.createUserHintLocal', 'W lokalnym trybie tworzone jest konto demo z lokalnym loginem i haslem startowym.')}
+            </p>
+            <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> {isSupabaseMode ? t('admin.createUserSupabase', 'Utworz / zapros konto') : t('admin.createUser', 'Utworz konto')}</button>
           </div>
         </section>
       ) : null}

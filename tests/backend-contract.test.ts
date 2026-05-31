@@ -32,6 +32,7 @@ describe('backend contract', () => {
     expect(schema).toContain('create trigger trg_assessments_write_guard')
     expect(schema).toContain('current_profile_full_name()')
     expect(schema).toContain('current_profile_email()')
+    expect(schema).toContain('and is_active = true')
     expect(schema).toContain("and status = 'approved'")
     expect(schema).toContain('spec = public.current_profile_full_name()')
     expect(schema).toContain('spec = public.current_profile_email()')
@@ -42,6 +43,7 @@ describe('backend contract', () => {
     expect(schema).toContain('user_preferences: owner read')
 
     expect(hardening).toContain('admin_history: admin i dyrektor wstawiaja')
+    expect(hardening).toContain('and is_active = true')
     expect(hardening).toContain("and status = 'approved'")
     expect(hardening).toContain('user_drafts: owner update')
     expect(hardening).toContain('assessment_comments: scoped insert')

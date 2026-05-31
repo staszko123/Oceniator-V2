@@ -1,9 +1,10 @@
 # Oceniator v2
 
 Oceniator v2 to aplikacja React + Vite + TypeScript do oceny jakosci obslugi w kanalach
-rozmow, maili i dzialan systemowych. Glowne UI jest teraz uruchamiane z rootowego
-`index.html`, a poprzednia aplikacja statyczna zostala zachowana w `legacy/` jako fallback
-referencyjny.
+rozmow, maili i dzialan systemowych. Obecny kierunek produktu to portal jako?ci z
+logowaniem przez Supabase Auth + Google OAuth, wdra?any przez Vercel, z RLS i audytem po
+stronie Supabase. Glowne UI jest uruchamiane z rootowego `index.html`, a poprzednia
+aplikacja statyczna zostala zachowana w `legacy/` jako fallback referencyjny.
 
 ## Uruchomienie lokalne
 
@@ -62,8 +63,8 @@ Projekt jest przygotowany pod `Vercel`.
 
 - rootowy build nadal wychodzi przez `npm run build` do `dist/`,
 - `vercel.json` wskazuje build output,
-- deployment produkcyjny i preview powinny być zarządzane przez integrację Vercel z repo,
-- dla logowania Google dodaj w Supabase Dashboard provider `Google` oraz allowlistę redirect URL dla środowisk `local`, `staging` i `production`.
+- deployment produkcyjny i preview powinny by?? zarz??dzane przez integracj?? Vercel z repo albo przez bezpo??redni deploy z aktualnej ga????zi,
+- dla logowania Google dodaj w Supabase Dashboard provider `Google` oraz allowlist?? redirect URL dla ??rodowisk `local`, `staging` i `production`.
 
 ## Diagnostyka i start
 
@@ -84,21 +85,10 @@ npm run smoke
 ## Tryby danych
 
 - Domyslnie aplikacja probuje uzyc Supabase przez `app/src/data/supabaseProvider.ts`.
-- `Local demo` jest dostepne tylko w srodowisku `local`.
+- Tryb lokalny jest dostepny tylko w srodowisku `local`.
 - W produkcji i stagingu UI korzysta z Supabase, a logowanie idzie przez Google OAuth.
-- Przycisk `Uruchom demo lokalne` przelacza przegladarke na provider lokalny tylko w dev.
-- Przycisk `Eksportuj dane demo` pobiera lokalne dane testowe do pliku JSON bez automatycznej migracji do Supabase.
 - Dane lokalne v2 uzywaja kluczy `oc_v2_*` tylko w trybie demo i nie sa zrodlem prawdy dla produkcji.
 - W trybie Supabase dane biznesowe, w tym oceny, szkice, komentarze i powiadomienia, sa zapisywane w zewnetrznej bazie.
-
-Konta demo:
-
-- `admin / admin123`
-- `lider01 / lider123`
-- `lider02 / lider123`
-- `lider / lider123`
-- `oceniajacy / ocena123`
-- `podglad / podglad123`
 
 ## Supabase
 
