@@ -25,7 +25,7 @@ import { hasPermission } from './config/permissions'
 import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
 import { useLanguage } from './i18n/LanguageContext'
-import { getThemePreference, isLocalDemoEnabled, setProviderMode } from './services/settingsService'
+import { getThemePreference, setProviderMode } from './services/settingsService'
 import { buildLocationHash, readLocationState, type AppLocationState, type RegistryIntentPreset, type RegistryLocationState } from './lib/locationHash'
 import './index.css'
 const LOGIN_TRANSITION_KEY = 'oceniator.loginTransition'
@@ -111,7 +111,6 @@ function LoginScreen({
   transitioning: boolean
 }) {
   const { t } = useLanguage()
-  const demoMode = isLocalDemoEnabled()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -173,13 +172,8 @@ function LoginScreen({
       <section className="login-shell">
         <div className="brand-mark">
           <strong>{t('login.brand.title', 'Portal jakości')}</strong>
-          <small>{demoMode ? t('login.mode.local', 'Lokalnie') : t('login.brand.subtitle', 'Portal jakości')}</small>
         </div>
         <section className="login-card">
-          <div className="login-card-copy">
-            <span>{demoMode ? t('login.mode.local', 'Lokalnie') : t('login.mode.google', 'Google')}</span>
-            <p>{demoMode ? t('login.cardCopy', 'Tryb lokalny dla dewelopera.') : t('login.cardCopyGoogle', 'Konto Google przez Supabase Auth.')}</p>
-          </div>
           {provider.mode === 'supabase' ? (
             <div className="stack">
               {error ? <div className="error-box">{error}</div> : null}
@@ -210,10 +204,6 @@ function LoginScreen({
           <strong>{t('layout.desktopOnlyTitle')}</strong>
           <p>{t('layout.desktopOnlyDescription')}</p>
         </div>
-      </div>
-      <div className="login-watermark" aria-hidden="true">
-        <span>© 2026 Jakub Stachura</span>
-        <small>Własna praca</small>
       </div>
     </main>
   )
