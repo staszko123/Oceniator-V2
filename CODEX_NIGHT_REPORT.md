@@ -172,3 +172,39 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#7` next: add coverage for empty-filter cases in `app/src/features/analytics/filters.ts`, which stays low-risk and avoids the already modified UI-heavy files.
+
+---
+
+## Run update 2026-06-01
+
+### Repository inspection
+
+- Re-read `package.json`, `app/package.json`, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, and `app/src/features/analytics/filters.ts`.
+- Confirmed routing still relies on hash state and that the selected change stays inside pure analytics helpers and tests.
+- Preserved unrelated local modifications already present in `app/src/data/supabaseProvider.ts`, `app/src/domain/errors.ts`, `app/src/domain/errors.test.ts`, `app/src/features/reports/ReportsView.tsx`, `app/src/utils/storage.ts`, `app/src/utils/storage.test.ts`, and repo-level reports.
+
+### Selected task
+
+- Chose task `#7` from the low-risk backlog group: add coverage for empty/default analytics filter behavior.
+
+### Change
+
+- Added [`app/src/features/analytics/filters.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/analytics/filters.test.ts) covering:
+- default filter state values,
+- empty-row safety,
+- default "all" behavior excluding archived rows,
+- leader matching through both `oce` and `leaderScope`,
+- `uniqueSorted` dropping blank duplicate options.
+- Marked task `#7` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/features/analytics/filters.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#8` next: verify `ContextMenu` dismissal behavior with focused tests, which remains UI-adjacent but still isolated from business logic.
