@@ -717,7 +717,7 @@ function App() {
         >
         {effectiveView === 'start' ? (
           isViewerRole(user.role) ? (
-            <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} />
+            <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} loadComments={loadAssessmentComments} />
           ) : (
             <StartView
               user={user}
