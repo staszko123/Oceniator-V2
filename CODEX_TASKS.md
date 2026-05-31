@@ -7,6 +7,6 @@
 5. Done: add a smoke test for `app/src/config/navigation.ts` viewer-visible items.
 6. Done: extract duplicated export helpers into shared `app/src/lib/fileExport.ts`.
 7. Done: add coverage for `app/src/features/analytics/filters.ts` empty-filter cases.
-8. Verify `app/src/components/actions/ContextMenu.tsx` keyboard dismissal behavior with tests.
+8. Done: verify `app/src/components/actions/ContextMenu.tsx` keyboard dismissal behavior with tests.
 9. Audit `app/src/styles/theme.css` variables for unused tokens.
 10. Document the hash-based routing model in `README.md`.

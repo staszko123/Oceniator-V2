@@ -208,3 +208,37 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#8` next: verify `ContextMenu` dismissal behavior with focused tests, which remains UI-adjacent but still isolated from business logic.
+
+---
+
+## Run update 2026-06-01 01:04
+
+### Repository inspection
+
+- Re-read `package.json`, root/app Vite config, `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, `app/src/config/navigation.ts`, and `app/src/components/actions/ContextMenu.tsx`.
+- Confirmed routing still relies on hash state and that the selected change stays inside an isolated UI helper plus test tooling only.
+- Preserved unrelated local modifications already present in shared data, report, export, storage, and Supabase files.
+
+### Selected task
+
+- Chose task `#8` from the low-risk backlog group: verify `ContextMenu` keyboard dismissal behavior with focused tests.
+
+### Change
+
+- Added [`app/src/components/actions/ContextMenu.test.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/components/actions/ContextMenu.test.tsx) covering:
+- closing the context menu on `Escape` when open,
+- not registering `Escape` handling when the menu is closed.
+- Added `jsdom` to root devDependencies in [`package.json`](C:/Users/stanl/Documents/Oceniator%20v2/package.json) so Vitest can execute DOM-oriented component tests.
+- Marked task `#8` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/components/actions/ContextMenu.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#9` next: audit `app/src/styles/theme.css` for unused tokens, because it stays low risk and avoids the already edited business-facing flows.
