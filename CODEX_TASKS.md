@@ -1,7 +1,7 @@
 # CODEX Tasks
 
-1. Add unit tests for `app/src/utils/storage.ts` fallback behavior.
-2. Add unit tests for `app/src/lib/locationHash.ts` parse/build round-trips.
+1. Done: add unit tests for `app/src/utils/storage.ts` fallback behavior.
+2. Done: add unit tests for `app/src/lib/locationHash.ts` parse/build round-trips.
 3. Normalize mojibake fallback strings in `app/src/App.tsx` and `README.md`.
 4. Add a small test for `app/src/services/settingsService.ts` theme/language persistence.
 5. Add a smoke test for `app/src/config/navigation.ts` viewer-visible items.

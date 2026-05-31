@@ -33,3 +33,38 @@ Automation: oceniator-v2-upkeep
 ## Next step
 
 - Tackle the next shared-code task from the backlog: add round-trip tests for `app/src/lib/locationHash.ts`, still avoiding the already modified UI files.
+
+---
+
+## Run update 2026-05-31 22:46
+
+### Repository inspection
+
+- Re-read `package.json`, `app/src/App.tsx`, `app/src/main.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/lib/locationHash.ts`.
+- Confirmed the app still uses hash-based route state with explicit parsing/building in `app/src/lib/locationHash.ts`.
+- Preserved pre-existing local changes in `app/src/App.tsx`, `app/src/features/admin/AdminView.tsx`, `app/src/features/evaluation/EvaluationView.tsx`, `app/src/features/team/TeamView.tsx`, `app/src/features/viewer/ViewerPortalView.tsx`, `app/src/i18n/messages.ts`, `app/src/index.css`, and the untracked viewer files.
+
+### Selected task
+
+- Chose task `#2` from the low-risk backlog group: add unit tests for hash route parsing/build round-trips.
+
+### Change
+
+- Added [`app/src/lib/locationHash.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/locationHash.test.ts) covering:
+- fallback to `start` for empty and unknown hashes,
+- registry preset validation and focus parsing,
+- form type validation,
+- stable `buildLocationHash` output,
+- round-trip parsing for supported route states.
+
+### Verification
+
+- `npm run test -- app/src/lib/locationHash.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-05-31.
+
+### Next recommended step
+
+- Tackle task `#4` or `#5` next, because both stay in shared configuration/service code and avoid the currently modified UI files.
