@@ -176,6 +176,7 @@ export interface AuthProvider {
   mode: 'supabase' | 'local'
   signIn(email: string, password: string): Promise<UserProfile>
   signInLocal?(login: string, password: string): Promise<UserProfile>
+  signInWithGoogle?(): Promise<void>
   signOut(): Promise<void>
   getCurrentUser(): Promise<UserProfile | null>
 }

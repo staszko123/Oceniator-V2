@@ -10,7 +10,7 @@ Otworz adres Vite, domyslnie `http://127.0.0.1:5173/`.
 
 ## Sciezka krytyczna
 
-1. Na ekranie logowania kliknij `Uruchom lokalne demo jako admin`.
+1. Na ekranie logowania kliknij `Uruchom lokalne demo jako admin` tylko w srodowisku lokalnym.
 2. Przejdz przez widoki `Start`, `Dashboard`, `Ewidencja`, `Raporty`, `Panel admina`.
 3. W formularzu utworz nowa karte rozmowy:
    - wybierz specjaliste,
@@ -35,7 +35,7 @@ Otworz adres Vite, domyslnie `http://127.0.0.1:5173/`.
 
 ## Supabase
 
-1. Zaloguj sie realnym uzytkownikiem Supabase.
+1. Zaloguj sie realnym uzytkownikiem Supabase przez Google OAuth.
 2. Sprawdz odczyt profilu, kart, slownikow, celow i okresow.
 3. Jako admin sprawdz zapis konfiguracji i tworzenie uzytkownika przez Edge Function.
 4. Jako konto bez uprawnien admina sprawdz, czy brak dostepu nie blokuje calej aplikacji.

@@ -1,9 +1,9 @@
 ﻿import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { BarChart3, ClipboardCheck, Database, FileBarChart, Layers3, LayoutDashboard, Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sparkles, Sun, Users } from 'lucide-react'
+import { BarChart3, ClipboardCheck, Database, FileBarChart, Layers3, LayoutDashboard, LogIn, Moon, PanelRight, PhoneCall, Settings, ShieldCheck, Sparkles, Sun, Users } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
 import { downloadDemoDataExport } from './data/demoExport'
-import { createProvider } from './data/supabaseProvider'
+import { createProvider, SupabaseDataProvider } from './data/supabaseProvider'
 import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
 import { getErrorMessage } from './domain/errors'
@@ -25,7 +25,7 @@ import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
 import { useTheme } from './lib/theme'
 import { useLanguage } from './i18n/LanguageContext'
-import { setProviderMode } from './services/settingsService'
+import { isLocalDemoEnabled, setProviderMode } from './services/settingsService'
 import './index.css'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
@@ -108,11 +108,19 @@ function availableNavItems(user: UserProfile): typeof navItems {
 function LoginScreen({
   provider,
   onLogin,
+  onGoogleLogin,
   onLocalDemo,
+  onUseSupabase,
+  localDemoAvailable,
+  supabaseAvailable,
 }: {
   provider: DataProvider
   onLogin: (login: string, password: string) => Promise<void>
+  onGoogleLogin: () => Promise<void>
   onLocalDemo: () => Promise<void>
+  onUseSupabase: () => void
+  localDemoAvailable: boolean
+  supabaseAvailable: boolean
 }) {
   const { t } = useLanguage()
   const [login, setLogin] = useState('')
@@ -147,6 +155,18 @@ function LoginScreen({
       await onLocalDemo()
     } catch (err) {
       setError(getErrorMessage(err, t('login.error.demo', 'Nie udało się uruchomić lokalnego demo.')))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function startGoogleLogin() {
+    setBusy(true)
+    setError('')
+    try {
+      await onGoogleLogin()
+    } catch (err) {
+      setError(getErrorMessage(err, t('login.error.google', 'Nie udało się uruchomić logowania Google.')))
     } finally {
       setBusy(false)
     }
@@ -197,7 +217,7 @@ function LoginScreen({
           <p>{t('login.description', 'To jest produkcyjny ekran dostępu do pracy. Wchodzisz do aplikacji bez marketingowego hałasu i bez dodatkowych ekranów po drodze.')}</p>
           <div className="login-points">
             <div className="login-point"><ShieldCheck size={16} /> <span>{t('login.point.roles', 'Role i zakresy dostępu')}</span></div>
-            <div className="login-point"><Database size={16} /> <span>{t('login.point.storage', 'Supabase albo lokalne demo')}</span></div>
+            <div className="login-point"><Database size={16} /> <span>{provider.mode === 'supabase' ? t('login.point.storageSupabase', 'Supabase i Google OAuth') : t('login.point.storageLocal', 'Lokalne demo i dane testowe')}</span></div>
             <div className="login-point"><PanelRight size={16} /> <span>{t('login.point.fast', 'Jeden login, szybkie wejście')}</span></div>
           </div>
         </div>
@@ -205,36 +225,64 @@ function LoginScreen({
       <section className="login-card">
         <div className="section-title login-card-head">
           <div>
-            <span>{provider.mode === 'supabase' ? t('login.mode.supabase', 'Logowanie') : t('login.mode.local', 'Logowanie lokalne')}</span>
-            <p className="login-card-copy">{t('login.cardCopy', 'Zaloguj się i kontynuuj pracę bez dodatkowych ekranów.')}</p>
+            <span>{provider.mode === 'supabase' ? t('login.mode.google', 'Logowanie przez Google') : t('login.mode.local', 'Logowanie lokalne')}</span>
+            <p className="login-card-copy">
+              {provider.mode === 'supabase'
+                ? t('login.cardCopyGoogle', 'Zaloguj się kontem Google połączonym z Supabase Auth.')
+                : t('login.cardCopy', 'Zaloguj się i kontynuuj pracę bez dodatkowych ekranów.')}
+            </p>
           </div>
           <button className="theme-toggle" type="button" onClick={toggleTheme} title={t('action.theme', 'Przełącz motyw')}>
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             <span>{theme === 'dark' ? t('theme.light', 'Jasny') : t('theme.dark', 'Ciemny')}</span>
           </button>
         </div>
-        <form onSubmit={submit} className="stack">
-          <label>
-            <span>{provider.mode === 'supabase' ? t('login.email', 'Adres e-mail') : t('login.localLogin', 'Login lokalny')}</span>
-            <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" autoFocus />
-          </label>
-          <label>
-            <span>{t('login.password', 'Hasło')}</span>
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
-          </label>
-          {error ? <div className="error-box">{error}</div> : null}
-          <button className="primary-btn" disabled={busy} type="submit">
-            {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj się')}
-          </button>
-        </form>
+        {provider.mode === 'supabase' ? (
+          <div className="stack">
+            {error ? <div className="error-box">{error}</div> : null}
+            <button className="primary-btn" disabled={busy} type="button" onClick={() => void startGoogleLogin()}>
+              {busy ? t('login.loggingIn', 'Logowanie...') : <><LogIn size={16} /> {t('login.googleButton', 'Zaloguj przez Google')}</>}
+            </button>
+            <p className="hint-text">{t('login.googleHint', 'Użyj konta Google powiązanego z Supabase Auth.')}</p>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="stack">
+            <label>
+              <span>{t('login.localLogin', 'Login lokalny')}</span>
+              <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" autoFocus />
+            </label>
+            <label>
+              <span>{t('login.password', 'Hasło')}</span>
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+            </label>
+            {error ? <div className="error-box">{error}</div> : null}
+            <button className="primary-btn" disabled={busy} type="submit">
+              {busy ? t('login.loggingIn', 'Logowanie...') : t('login.submit', 'Zaloguj się')}
+            </button>
+          </form>
+        )}
         <div className="login-footer">
-          <button className="ghost-btn wide" type="button" disabled={busy} onClick={() => void startLocalDemo()}>
-            {t('login.demoButton', 'Uruchom demo lokalne')}
-          </button>
-          <button className="ghost-btn wide" type="button" disabled={busy} onClick={exportLocalDemoData}>
-            {t('login.demoExportButton', 'Eksportuj dane demo')}
-          </button>
-          <p className="hint-text">{t('login.demoAccounts', 'Konta testowe: ')}{localDemoAccounts}.</p>
+          {provider.mode === 'local' && supabaseAvailable ? (
+            <button className="ghost-btn wide" type="button" disabled={busy} onClick={onUseSupabase}>
+              {t('login.switchToGoogle', 'Wróć do logowania Google')}
+            </button>
+          ) : null}
+          {provider.mode === 'local' && !supabaseAvailable ? (
+            <p className="hint-text">{t('login.googleSetupRequired', 'Logowanie Google będzie dostępne po skonfigurowaniu Supabase.')}</p>
+          ) : null}
+          {localDemoAvailable ? (
+            <>
+              <button className="ghost-btn wide" type="button" disabled={busy} onClick={() => void startLocalDemo()}>
+                {t('login.demoButton', 'Uruchom demo lokalne')}
+              </button>
+              <button className="ghost-btn wide" type="button" disabled={busy} onClick={exportLocalDemoData}>
+                {t('login.demoExportButton', 'Eksportuj dane demo')}
+              </button>
+              <p className="hint-text">{t('login.demoAccounts', 'Konta testowe: ')}{localDemoAccounts}.</p>
+            </>
+          ) : (
+            <p className="hint-text">{t('login.demoUnavailable', 'Tryb demo jest dostępny wyłącznie w lokalnym środowisku deweloperskim.')}</p>
+          )}
         </div>
       </section>
     </main>
@@ -261,6 +309,8 @@ function App() {
   const [registryIntent, setRegistryIntent] = useState<{ preset: RegistryIntentPreset; token: number } | null>(null)
   const [registryFocus, setRegistryFocus] = useState<{ assessmentId: string; token: number } | null>(null)
   const [bootError, setBootError] = useState('')
+  const localDemoAvailable = isLocalDemoEnabled()
+  const supabaseConfigured = SupabaseDataProvider.isConfigured()
   const refreshDiagnostics = useCallback((event: Parameters<typeof recordDiagnostic>[0]) => {
     recordDiagnostic(event)
     setDiagnostics(loadDiagnostics())
@@ -355,7 +405,22 @@ function App() {
     })
   }
 
+  async function googleLogin() {
+    if (!provider.signInWithGoogle) {
+      throw new Error(t('login.error.googleUnavailable', 'Logowanie Google nie jest dostępne w tym środowisku.'))
+    }
+    await provider.signInWithGoogle()
+  }
+
+  function useSupabaseProvider() {
+    setProviderMode('supabase')
+    setProvider(new SupabaseDataProvider())
+  }
+
   async function localDemo() {
+    if (!localDemoAvailable) {
+      throw new Error(t('login.demoUnavailable', 'Tryb demo jest dostępny wyłącznie w lokalnym środowisku deweloperskim.'))
+    }
     setProviderMode('local')
     const local = createProvider(true)
     setProvider(local)
@@ -634,7 +699,15 @@ function App() {
   if (!user || !admin) {
     return (
       <>
-        <LoginScreen provider={provider} onLogin={login} onLocalDemo={localDemo} />
+        <LoginScreen
+          provider={provider}
+          onLogin={login}
+          onGoogleLogin={googleLogin}
+          onLocalDemo={localDemo}
+          onUseSupabase={useSupabaseProvider}
+          localDemoAvailable={localDemoAvailable}
+          supabaseAvailable={supabaseConfigured}
+        />
         {bootError ? <div className="floating-error">{bootError}</div> : null}
       </>
     )

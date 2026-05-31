@@ -5,13 +5,11 @@ import { canAdminRole, scopeAssessmentsForUser } from '../domain/access'
 import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentComment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
 import type { Notification } from '../types/notification'
 import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
-import { getProviderMode } from '../services/settingsService'
+import { getOAuthRedirectUrl, getProviderMode, isLocalDemoEnabled } from '../services/settingsService'
 
 const supabaseConfig = {
-  url: import.meta.env.VITE_SUPABASE_URL || 'https://oemqmxqngwtxmhlmwubq.supabase.co',
-  anonKey:
-    import.meta.env.VITE_SUPABASE_ANON_KEY ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lbXFteHFuZ3d0eG1obG13dWJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5ODk1MTMsImV4cCI6MjA5MzU2NTUxM30.upbHqVN4hIb5wF3rTUY7l91M1k6DL7s_60i1HePK-OE',
+  url: import.meta.env.VITE_SUPABASE_URL || '',
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   enabled: import.meta.env.VITE_SUPABASE_ENABLED !== 'false',
 }
 function mapRow(row: Record<string, unknown>): Assessment {
@@ -80,17 +78,24 @@ function isUuid(value: string): boolean {
 
 export class SupabaseDataProvider implements DataProvider {
   mode = 'supabase' as const
-  private client: SupabaseClient
+  private _client: SupabaseClient | null = null
   private currentUser: UserProfile | null = null
 
   constructor() {
-    this.client = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true },
-    })
+    if (SupabaseDataProvider.isConfigured()) {
+      this._client = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+        auth: { persistSession: true, autoRefreshToken: true },
+      })
+    }
   }
 
   static isConfigured(): boolean {
     return Boolean(supabaseConfig.enabled && supabaseConfig.url && supabaseConfig.anonKey)
+  }
+
+  private get client(): SupabaseClient {
+    if (!this._client) throw new Error('Supabase nie jest skonfigurowane.')
+    return this._client
   }
 
   async signIn(email: string, password: string): Promise<UserProfile> {
@@ -100,6 +105,19 @@ export class SupabaseDataProvider implements DataProvider {
     const profile = await this.loadProfile(data.user.id, data.user.email || '')
     this.currentUser = profile
     return profile
+  }
+
+  async signInWithGoogle(redirectTo = getOAuthRedirectUrl()): Promise<void> {
+    const { error } = await this.client.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectTo || undefined,
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
+    })
+    if (error) throw error
   }
 
   async signOut(): Promise<void> {
@@ -584,14 +602,23 @@ let localProviderInstance: DemoDataProvider | null = null
 let supabaseProviderInstance: SupabaseDataProvider | null = null
 
 export function createProvider(forceLocal = false): DataProvider {
-  if (forceLocal || getProviderMode() === 'local') {
+  const providerMode = getProviderMode()
+  const configured = SupabaseDataProvider.isConfigured()
+  if ((forceLocal || providerMode === 'local') && isLocalDemoEnabled()) {
     localProviderInstance ||= new DemoDataProvider()
     return localProviderInstance
   }
-  if (SupabaseDataProvider.isConfigured()) {
+  if (configured && providerMode === 'supabase') {
     supabaseProviderInstance ||= new SupabaseDataProvider()
     return supabaseProviderInstance
   }
-  localProviderInstance ||= new DemoDataProvider()
-  return localProviderInstance
+  if (isLocalDemoEnabled()) {
+    localProviderInstance ||= new DemoDataProvider()
+    return localProviderInstance
+  }
+  if (configured) {
+    supabaseProviderInstance ||= new SupabaseDataProvider()
+    return supabaseProviderInstance
+  }
+  return supabaseProviderInstance ||= new SupabaseDataProvider()
 }

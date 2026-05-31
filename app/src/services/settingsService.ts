@@ -3,6 +3,7 @@ import { readStorageItem, writeStorageItem } from '../utils/storage'
 
 export type ProviderMode = 'local' | 'supabase'
 export type ThemeMode = 'light' | 'dark'
+export type AppEnvironment = 'local' | 'staging' | 'production'
 
 const keys = {
   providerMode: 'oc_v2_provider',
@@ -10,12 +11,35 @@ const keys = {
   language: 'oc_v2_language',
 }
 
+function normalizeEnvironment(value: string | undefined): AppEnvironment | null {
+  if (value === 'local' || value === 'staging' || value === 'production') return value
+  return null
+}
+
+export function getAppEnvironment(): AppEnvironment {
+  return normalizeEnvironment(import.meta.env.VITE_APP_ENV) || (import.meta.env.DEV ? 'local' : 'production')
+}
+
+export function isLocalDemoEnabled(): boolean {
+  return getAppEnvironment() === 'local'
+}
+
 export function getProviderMode(): ProviderMode {
+  if (!isLocalDemoEnabled()) return 'supabase'
   return readStorageItem(keys.providerMode) === 'local' ? 'local' : 'supabase'
 }
 
 export function setProviderMode(mode: ProviderMode): void {
+  if (mode === 'local' && !isLocalDemoEnabled()) return
   writeStorageItem(keys.providerMode, mode)
+}
+
+export function getOAuthRedirectUrl(): string {
+  if (typeof window === 'undefined') return ''
+  const url = new URL(window.location.href)
+  url.hash = ''
+  url.search = ''
+  return url.toString()
 }
 
 export function getThemePreference(): ThemeMode {

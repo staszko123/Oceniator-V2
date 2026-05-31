@@ -1,5 +1,25 @@
 # Smoke Test Results
 
+## Date: 2026-05-31
+
+### Automated Checks
+- `npm run lint` - OK
+- `npm run test -- --run` - OK
+- `npm run build` - OK
+- `npm run smoke` - OK
+- `npm run test:integration` - skipped because staging secrets were not provided
+
+### Current State
+- Auth UI now uses Supabase Google OAuth as the primary production path.
+- Local demo is gated to the local environment and can be switched back to Supabase from the login screen.
+- Hardcoded Supabase URL/key fallbacks were removed from the client config.
+- Repository now includes `vercel.json` for Vercel deployment.
+- GitHub Actions workflow was converted from GitHub Pages deployment to CI verification.
+
+### Residual Risks
+- Google OAuth still requires the Supabase dashboard provider configuration and redirect URL allowlist.
+- The `xlsx` dependency still reports a high-severity advisory with no upstream fix.
+
 ## Date: 2026-05-29
 
 ### Automated Checks

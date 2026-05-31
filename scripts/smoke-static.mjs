@@ -12,11 +12,13 @@ const requiredFiles = [
   'app/src/data/supabaseProvider.ts',
   'app/src/domain/types.ts',
   'app/src/config/userPreferences.ts',
+  'app/src/services/settingsService.ts',
   'legacy/index.html',
   'BACKEND_SCOPE.md',
   'LAUNCH_CHECKLIST.md',
   'SUPABASE_INTEGRATION.md',
   'PILOT_RUNBOOK.md',
+  'vercel.json',
 ]
 
 const failures = []
@@ -79,6 +81,14 @@ if (!localProvider.includes('defaultManagedUsers') || !localProvider.includes('m
 const supabaseProvider = existsSync(join(root, 'app/src/data/supabaseProvider.ts')) ? read('app/src/data/supabaseProvider.ts') : ''
 for (const table of ['profiles', 'assessments', 'goals', 'specialists', 'departments', 'positions', 'periods']) {
   if (!supabaseProvider.includes(`'${table}'`)) failures.push(`Supabase provider does not reference table ${table}`)
+}
+if (!supabaseProvider.includes('signInWithOAuth')) {
+  failures.push('Supabase provider should use Google OAuth sign-in.')
+}
+
+const settingsService = existsSync(join(root, 'app/src/services/settingsService.ts')) ? read('app/src/services/settingsService.ts') : ''
+for (const marker of ['VITE_APP_ENV', 'getOAuthRedirectUrl', 'isLocalDemoEnabled']) {
+  if (!settingsService.includes(marker)) failures.push(`settingsService is missing runtime marker: ${marker}`)
 }
 
 const packageJson = existsSync(join(root, 'package.json')) ? JSON.parse(read('package.json')) : {}

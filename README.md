@@ -39,6 +39,7 @@ npm run test:integration
 ```
 
 Suite sprawdza logowanie admina, RLS dla `viewer` i `leader`, zapis kart oraz zapis audytu.
+Docelowe logowanie użytkownika w produkcji odbywa się przez `Supabase Auth` z providerem Google.
 
 Minimalne zmienne do uruchomienia suite:
 
@@ -54,6 +55,15 @@ Opcjonalnie, ale zalecane:
 - `SUPABASE_TEST_LEADER_EMAIL`
 - `SUPABASE_TEST_LEADER_PASSWORD`
 - `SUPABASE_SERVICE_ROLE_KEY`
+
+## Deployment
+
+Projekt jest przygotowany pod `Vercel`.
+
+- rootowy build nadal wychodzi przez `npm run build` do `dist/`,
+- `vercel.json` wskazuje build output,
+- deployment produkcyjny i preview powinny być zarządzane przez integrację Vercel z repo,
+- dla logowania Google dodaj w Supabase Dashboard provider `Google` oraz allowlistę redirect URL dla środowisk `local`, `staging` i `production`.
 
 ## Diagnostyka i start
 
@@ -74,7 +84,9 @@ npm run smoke
 ## Tryby danych
 
 - Domyslnie aplikacja probuje uzyc Supabase przez `app/src/data/supabaseProvider.ts`.
-- Przycisk `Uruchom demo lokalne` przelacza przegladarke na provider lokalny.
+- `Local demo` jest dostepne tylko w srodowisku `local`.
+- W produkcji i stagingu UI korzysta z Supabase, a logowanie idzie przez Google OAuth.
+- Przycisk `Uruchom demo lokalne` przelacza przegladarke na provider lokalny tylko w dev.
 - Przycisk `Eksportuj dane demo` pobiera lokalne dane testowe do pliku JSON bez automatycznej migracji do Supabase.
 - Dane lokalne v2 uzywaja kluczy `oc_v2_*` tylko w trybie demo i nie sa zrodlem prawdy dla produkcji.
 - W trybie Supabase dane biznesowe, w tym oceny, szkice, komentarze i powiadomienia, sa zapisywane w zewnetrznej bazie.
@@ -98,7 +110,7 @@ Schemat bazy i skrypty pomocnicze sa w katalogu `supabase/`:
 - `functions/admin-users/` - Edge Function do tworzenia kont Auth z panelu admina.
 
 Konfiguracja klienta React jest w `app/src/data/supabaseProvider.ts` i moze byc nadpisana
-zmiennymi `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` oraz `VITE_SUPABASE_ENABLED=false`.
+zmiennymi `VITE_APP_ENV`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` oraz `VITE_SUPABASE_ENABLED=false`.
 Klucza `service_role` nie wolno dodawac do frontendu.
 
 ## Struktura
