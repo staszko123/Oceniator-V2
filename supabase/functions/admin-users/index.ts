@@ -105,7 +105,7 @@ serve(async (req) => {
     changed_by: authData.user.id,
   });
   if (auditError) {
-    console.warn("admin_history write failed:", auditError.message);
+    console.warn("admin_history write failed");
   }
 
   return json({
