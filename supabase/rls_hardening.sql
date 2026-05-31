@@ -22,6 +22,32 @@ returns text language sql stable security definer as $$
   select email from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
+create or replace function public.can_access_assessment(target_assessment_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.assessments a
+    where a.id = target_assessment_id
+      and (
+        public.my_role() in ('admin','director')
+        or (public.my_role() in ('leader','assessor') and a.leader_scope = public.my_scope())
+        or (
+          public.my_role() = 'viewer'
+          and a.status = 'approved'
+          and (
+            a.spec = public.current_profile_full_name()
+            or a.spec = public.current_profile_email()
+          )
+        )
+      )
+  );
+$$;
+
 create unique index if not exists idx_periods_code_unique on public.periods(code);
 
 drop policy if exists "profiles: admin edyt" on public.profiles;
@@ -195,29 +221,30 @@ drop policy if exists "assessment_comments: owner or admin update" on public.ass
 drop policy if exists "assessment_comments: owner or admin delete" on public.assessment_comments;
 create policy "assessment_comments: read with assessment access"
   on public.assessment_comments for select
-  using (
-    exists (
-      select 1 from public.assessments a
-      where a.id = assessment_comments.assessment_id
-    )
-  );
+  using (public.can_access_assessment(assessment_id));
 create policy "assessment_comments: scoped insert"
   on public.assessment_comments for insert
   with check (
     created_by = auth.uid()
     and public.my_role() in ('admin','director','leader','assessor')
-    and exists (
-      select 1 from public.assessments a
-      where a.id = assessment_comments.assessment_id
-    )
+    and public.can_access_assessment(assessment_id)
   );
 create policy "assessment_comments: owner or admin update"
   on public.assessment_comments for update
-  using (created_by = auth.uid() or public.my_role() in ('admin','director'))
-  with check (created_by = auth.uid() or public.my_role() in ('admin','director'));
+  using (
+    (created_by = auth.uid() and public.can_access_assessment(assessment_id))
+    or public.my_role() in ('admin','director')
+  )
+  with check (
+    (created_by = auth.uid() and public.can_access_assessment(assessment_id))
+    or public.my_role() in ('admin','director')
+  );
 create policy "assessment_comments: owner or admin delete"
   on public.assessment_comments for delete
-  using (created_by = auth.uid() or public.my_role() in ('admin','director'));
+  using (
+    (created_by = auth.uid() and public.can_access_assessment(assessment_id))
+    or public.my_role() in ('admin','director')
+  );
 
 alter table public.notifications enable row level security;
 drop policy if exists "notifications: owner read" on public.notifications;

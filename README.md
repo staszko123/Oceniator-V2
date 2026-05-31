@@ -19,6 +19,9 @@ Nastepnie otworz adres pokazany przez Vite, domyslnie:
 http://127.0.0.1:5173/
 ```
 
+Jesli pracujesz z Supabase, skopiuj `.env.example` do lokalnego `.env` i uzupelnij
+`VITE_SUPABASE_URL` oraz `VITE_SUPABASE_ANON_KEY`.
+
 ## Build i weryfikacja
 
 ```powershell
@@ -29,6 +32,16 @@ npm run test
 
 Rootowe skrypty buduja i sprawdzaja aplikacje React. Poprzedni wariant legacy nie jest juz
 glownym entrypointem produkcyjnym.
+
+## Pierwsza prezentacja
+
+Pokazuj po kolei:
+
+1. Zalogowanie.
+2. Start, Dashboard i Ewidencje.
+3. Widok `viewer` oraz ograniczenie zakresu danych.
+4. Panel admina z `Ostatnie zmiany`.
+5. Logout i odswiezenie, zeby pokazac, ze sesja i zapis sa trwale.
 
 ## Integracja Supabase
 

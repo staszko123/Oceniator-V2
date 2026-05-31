@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDashboard, Maximize2, RotateCcw, Settings, Trophy } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
 import { canCompareLeadersRole } from '../../domain/access'
@@ -446,7 +446,7 @@ export default function DashboardView({
             </div>
           </section>
           <div className="analytics-grid movable-grid">
-            {extraPanels.length ? extraPanels.map((panel) => renderPanel(panel)) : (
+            {extraPanels.length ? extraPanels.map((panel) => <Fragment key={panel}>{renderPanel(panel)}</Fragment>) : (
               <section className="empty-dashboard">
                 <Settings size={34} />
                 <h3>{t('dashboard.allHidden')}</h3>

@@ -47,3 +47,11 @@ Otworz adres Vite, domyslnie `http://127.0.0.1:5173/`.
 3. Sprawdz desktop min. 1280 px.
 4. Sprawdz maly viewport: aplikacja powinna pokazac komunikat o wymaganym wiekszym ekranie.
 5. Wpisz w nazwach/notatkach tekst `<img src=x onerror=alert(1)>` i sprawdz, ze renderuje sie jako tekst bez wykonania JS.
+
+## Minimalny browser smoke
+
+1. Zaloguj sie jako lokalny admin.
+2. Przejdz przez `Start`, `Dashboard` i `Ewidencje`.
+3. Sprawdz widok `viewer` na lokalnym demo.
+4. Przelacz motyw, odswiez strone i potwierdz, ze preferencja zostaje.
+5. Wyloguj sie i upewnij sie, ze wracasz do ekranu logowania.

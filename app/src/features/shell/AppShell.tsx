@@ -199,17 +199,19 @@ export default function AppShell({
             <div className="topbar-eyebrow">
               <span>{activeMeta.eyebrow}</span>
             </div>
-            <h2>{activeTitle}</h2>
+            <div className="topbar-title-row">
+              <h2>{activeTitle}</h2>
+              <div className="topbar-meta">
+                <span className="topbar-chip provider-chip">
+                  <Database size={13} />
+                  {PROVIDER_LABELS[providerMode]}
+                </span>
+                <span className="topbar-chip neutral">{ROLE_LABELS[user.role]}</span>
+              </div>
+            </div>
             <p>{activeMeta.description}</p>
           </div>
           <div className="user-pill">
-            <div className="topbar-context">
-              <span className="topbar-chip">
-                <Database size={13} />
-                {PROVIDER_LABELS[providerMode]}
-              </span>
-              <span className="topbar-chip neutral">{ROLE_LABELS[user.role]}</span>
-            </div>
             <div className="topbar-user">
               <UserRound size={15} />
               <div>
@@ -217,30 +219,32 @@ export default function AppShell({
                 <span>{user.email}</span>
               </div>
             </div>
-            <button
-              ref={notificationsButtonRef}
-              className="topbar-icon-btn"
-              type="button"
-              onClick={() => setNotificationsOpen((value) => !value)}
-              title={t('notifications.open')}
-              aria-label={t('notifications.open')}
-              aria-expanded={notificationsOpen}
-              aria-controls="notifications-popover"
-            >
-              <Bell size={15} />
-              {unreadCount > 0 ? <span className="topbar-badge">{unreadCount}</span> : null}
-            </button>
-            <button className="topbar-icon-btn" type="button" onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')} title={t('action.language')}>
-              <Globe size={15} />
-              <span>{t(`language.${language}`)}</span>
-            </button>
-            <button className="topbar-theme" type="button" onClick={toggleTheme} title={t('action.theme')}>
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button type="button" onClick={onLogout} title={t('action.logout')}>
-              <LogOut size={15} />
-              {t('action.logout')}
-            </button>
+            <div className="topbar-actions">
+              <button
+                ref={notificationsButtonRef}
+                className="topbar-icon-btn"
+                type="button"
+                onClick={() => setNotificationsOpen((value) => !value)}
+                title={t('notifications.open')}
+                aria-label={t('notifications.open')}
+                aria-expanded={notificationsOpen}
+                aria-controls="notifications-popover"
+              >
+                <Bell size={15} />
+                {unreadCount > 0 ? <span className="topbar-badge">{unreadCount}</span> : null}
+              </button>
+              <button className="topbar-icon-btn" type="button" onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')} title={t('action.language')}>
+                <Globe size={15} />
+                <span>{t(`language.${language}`)}</span>
+              </button>
+              <button className="topbar-theme" type="button" onClick={toggleTheme} title={t('action.theme')}>
+                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+              </button>
+              <button type="button" onClick={onLogout} title={t('action.logout')}>
+                <LogOut size={15} />
+                {t('action.logout')}
+              </button>
+            </div>
           </div>
         </header>
         {notificationsOpen ? (

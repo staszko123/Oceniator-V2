@@ -401,7 +401,7 @@ describeIntegration('Supabase integration', () => {
   })
 
   it('persists drafts, comments, notifications and preferences behind RLS', async () => {
-    if (!leaderFixture || !viewerFixture || !allowedAssessment) {
+    if (!leaderFixture || !viewerFixture || !allowedAssessment || !foreignAssessment) {
       return
     }
 
@@ -516,6 +516,26 @@ describeIntegration('Supabase integration', () => {
       .eq('assessment_id', allowedAssessment.id)
     expect(commentsError).toBeNull()
     expect((comments || []).some((item) => item.id === comment?.id)).toBe(true)
+
+    const { data: foreignComment, error: foreignCommentError } = await adminClient
+      .from('assessment_comments')
+      .insert({
+        assessment_id: foreignAssessment.id,
+        body: 'Foreign scope comment',
+        created_by: adminId,
+      })
+      .select('id,assessment_id')
+      .single()
+    expect(foreignCommentError).toBeNull()
+    expect(foreignComment?.assessment_id).toBe(foreignAssessment.id)
+    tempCommentIds.push(foreignComment?.id || '')
+
+    const { data: hiddenComments, error: hiddenCommentsError } = await leaderFixture.client
+      .from('assessment_comments')
+      .select('id,assessment_id,body')
+      .eq('assessment_id', foreignAssessment.id)
+    expect(hiddenCommentsError).toBeNull()
+    expect(hiddenComments || []).toHaveLength(0)
 
     const { error: viewerCommentError } = await viewerFixture.client.from('assessment_comments').insert({
       assessment_id: allowedAssessment.id,

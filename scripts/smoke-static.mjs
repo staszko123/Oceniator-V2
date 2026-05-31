@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 const root = process.cwd()
 const requiredFiles = [
+  '.env.example',
   'index.html',
   'package.json',
   'vite.config.ts',
@@ -49,8 +50,16 @@ const dashboardView = existsSync(join(root, 'app/src/features/dashboard/Dashboar
 const dashboardUtils = existsSync(join(root, 'app/src/features/dashboard/utils.ts')) ? read('app/src/features/dashboard/utils.ts') : ''
 const dashboardConfig = existsSync(join(root, 'app/src/config/dashboard.ts')) ? read('app/src/config/dashboard.ts') : ''
 const registryView = existsSync(join(root, 'app/src/features/registry/RegistryView.tsx')) ? read('app/src/features/registry/RegistryView.tsx') : ''
-for (const guard of ['availableNavItems', 'canCreateRole(user.role)', 'canAdminRole(user.role)', 'canViewTeamRole(user.role)', 'getErrorMessage']) {
+const access = existsSync(join(root, 'app/src/domain/access.ts')) ? read('app/src/domain/access.ts') : ''
+const security = existsSync(join(root, 'app/src/lib/security.ts')) ? read('app/src/lib/security.ts') : ''
+for (const guard of ['availableNavItems', 'canCreateRole(user.role)', 'canAdminRole(user.role)', 'getErrorMessage']) {
   if (!app.includes(guard)) failures.push(`App.tsx is missing guard/helper: ${guard}`)
+}
+for (const feature of ['canViewTeamRole', 'scopeAssessmentsForUser']) {
+  if (!access.includes(feature)) failures.push(`domain/access.ts is missing feature marker: ${feature}`)
+}
+if (!security.includes('canViewTeamRole')) {
+  failures.push('lib/security.ts should rely on canViewTeamRole for team visibility')
 }
 const featureMarkers = [
   ['App.tsx', app, ['TeamView', "'team'"]],
@@ -84,7 +93,7 @@ if (!supabaseProvider.includes('signInWithOAuth')) {
 }
 
 const settingsService = existsSync(join(root, 'app/src/services/settingsService.ts')) ? read('app/src/services/settingsService.ts') : ''
-for (const marker of ['VITE_APP_ENV', 'getOAuthRedirectUrl', 'isLocalDemoEnabled']) {
+for (const marker of ['VITE_APP_ENV', 'getOAuthRedirectUrl', 'isLocalDemoEnabled', 'getThemePreference', 'readStorageItem']) {
   if (!settingsService.includes(marker)) failures.push(`settingsService is missing runtime marker: ${marker}`)
 }
 

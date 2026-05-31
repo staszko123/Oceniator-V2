@@ -16,6 +16,7 @@ Dokument do pierwszego uruchomienia portalu u wspolpracownikow. Ma byc prosty: c
 - `npm test -- --run`
 - `npm run smoke`
 - `npm run test:integration` - jesli jest staging Supabase
+- minimalny browser smoke: login -> Start/Dashboard -> Ewidencja -> Logout
 - login dziala dla kont testowych
 - `viewer` widzi tylko swoje oceny
 - `admin_history` zapisuje zmiany administracyjne

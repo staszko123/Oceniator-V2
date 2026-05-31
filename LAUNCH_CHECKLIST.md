@@ -20,6 +20,7 @@
 - Przetestuj z 1-2 wspolpracownikami.
 - Zapisz, gdzie sie zatrzymuja i co jest niejasne.
 - Popraw tylko miejsca, ktore realnie blokuja prace.
+- Przejdz minimalny browser smoke: logowanie -> Start/Dashboard -> Ewidencja -> Logout.
 - Szczegoly pilota i decyzje go/no-go sa w `PILOT_RUNBOOK.md`.
 
 ## 5. Check techniczny

@@ -36,6 +36,7 @@ describe('backend contract', () => {
     expect(schema).toContain("and status = 'approved'")
     expect(schema).toContain('spec = public.current_profile_full_name()')
     expect(schema).toContain('spec = public.current_profile_email()')
+    expect(hardening).toContain('create or replace function public.can_access_assessment')
     expect(schema).toContain('admin_history: admin i dyrektor wstawiaja')
     expect(schema).toContain('user_drafts: owner read')
     expect(schema).toContain('assessment_comments: read with assessment access')

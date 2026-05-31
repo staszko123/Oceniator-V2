@@ -44,7 +44,7 @@ export default function ReportsView({
   const [mode, setMode] = useState<ReportMode>('summary')
   const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
-  const [showMore, setShowMore] = useState(false)
+  const [showMore, setShowMore] = useState(true)
 
   const filtered = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
 
@@ -90,6 +90,12 @@ export default function ReportsView({
   const activeGreat = filtered.filter((item) => item.rating === 'great').length
   const activeReview = filtered.filter((item) => item.status === 'review' || item.status === 'submitted').length
   const goalGap = activeAvg - 82
+  const reportHighlights = [
+    { label: t('report.avgScore', 'Średni wynik'), value: activeAvg ? `${activeAvg}%` : '-', tone: 'positive' as const },
+    { label: t('report.cards', 'Karty'), value: String(filtered.length), tone: 'neutral' as const },
+    { label: t('registry.onlyDecision', 'Do decyzji'), value: String(activeReview), tone: 'alert' as const },
+    { label: t('report.belowStandard', 'Poniżej standardu'), value: String(activeBelow), tone: 'risk' as const },
+  ]
 
   const exportReadiness = [
     activeReview ? { label: t('registry.onlyDecision', 'Do decyzji'), value: activeReview, hint: t('report.reviewHint', 'Karty do domknięcia weryfikacji.') } : null,
@@ -127,14 +133,27 @@ export default function ReportsView({
             <span>{t('report.title', 'Raporty')}</span>
             <small>{filtered.length} {t('report.cardsAfterFilters', 'kart po filtrach')}</small>
           </div>
-          <h1>{t('report.entryHint', 'Najpierw ustaw filtr, potem pobierz tylko to, co pomaga podjąć decyzję.')}</h1>
+          <h1>{t('report.entryHint', 'Szybkie podsumowanie, eksport i następny krok dla bieżącego filtra.')}</h1>
           <p>{notice || reportTable.description}</p>
+          <div className="report-highlight-row">
+            {reportHighlights.map((item) => (
+              <div className={`report-highlight tone-${item.tone}`} key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="report-hero-actions">
           <button className="primary-btn" type="button" onClick={() => openRegistry('decision')}>
             <ClipboardCheck size={16} /> {t('report.goRegistry', 'Przejdź do ewidencji')}
           </button>
-          <span className="hint-text">{t('report.toolsHint', 'Tryby, eksporty i tabele pomocnicze są niżej.')}</span>
+          <div className="report-hero-secondary">
+            <button className="ghost-btn" type="button" onClick={() => setView('dashboard')}>
+              <TrendingUp size={16} /> {t('report.goDashboard', 'Przejdź do analityki')}
+            </button>
+            <span className="hint-text">{t('report.toolsHint', 'Eksporty i tabele pomocnicze są niżej.')}</span>
+          </div>
         </div>
       </section>
 
@@ -192,7 +211,7 @@ export default function ReportsView({
 
       <details className="report-more" open={showMore} onToggle={(event) => setShowMore(event.currentTarget.open)}>
         <summary>
-          <span>{t('report.tools', 'Narzędzia')}</span>
+          <span>{t('report.tools', 'Narzędzia raportu')}</span>
           <small>{t('report.toolsSubtitle', 'tryby, eksporty i rankingi')}</small>
         </summary>
         <div className="report-more-body">

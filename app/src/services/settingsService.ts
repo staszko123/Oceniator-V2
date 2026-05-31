@@ -16,6 +16,11 @@ function normalizeEnvironment(value: string | undefined): AppEnvironment | null 
   return null
 }
 
+function normalizeTheme(value: string | null): ThemeMode | null {
+  if (value === 'light' || value === 'dark') return value
+  return null
+}
+
 export function getAppEnvironment(): AppEnvironment {
   return normalizeEnvironment(import.meta.env.VITE_APP_ENV) || (import.meta.env.DEV ? 'local' : 'production')
 }
@@ -25,12 +30,15 @@ export function isLocalDemoEnabled(): boolean {
 }
 
 export function getProviderMode(): ProviderMode {
-  if (!isLocalDemoEnabled()) return 'supabase'
+  if (isLocalDemoEnabled()) return 'local'
   return readStorageItem(keys.providerMode) === 'local' ? 'local' : 'supabase'
 }
 
 export function setProviderMode(mode: ProviderMode): void {
-  if (mode === 'local' && !isLocalDemoEnabled()) return
+  if (isLocalDemoEnabled()) {
+    writeStorageItem(keys.providerMode, 'local')
+    return
+  }
   writeStorageItem(keys.providerMode, mode)
 }
 
@@ -43,8 +51,7 @@ export function getOAuthRedirectUrl(): string {
 }
 
 export function getThemePreference(): ThemeMode {
-  // Start in light mode until the dark theme is fixed and explicitly re-enabled.
-  return 'light'
+  return normalizeTheme(readStorageItem(keys.theme)) || 'light'
 }
 
 export function setThemePreference(theme: ThemeMode): void {

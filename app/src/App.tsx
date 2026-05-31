@@ -2,8 +2,8 @@
 import { LogIn } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
-import { createProvider, SupabaseDataProvider } from './data/supabaseProvider'
-import { canAdminRole, canCreateRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
+import { createProvider } from './data/supabaseProvider'
+import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
@@ -25,10 +25,9 @@ import { hasPermission } from './config/permissions'
 import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
 import { useLanguage } from './i18n/LanguageContext'
-import { setProviderMode, setThemePreference } from './services/settingsService'
+import { getThemePreference, isLocalDemoEnabled, setProviderMode } from './services/settingsService'
+import { buildLocationHash, readLocationState, type AppLocationState, type RegistryIntentPreset, type RegistryLocationState } from './lib/locationHash'
 import './index.css'
-
-type RegistryIntentPreset = 'all' | 'decision' | 'recent' | 'edited'
 const LOGIN_TRANSITION_KEY = 'oceniator.loginTransition'
 const LOGIN_TRANSITION_MS = 920
 
@@ -79,7 +78,9 @@ function preloadView(view: ViewKey) {
 }
 
 function availableNavItems(user: UserProfile, t: (key: string, fallback?: string) => string) {
-  if (isViewerRole(user.role)) {
+  const canViewTeam = canViewTeamRole(user.role)
+
+  if (!canViewTeam) {
     return navigationConfig
       .filter((item) => item.key === 'start' || item.key === 'registry')
       .map((item) => ({
@@ -102,18 +103,15 @@ function LoginScreen({
   provider,
   onLogin,
   onGoogleLogin,
-  onUseSupabase,
-  supabaseAvailable,
   transitioning,
 }: {
   provider: DataProvider
   onLogin: (login: string, password: string) => Promise<void>
   onGoogleLogin: () => Promise<void>
-  onUseSupabase: () => void
-  supabaseAvailable: boolean
   transitioning: boolean
 }) {
   const { t } = useLanguage()
+  const demoMode = isLocalDemoEnabled()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -121,9 +119,9 @@ function LoginScreen({
 
   useEffect(() => {
     const root = document.documentElement
-    root.classList.remove('dark')
-    root.classList.add('light')
-    setThemePreference('light')
+    const theme = getThemePreference()
+    root.classList.remove('dark', 'light')
+    root.classList.add(theme)
   }, [])
 
   async function submit(event: React.FormEvent) {
@@ -175,8 +173,13 @@ function LoginScreen({
       <section className="login-shell">
         <div className="brand-mark">
           <strong>{t('login.brand.title', 'Portal jakości')}</strong>
+          <small>{demoMode ? t('login.mode.local', 'Lokalnie') : t('login.brand.subtitle', 'Portal jakości')}</small>
         </div>
         <section className="login-card">
+          <div className="login-card-copy">
+            <span>{demoMode ? t('login.mode.local', 'Lokalnie') : t('login.mode.google', 'Google')}</span>
+            <p>{demoMode ? t('login.cardCopy', 'Tryb lokalny dla dewelopera.') : t('login.cardCopyGoogle', 'Konto Google przez Supabase Auth.')}</p>
+          </div>
           {provider.mode === 'supabase' ? (
             <div className="stack">
               {error ? <div className="error-box">{error}</div> : null}
@@ -200,15 +203,14 @@ function LoginScreen({
               </button>
             </form>
           )}
-          {provider.mode === 'local' && supabaseAvailable ? (
-            <div className="login-footer">
-              <button className="ghost-btn wide" type="button" disabled={busy} onClick={onUseSupabase}>
-                {t('login.switchToGoogle', 'Wróć do logowania Google')}
-              </button>
-            </div>
-          ) : null}
         </section>
       </section>
+      <div className="desktop-guard">
+        <div className="desktop-guard-card">
+          <strong>{t('layout.desktopOnlyTitle')}</strong>
+          <p>{t('layout.desktopOnlyDescription')}</p>
+        </div>
+      </div>
       <div className="login-watermark" aria-hidden="true">
         <span>© 2026 Jakub Stachura</span>
         <small>Własna praca</small>
@@ -219,7 +221,8 @@ function LoginScreen({
 
 function App() {
   const { t } = useLanguage()
-  const [provider, setProvider] = useState<DataProvider>(() => createProvider())
+  const [provider] = useState<DataProvider>(() => createProvider())
+  const [initialLocation] = useState<AppLocationState>(() => readLocationState())
   const [user, setUser] = useState<UserProfile | null>(null)
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [admin, setAdmin] = useState<AdminConfig | null>(null)
@@ -230,7 +233,7 @@ function App() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [drafts, setDrafts] = useState<Record<AssessmentType, AssessmentDraft | undefined>>({ r: undefined, m: undefined, s: undefined })
-  const [view, setView] = useState<ViewKey>('start')
+  const [view, setViewState] = useState<ViewKey>(() => initialLocation.view)
   const [activeType, setActiveType] = useState<AssessmentType>('r')
   const [formDraftOverride, setFormDraftOverride] = useState<AssessmentDraft | null>(null)
   const [specialistPrefill, setSpecialistPrefill] = useState<{ name: string; token: number } | null>(null)
@@ -238,11 +241,57 @@ function App() {
   const [registryFocus, setRegistryFocus] = useState<{ assessmentId: string; token: number } | null>(null)
   const [bootError, setBootError] = useState('')
   const [loginTransitioning, setLoginTransitioning] = useState(false)
-  const supabaseConfigured = SupabaseDataProvider.isConfigured()
   const refreshDiagnostics = useCallback((event: Parameters<typeof recordDiagnostic>[0]) => {
     recordDiagnostic(event)
     setDiagnostics(loadDiagnostics())
   }, [])
+  const applyLocationState = useCallback((nextLocation: AppLocationState) => {
+    setViewState(nextLocation.view)
+    if (nextLocation.view === 'registry') {
+      const registry = nextLocation.registry || { preset: 'all' as RegistryIntentPreset }
+      setRegistryIntent({ preset: registry.preset, token: Date.now() })
+      setRegistryFocus(registry.focus ? { assessmentId: registry.focus, token: Date.now() } : null)
+      return
+    }
+    if (nextLocation.view === 'form' && nextLocation.form?.type) {
+      setActiveType(nextLocation.form.type)
+    }
+    setRegistryIntent(null)
+    setRegistryFocus(null)
+  }, [])
+  const syncLocationToHash = useCallback((nextLocation: AppLocationState, replace = false) => {
+    if (typeof window === 'undefined') return
+    const nextUrl = new URL(window.location.href)
+    nextUrl.hash = buildLocationHash(nextLocation)
+    if (replace) {
+      window.history.replaceState(null, '', nextUrl)
+      return
+    }
+    if (window.location.hash === `#${nextUrl.hash.replace(/^#/, '')}`) return
+    window.history.pushState(null, '', nextUrl)
+  }, [])
+  const navigateToView = useCallback((nextView: ViewKey, replace = false, options?: { registry?: RegistryLocationState; formType?: AssessmentType }) => {
+    const nextLocation: AppLocationState = nextView === 'registry'
+      ? { view: nextView, registry: options?.registry || { preset: 'all' } }
+      : nextView === 'form'
+        ? { view: nextView, form: { type: options?.formType || activeType } }
+        : { view: nextView }
+    applyLocationState(nextLocation)
+    syncLocationToHash(nextLocation, replace)
+  }, [activeType, applyLocationState, syncLocationToHash])
+
+  useEffect(() => {
+    function handleLocationChange() {
+      applyLocationState(readLocationState())
+    }
+
+    window.addEventListener('popstate', handleLocationChange)
+    window.addEventListener('hashchange', handleLocationChange)
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+      window.removeEventListener('hashchange', handleLocationChange)
+    }
+  }, [applyLocationState])
 
   const loadWorkspace = useCallback(async (currentUser: UserProfile, activeProvider = provider) => {
     setBootError('')
@@ -282,7 +331,19 @@ function App() {
     setAssessments(scopeAssessmentsForUser(nextAssessments, currentUser))
     setDrafts(nextDrafts)
     setFormDraftOverride(null)
-    setView(isViewerRole(currentUser.role) ? 'registry' : 'start')
+    const requestedLocation = readLocationState()
+    const allowedViews = availableNavItems(currentUser, t).map((item) => item.key)
+    const fallbackView = isViewerRole(currentUser.role) ? 'registry' : 'start'
+    const nextView = allowedViews.includes(requestedLocation.view) ? requestedLocation.view : fallbackView
+    navigateToView(
+      nextView,
+      true,
+      nextView === 'registry'
+        ? { registry: requestedLocation.registry || { preset: 'all' } }
+        : nextView === 'form'
+          ? { formType: requestedLocation.form?.type }
+          : undefined,
+    )
     if (failures.length) setBootError(`Część danych jest chwilowo niedostępna: ${failures.join(' ')}`)
     if (failures.length) {
       void activeProvider.pushNotification({
@@ -302,7 +363,7 @@ function App() {
         : `Wczytano zestaw danych dla ${currentUser.fullName || currentUser.email}`,
       level: failures.length ? 'warning' : 'success',
     })
-  }, [provider, refreshDiagnostics, t])
+  }, [navigateToView, provider, refreshDiagnostics, t])
 
   useEffect(() => {
     let cancelled = false
@@ -363,12 +424,6 @@ function App() {
     await provider.signInWithGoogle()
   }
 
-  function useSupabaseProvider() {
-    setProviderMode('supabase')
-    setProvider(new SupabaseDataProvider())
-  }
-
-
   async function logout() {
     await provider.signOut()
     setUser(null)
@@ -378,7 +433,7 @@ function App() {
     setAssessments([])
     setNotifications([])
     setFormDraftOverride(null)
-    setView('start')
+    navigateToView('start', true)
     refreshDiagnostics({
       scope: 'auth',
       action: 'sign-out',
@@ -410,7 +465,7 @@ function App() {
     const all = await provider.loadAssessments()
     setAssessments(scopeAssessmentsForUser(all, user))
     setFormDraftOverride(null)
-    setView('registry')
+    navigateToView('registry')
     refreshDiagnostics({
       scope: 'assessment',
       action: 'save',
@@ -443,19 +498,18 @@ function App() {
   function resumeDraft(type: AssessmentType) {
     setFormDraftOverride(null)
     setActiveType(type)
-    setView('form')
+    navigateToView('form', false, { formType: type })
   }
 
   function startAssessmentForSpecialist(name: string) {
     setActiveType('r')
     setFormDraftOverride(createDraft('r'))
     setSpecialistPrefill({ name, token: Date.now() })
-    setView('form')
+    navigateToView('form', false, { formType: 'r' })
   }
 
-  function openRegistry(preset: RegistryIntentPreset = 'all') {
-    setRegistryIntent({ preset, token: Date.now() })
-    setView('registry')
+  function openRegistry(preset: RegistryIntentPreset = 'all', focusAssessmentId?: string) {
+    navigateToView('registry', false, { registry: focusAssessmentId ? { preset, focus: focusAssessmentId } : { preset } })
   }
 
   async function pushWorkspaceNotification(payload: Parameters<DataProvider['pushNotification']>[0]) {
@@ -499,9 +553,7 @@ function App() {
 
   function selectNotification(notification: Notification) {
     if (notification.relatedEntityType === 'evaluation' && notification.relatedEntityId) {
-      setRegistryIntent({ preset: 'all', token: Date.now() })
-      setRegistryFocus({ assessmentId: notification.relatedEntityId, token: Date.now() })
-      setView('registry')
+      openRegistry('all', notification.relatedEntityId)
     }
   }
 
@@ -638,8 +690,6 @@ function App() {
           provider={provider}
           onLogin={login}
           onGoogleLogin={googleLogin}
-          onUseSupabase={useSupabaseProvider}
-          supabaseAvailable={supabaseConfigured}
           transitioning={loginTransitioning}
         />
         {bootError ? <div className="floating-error">{bootError}</div> : null}
@@ -660,7 +710,7 @@ function App() {
           providerMode={provider.mode}
           view={effectiveView}
           navItems={visibleNavItems}
-          setView={setView}
+          setView={navigateToView}
           onViewIntent={preloadView}
           onLogout={logout}
           systemNotice={bootError}
@@ -679,7 +729,7 @@ function App() {
               user={user}
               assessments={assessments}
               drafts={drafts}
-              setView={setView}
+              setView={navigateToView}
               openRegistry={openRegistry}
               onResumeDraft={resumeDraft}
               onClearDraft={(type) => void discardDraft(type)}
@@ -696,12 +746,13 @@ function App() {
             onSelectType={(type) => {
               setActiveType(type)
               if (formDraftOverride && formDraftOverride.type !== type) setFormDraftOverride(null)
+              navigateToView('form', false, { formType: type })
             }}
             onDraftChange={updateDraft}
             onSaveAssessment={saveAssessment}
           />
         ) : null}
-        {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={setView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} /> : null}
+        {effectiveView === 'team' ? <TeamView user={user} admin={admin} assessments={assessments} setView={navigateToView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} /> : null}
         {effectiveView === 'registry' ? (
           <RegistryView
             assessments={assessments}
@@ -720,15 +771,15 @@ function App() {
           <DashboardView
             userRole={user.role}
             assessments={assessments}
-            goals={admin.goals}
-            prefs={dashboardPrefs}
-            onPrefsChange={saveDashboardPreferences}
-            setView={setView}
-            openRegistry={openRegistry}
-          />
-        ) : null}
+          goals={admin.goals}
+          prefs={dashboardPrefs}
+          onPrefsChange={saveDashboardPreferences}
+          setView={navigateToView}
+          openRegistry={openRegistry}
+        />
+      ) : null}
         {effectiveView === 'reports' ? (
-          <ReportsView assessments={assessments} setView={setView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} />
+          <ReportsView assessments={assessments} setView={navigateToView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} />
         ) : null}
         {effectiveView === 'admin' && canAdminRole(user.role) ? (
           <AdminView
