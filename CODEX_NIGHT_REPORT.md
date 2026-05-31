@@ -242,3 +242,37 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#9` next: audit `app/src/styles/theme.css` for unused tokens, because it stays low risk and avoids the already edited business-facing flows.
+
+---
+
+## Run update 2026-06-01 02:02
+
+### Repository inspection
+
+- Re-read `package.json`, `app/package.json`, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/lib/locationHash.ts`.
+- Confirmed the app still uses hash-based routing without `react-router`, with state parsing/building isolated in `app/src/lib/locationHash.ts`.
+- Preserved unrelated local modifications already present in shared data, report, storage, error, Supabase, and UI files outside this documentation-only change.
+
+### Selected task
+
+- Chose task `#10` from the low-risk backlog group: document the hash-based routing model in `README.md`.
+
+### Change
+
+- Updated [`README.md`](C:/Users/stanl/Documents/Oceniator%20v2/README.md) with a dedicated routing section covering:
+- the hash-based URL model,
+- concrete route examples for `start`, `form`, and `registry`,
+- the split responsibilities across `navigation.ts`, `locationHash.ts`, and `App.tsx`,
+- a maintenance note for adding future views safely.
+- Marked task `#10` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#9` next as a read-first cleanup: verify which theme tokens in `app/src/styles/theme.css` are genuinely unused before removing or consolidating any of them.

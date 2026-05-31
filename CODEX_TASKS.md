@@ -9,4 +9,4 @@
 7. Done: add coverage for `app/src/features/analytics/filters.ts` empty-filter cases.
 8. Done: verify `app/src/components/actions/ContextMenu.tsx` keyboard dismissal behavior with tests.
 9. Audit `app/src/styles/theme.css` variables for unused tokens.
-10. Document the hash-based routing model in `README.md`.
+10. Done: document the hash-based routing model in `README.md`.
