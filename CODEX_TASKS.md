@@ -8,7 +8,7 @@
 6. Done: extract duplicated export helpers into shared `app/src/lib/fileExport.ts`.
 7. Done: add coverage for `app/src/features/analytics/filters.ts` empty-filter cases.
 8. Done: verify `app/src/components/actions/ContextMenu.tsx` keyboard dismissal behavior with tests.
-9. Audit `app/src/styles/theme.css` variables for unused tokens.
+9. Done: remove dormant `app/src/styles/theme.css` after confirming it is no longer referenced by the active bundle.
 10. Done: document the hash-based routing model in `README.md`.
 11. Done: add a focused regression test for `app/src/lib/theme.ts` root-class and persistence sync.
 12. Done: add an accessibility-focused render test for `app/src/components/ui/ThemeToggle.tsx`.

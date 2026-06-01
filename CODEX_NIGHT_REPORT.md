@@ -468,3 +468,43 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Return to task `#9` as a read-only token audit of [`app/src/styles/theme.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/styles/theme.css) and decide whether the dormant file should be deleted entirely or kept for the unused UI component set.
+
+---
+
+## Run update 2026-06-01 07:42
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, `app/src/index.css`, and the dormant `app/src/styles/theme.css`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report files, so this run stayed isolated to the dormant stylesheet plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - delete dormant `app/src/styles/theme.css`,
+  - keep the file and only document it as unused,
+  - add config-only coverage for `app/src/config/status.ts`,
+  - add a tiny helper test for `app/src/lib/format.ts`,
+  - audit unused static assets under `app/public/`.
+
+### Selected task
+
+- Chose task `#9`: finish the `theme.css` audit and remove the file if it is fully detached from the active application bundle.
+
+### Change
+
+- Deleted [`app/src/styles/theme.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/styles/theme.css) after confirming:
+  - the active bundle no longer imports it,
+  - its utility classes and CSS variables are not referenced outside the file itself,
+  - the live application styling is provided by [`app/src/index.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/index.css).
+- Marked task `#9` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Pick a similarly isolated config/test cleanup next, such as focused coverage for [`app/src/config/status.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/status.ts), while continuing to avoid the already modified shell files in the current worktree.
