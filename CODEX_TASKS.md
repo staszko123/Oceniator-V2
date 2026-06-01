@@ -16,7 +16,7 @@
 14. Done: add regression coverage for `app/src/lib/display.ts` and normalize access-denied copy in `app/src/lib/security.ts`.
 15. Done: add focused regression coverage for `app/src/config/status.ts` notification and assessment mappings.
 16. Done: add a small normalization test for `app/src/config/userPreferences.ts` exported keys.
-17. Pending: add helper-level coverage for `app/src/lib/format.ts` percentage/date formatting fallbacks.
+17. Done: add helper-level coverage for `app/src/lib/format.ts` percentage/date formatting fallbacks.
 18. Pending: add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts` empty-assessment summaries.
 19. Pending: add config-only coverage for `app/src/config/tableActionsConfig.tsx` visible action ids.
 20. Pending: add config-only coverage for `app/src/config/tableColumnsConfig.tsx` stable column ordering.

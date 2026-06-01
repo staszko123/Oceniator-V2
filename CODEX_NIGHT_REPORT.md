@@ -586,3 +586,50 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#17` or `#21` next, because both stay inside isolated helper/service code and avoid the already modified feature files in the current worktree.
+
+---
+
+## Run update 2026-06-01 11:04
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/lib/format.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one helper plus its tests and backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add helper-level coverage for `app/src/lib/format.ts`,
+  - add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts`,
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a small regression test for `app/src/services/notificationsService.ts`.
+- While reviewing candidates, noticed `app/src/services/notificationsService.test.ts` already covers unread-count helpers, so task `#21` is likely stale and should be reconciled in a later housekeeping pass rather than duplicated.
+
+### Selected task
+
+- Chose task `#17`: add helper-level coverage for `app/src/lib/format.ts` and harden its date fallback behavior, because it is isolated, user-visible, and does not touch business logic, auth, roles, database schema, or migrations.
+
+### Change
+
+- Updated `app/src/lib/format.ts` so `formatDate` now:
+  - returns `-` for empty input,
+  - returns the original string for invalid dates instead of formatting `Invalid Date`.
+- Added `app/src/lib/format.test.ts` covering:
+  - HTML escaping of special characters and nullish values,
+  - rounded percent formatting,
+  - locale-aware currency and number formatting,
+  - valid, empty, and invalid date handling,
+  - `clsx` truthy-class joining.
+- Marked task `#17` as done in `CODEX_TASKS.md`.
+
+### Verification
+
+- `npm run test -- app/src/lib/format.test.ts`
+- `npm run test`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#18`, `#19`, or `#20` next, because each stays inside isolated helper/config code and avoids the already modified feature and backend files in the current worktree.
