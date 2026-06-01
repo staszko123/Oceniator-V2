@@ -677,3 +677,46 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#19` or `#20` next, because both stay inside isolated table configuration and avoid the already modified shell and backend files in the current worktree.
+
+---
+
+## Run update 2026-06-01 12:42
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, and the current backlog/report files before changing anything.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in report, shell, i18n, CSS, test, and Supabase files, so this run stayed isolated to one new config test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a tiny test for `app/src/features/dashboard/utils.ts`,
+  - audit `app/public/` assets for unused files,
+  - reconcile stale backlog items already covered by `notificationsService.test.ts` and `demoExport.test.ts`.
+
+### Selected task
+
+- Chose task `#19`: add focused coverage for `app/src/config/tableActionsConfig.tsx`, because it protects a stable UI configuration contract without touching business logic, auth, roles, database schema, or existing feature code.
+
+### Change
+
+- Added [`app/src/config/tableActionsConfig.test.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/tableActionsConfig.test.tsx) covering:
+  - stable action key ordering for the full handler set,
+  - expected permission mapping for each visible action,
+  - destructive flag on the delete action,
+  - omission of actions without handlers,
+  - preservation of the disabled reason when edit availability denies access.
+- Marked task `#19` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/config/tableActionsConfig.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- `npm run test`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#20` or `#23` next, because both stay inside isolated config/helper code and avoid the already modified shell, styling, and backend files in the current worktree.

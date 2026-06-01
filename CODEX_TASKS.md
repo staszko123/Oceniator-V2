@@ -18,7 +18,7 @@
 16. Done: add a small normalization test for `app/src/config/userPreferences.ts` exported keys.
 17. Done: add helper-level coverage for `app/src/lib/format.ts` percentage/date formatting fallbacks.
 18. Done: add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts` empty-assessment summaries.
-19. Pending: add config-only coverage for `app/src/config/tableActionsConfig.tsx` visible action ids.
+19. Done: add config-only coverage for `app/src/config/tableActionsConfig.tsx` visible action ids.
 20. Pending: add config-only coverage for `app/src/config/tableColumnsConfig.tsx` stable column ordering.
 21. Pending: add a small regression test for `app/src/services/notificationsService.ts` unread count helpers.
 22. Pending: audit `app/public/` assets against current JSX/CSS references and remove anything fully unused.
