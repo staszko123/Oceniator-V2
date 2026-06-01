@@ -22,5 +22,5 @@
 20. Pending: add config-only coverage for `app/src/config/tableColumnsConfig.tsx` stable column ordering.
 21. Pending: add a small regression test for `app/src/services/notificationsService.ts` unread count helpers.
 22. Pending: audit `app/public/` assets against current JSX/CSS references and remove anything fully unused.
-23. Pending: add a tiny test for `app/src/features/dashboard/utils.ts` threshold labeling on empty inputs.
+23. Done: add a tiny test for `app/src/features/dashboard/utils.ts` empty aggregates and leader fallbacks.
 24. Pending: add a small test for `app/src/data/demoExport.ts` sample payload shape stability.

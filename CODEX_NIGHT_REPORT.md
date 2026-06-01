@@ -720,3 +720,40 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#20` or `#23` next, because both stay inside isolated config/helper code and avoid the already modified shell, styling, and backend files in the current worktree.
+
+---
+
+## Run update 2026-06-01 13:18
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, and the current backlog/report files before changing anything.
+- Confirmed the app still uses hash-based routing without `react-router`, and the worktree still contains unrelated local edits in shell, styling, i18n, test, report, and Supabase files.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a tiny test for `app/src/features/dashboard/utils.ts`,
+  - audit `app/public/` assets for unused files,
+  - reconcile stale backlog item `#21` already covered by `notificationsService.test.ts`,
+  - reconcile stale backlog item `#24` already covered by `demoExport.test.ts`.
+
+### Selected task
+
+- Chose task `#23`: add focused helper coverage for `app/src/features/dashboard/utils.ts`, because it protects dashboard fallbacks and empty states without touching business logic, auth, roles, database schema, or existing feature flows.
+
+### Change
+
+- Added [`app/src/features/dashboard/utils.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/dashboard/utils.test.ts) covering:
+  - empty input returning empty aggregates for section, criteria, trend, and leader summaries,
+  - leader-ranking fallback to `oce` and then `Brak lidera` when `leaderScope` is absent.
+- Marked task `#23` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/features/dashboard/utils.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+
+### Next recommended step
+
+- Tackle task `#20` next for another isolated config-only safeguard, then reconcile stale backlog items `#21` and `#24` in a follow-up housekeeping pass.
