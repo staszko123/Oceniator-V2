@@ -35,6 +35,7 @@ export default function ReportsView({
   const [notice, setNotice] = useState('')
   const [showMore, setShowMore] = useState(true)
   const reportToolsPanelId = 'report-tools-panel'
+  const reportToolsHintId = 'report-tools-hint'
 
   const filtered = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
 
@@ -141,11 +142,11 @@ export default function ReportsView({
           <button className="primary-btn" type="button" onClick={() => openRegistry('decision')}>
             <ClipboardCheck size={16} /> {t('report.goRegistry', 'Przejdź do ewidencji')}
           </button>
-          <div className="report-hero-secondary">
+          <div className="report-hero-secondary" role="group" aria-describedby={reportToolsHintId}>
             <button className="ghost-btn" type="button" onClick={() => setView('dashboard')}>
               <TrendingUp size={16} /> {t('report.goDashboard', 'Przejdź do analityki')}
             </button>
-            <span className="hint-text">{t('report.toolsHint', 'Eksporty i tabele pomocnicze są niżej.')}</span>
+            <span className="hint-text" id={reportToolsHintId}>{t('report.toolsHint', 'Eksporty i tabele pomocnicze są niżej.')}</span>
           </div>
         </div>
       </section>

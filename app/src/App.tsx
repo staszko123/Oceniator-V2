@@ -180,12 +180,6 @@ function LoginScreen({
           )}
         </section>
       </section>
-      <div className="desktop-guard">
-        <div className="desktop-guard-card">
-          <strong>{t('layout.desktopOnlyTitle')}</strong>
-          <p>{t('layout.desktopOnlyDescription')}</p>
-        </div>
-      </div>
       <div className="login-watermark" aria-hidden="true">
         <span>© 2026 Jakub Stachura</span>
         <small>Własna praca</small>

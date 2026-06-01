@@ -88,4 +88,19 @@ describe('storage utils', () => {
 
     expect(readStorageJson('prefs', { theme: 'light' })).toEqual({ theme: 'light' })
   })
+
+  it('returns fallback json on empty storage payloads', () => {
+    const localStorage = {
+      getItem: vi.fn(() => ''),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+      length: 0,
+    } as unknown as Storage
+
+    installWindowWithStorage(localStorage)
+
+    expect(readStorageJson('prefs', { theme: 'light' })).toEqual({ theme: 'light' })
+  })
 })

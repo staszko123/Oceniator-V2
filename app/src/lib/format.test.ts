@@ -16,6 +16,7 @@ describe('format helpers', () => {
   it('handles valid, empty, and invalid date strings safely', () => {
     expect(formatDate('2026-05-30T08:00:00.000Z')).toBe('30.05.2026')
     expect(formatDate('')).toBe('-')
+    expect(formatDate('   ')).toBe('-')
     expect(formatDate('not-a-date')).toBe('not-a-date')
   })
 

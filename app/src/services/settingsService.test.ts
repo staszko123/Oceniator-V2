@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  getAppEnvironment,
   getLanguagePreference,
   getOAuthRedirectUrl,
   getProviderMode,
@@ -85,6 +86,12 @@ describe('settingsService', () => {
 
     setProviderMode('supabase')
     expect(getProviderMode()).toBe('supabase')
+  })
+
+  it('falls back to the current runtime when VITE_APP_ENV is invalid', () => {
+    vi.stubEnv('VITE_APP_ENV', 'preview-like')
+
+    expect(getAppEnvironment()).toBe(import.meta.env.DEV ? 'local' : 'production')
   })
 
   it('reads and writes theme and language preferences with safe defaults', () => {

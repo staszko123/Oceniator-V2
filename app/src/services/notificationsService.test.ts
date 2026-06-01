@@ -52,4 +52,33 @@ describe('notifications helpers', () => {
 
     expect(unreadNotificationCount(markAllNotificationsRead(list))).toBe(0)
   })
+
+  it('keeps optional related entity metadata in created notifications', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('22222222-2222-4222-8222-222222222222')
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'))
+
+    const notification = createNotification({
+      type: 'needsReview',
+      title: 'Review assessment',
+      message: 'Assessment is ready for QA review.',
+      relatedEntityType: 'evaluation',
+      relatedEntityId: 'assessment-42',
+      userId: 'user-7',
+    })
+
+    expect(notification).toMatchObject({
+      id: '22222222-2222-4222-8222-222222222222',
+      type: 'needsReview',
+      title: 'Review assessment',
+      message: 'Assessment is ready for QA review.',
+      relatedEntityType: 'evaluation',
+      relatedEntityId: 'assessment-42',
+      userId: 'user-7',
+      read: false,
+      createdAt: '2026-06-01T12:00:00.000Z',
+    })
+
+    vi.useRealTimers()
+  })
 })

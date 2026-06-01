@@ -276,3 +276,402 @@ Date: 2026-06-01
 ### Next safe step
 
 - Add `aria-expanded` and `aria-controls` semantics to the sidebar collapse toggle so the navigation container state is explicit alongside the existing action label.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this loop scoped away from unrelated in-progress changes already present in `CODEX_TESTS_RELIABILITY_REPORT.md` and `app/src/lib/theme.test.tsx`.
+- Confirmed the package manager remains `npm` at the repository root with lint, build, test, and smoke scripts available there.
+- Re-read the shell route/layout path in `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and this report before choosing the next smallest safe control-level patch.
+
+### Safe P3 candidates
+
+1. The sidebar collapse toggle still lacked explicit `aria-expanded` and `aria-controls` semantics, so the navigation container state was not exposed beyond the action label.
+2. The notifications trigger could later announce expanded or collapsed state more explicitly in its accessible name instead of relying on `aria-expanded` alone.
+3. The collapsed sidebar still depends on per-button tooltips for full label context, which could later be reinforced with an off-screen current-section summary.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing shell control and does not affect routing, persisted preferences, or data behavior.
+- Updated `app/src/features/shell/AppShell.tsx` so the sidebar toggle now exposes `aria-expanded={!collapsed}` and `aria-controls="sidebar-navigation"`.
+- Added a focused regression test in `app/src/features/shell/AppShell.test.tsx` to verify the toggle remains linked to the sidebar nav region and reports the collapsed state.
+
+### Result
+
+- Assistive-technology users now get an explicit expanded/collapsed signal from the sidebar toggle in addition to the existing action label.
+- The toggle is now programmatically associated with the navigation region it affects, which improves control-to-region context.
+- The patch stays visual-safe and behavior-safe because it only adds accessibility metadata to the existing shell layout.
+
+### Verification
+
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Add a concise non-visual summary for the currently active section when the sidebar is collapsed so route context remains available beyond per-button tooltips.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this loop scoped away from unrelated in-progress report, test, and shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root with lint, build, test, and smoke available from root scripts.
+- Re-read the current shell/routing path in `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and this report before choosing the next minimal change.
+
+### Safe P3 candidates
+
+1. The collapsed sidebar still lacked a concise non-visual summary of the active section, so current route context depended on per-button labels and tooltips.
+2. The notifications trigger could later include a stronger expanded or collapsed phrase in its accessible name instead of relying on `aria-expanded` alone.
+3. The signed-in user summary in the topbar could later expose a clearer combined accessible label for name, email, and role context.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing shell surface and does not affect routing, persisted preferences, or data behavior.
+- Updated `app/src/features/shell/AppShell.tsx` so the collapsed sidebar now includes a localized screen-reader-only summary of the active section.
+- Added localized summary strings in `app/src/i18n/messages.ts` and a focused regression test in `app/src/features/shell/AppShell.test.tsx`.
+
+### Result
+
+- Assistive-technology users now keep explicit route context even when the sidebar is collapsed and visible labels are hidden.
+- The patch is visual-safe because it reuses the existing `.sr-only` pattern and does not alter the rendered layout.
+- The change stays local to shared shell accessibility text and does not affect navigation, state persistence, or data loading.
+
+### Verification
+
+- `npm run test -- AppShell`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Refine the notifications trigger label so expanded or collapsed state is expressed directly in the accessible name as well as through `aria-expanded`.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this loop scoped away from unrelated in-progress report, backend, test, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root with `lint`, `build`, `test`, and `smoke` available from root scripts.
+- Re-read the current shell, route layout, and existing UX/UI report in `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `CODEX_UX_UI_REPORT.md` before selecting the next smallest patch.
+
+### Safe P3 candidates
+
+1. The in-app system notice did not expose live-status semantics, so partial workspace warnings could be visually present without a clear assistive-technology announcement pattern.
+2. The notifications popover still lacks a stronger labeled-region association for its header and content area.
+3. The signed-in user summary in the topbar could later expose a combined accessible label for name, email, and role context.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing shell element and does not affect routing, data loading, persisted preferences, or copy.
+- Updated `app/src/features/shell/AppShell.tsx` so the existing `.system-notice` now exposes `role="status"`, `aria-live="polite"`, and `aria-atomic="true"`.
+- Added a focused regression test in `app/src/features/shell/AppShell.test.tsx` to verify the live-status semantics.
+
+### Result
+
+- Partial workspace notices now announce through a polite live region instead of relying only on visible placement in the shell.
+- The patch remains visual-safe because it does not change layout, spacing, or styling of the notice surface.
+- The change stays local to one shared shell element and does not affect navigation, provider behavior, or notification state.
+
+### Verification
+
+- `npm run test -- AppShell`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Add a labeled-region relationship to the notifications popover header and container so the panel announces its purpose more explicitly when opened.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this loop scoped away from unrelated in-progress report, backend, test, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root with `lint`, `build`, `test`, and `smoke` available from root scripts.
+- Re-read the current route/layout/component path in `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, `app/src/features/shell/AppShell.test.tsx`, and this report before selecting the next smallest safe patch.
+
+### Safe P3 candidates
+
+1. The notifications popover lacked a labeled-region association for its header and container, so the opened panel did not announce its purpose as clearly as it could.
+2. The signed-in user summary in the topbar still does not expose a combined accessible label for name, email, and role context.
+3. The notifications trigger could later express expanded or collapsed state more explicitly in its accessible name instead of relying on `aria-expanded` alone.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing shell surface and does not affect routing, persisted preferences, or notification behavior.
+- Updated `app/src/features/shell/AppShell.tsx` so the notifications popover now exposes `role="region"` and is programmatically named through `aria-labelledby` on its existing title.
+- Added a focused regression test in `app/src/features/shell/AppShell.test.tsx` to verify the popover opens as a named region.
+
+### Result
+
+- Assistive-technology users now get a clearer purpose announcement when the notifications panel opens.
+- The patch is visual-safe because it reuses the existing popover markup and adds semantics only.
+- The change stays local to the shared shell and does not affect notification state, data loading, or navigation.
+
+### Verification
+
+- `npm run test -- AppShell`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Add a combined accessible label to the signed-in user summary so the topbar profile context is announced in one place.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this UX/UI loop isolated from unrelated in-progress backend, report, test, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root, with lint/build/test/smoke available from root scripts.
+- Re-read the current shell route/layout path in `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, `app/src/features/shell/AppShell.test.tsx`, and this report before choosing the next minimal change.
+
+### Safe P3 candidates
+
+1. The signed-in user summary in the topbar still did not expose one combined accessible label for name, email, and role context.
+2. The notifications trigger could later express expanded or collapsed state more explicitly in its accessible name instead of relying on `aria-expanded` alone.
+3. The collapsed sidebar still depends on per-button tooltips for some non-visual context, so a later pass could add a stronger section summary pattern there.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing shell summary block and does not affect routing, persisted preferences, or data behavior.
+- Updated `app/src/features/shell/AppShell.tsx` so the signed-in user summary now exposes a localized combined `aria-label` with the current name, email, and role.
+- Added localized summary strings in `app/src/i18n/messages.ts` and a focused regression test in `app/src/features/shell/AppShell.test.tsx`.
+
+### Result
+
+- Assistive-technology users now get the full topbar profile context announced in one place instead of inferring it from separate visible fragments.
+- The patch is visual-safe because it adds accessibility metadata only and does not alter the rendered layout.
+- The change stays local to the shared shell and does not affect navigation, notifications, provider logic, or persisted state.
+
+### Verification
+
+- `npm run test -- AppShell`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Refine the notifications trigger label so the expanded or collapsed state is expressed directly in the accessible name alongside the unread-count context.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this UX/UI loop isolated from unrelated in-progress backend, report, test, and shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root, with `lint`, `build`, `test`, and `smoke` available from root scripts and UI code under `app/`.
+- Re-read the current route/layout/component path in `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, `app/src/features/reports/ReportsView.tsx`, and this report before selecting the next smallest safe reports-area patch.
+
+### Safe P3 candidates
+
+1. The reports hero secondary action cluster still showed helper copy visually, but the hint was not programmatically associated with the related control group.
+2. The reports preview row-count summary is still mostly a visual text cue and could later expose a stronger descriptive accessible label.
+3. The dashboard widget icon buttons still lean on `title` tooltips and could later gain explicit accessible labels for consistency.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing reports surface, does not affect routing, filtering, exports, or persisted state, and avoids stacking more edits onto the already-busy shell files.
+- Updated `app/src/features/reports/ReportsView.tsx` so the secondary hero actions now expose `role="group"` and `aria-describedby` tied to the existing helper hint.
+- Added a focused regression test in `app/src/features/reports/ReportsView.test.tsx` to verify that association.
+
+### Result
+
+- Assistive-technology users now get the reports helper hint announced as part of the secondary action cluster instead of encountering it as detached nearby copy.
+- The patch is visual-safe because it reuses the existing hint text and changes semantics only.
+- The change stays local to the reports hero and does not affect analytics filters, navigation, exports, or modal flows.
+
+### Verification
+
+- `npm run test -- ReportsView`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Add a stronger descriptive accessible label for the reports preview row-count summary so filtered result size is announced with more context than the visible count alone.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this UX/UI loop scoped away from unrelated in-progress backend, report, test, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root, with lint/build/test/smoke available from root scripts and UI code under `app/`.
+- Re-read the current route/layout/component path in `app/src/App.tsx`, `app/src/components/data-table/DataTable.tsx`, `app/src/components/data-table/DataTableToolbar.tsx`, and this report before choosing the next minimal shared-component change.
+
+### Safe P3 candidates
+
+1. The shared table-toolbar result count still exposed only a raw `visible/total` pair, which gave assistive technology weak context for the current filtered result set.
+2. The reports hero secondary hint is still only visually adjacent to its action group and could later gain a stronger programmatic association.
+3. The report preview summary still relies on raw count copy and could later expose a more descriptive accessible label for the current preview size.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one shared toolbar element, improves multiple table surfaces at once, and avoids stacking more churn on `AppShell`.
+- Updated `app/src/components/data-table/DataTableToolbar.tsx` so the result-count meta now exposes a descriptive accessible label and polite live-region semantics.
+- Added localized result-count summary strings in `app/src/i18n/messages.ts` and a focused regression test in `app/src/components/data-table/DataTableToolbar.test.tsx`.
+
+### Result
+
+- Screen-reader users now hear a descriptive summary such as `Widoczne 10 z 20 wierszy` instead of inferring meaning from the raw `10/20` text alone.
+- The count can now be announced politely when filtering changes without altering the visible layout or table behavior.
+- The patch stays visual-safe and behavior-safe because it only adds accessibility metadata to the existing shared toolbar.
+
+### Verification
+
+- `npm run test -- DataTableToolbar`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Add a stronger programmatic association between the reports hero secondary hint and its action group so the export/navigation cluster keeps the same context non-visually.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this UX/UI loop scoped away from unrelated in-progress backend, report, test, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root with `lint`, `build`, `test`, and `smoke` available from root scripts.
+- Re-read the current route/layout/component path in `app/src/App.tsx`, `app/src/features/reports/ReportsView.tsx`, `app/src/components/data-table/DataTable.tsx`, `app/src/components/data-table/DataTableToolbar.tsx`, and this report before choosing the next minimal change.
+
+### Safe P3 candidates
+
+1. The shared table-toolbar search input relied on placeholder text alone and did not expose an explicit accessible label.
+2. The reports hero secondary hint is visually present but not tied to the action group in a stronger programmatic way.
+3. The reports preview/count summary could later expose a more descriptive screen-reader label instead of a raw `visible/total` number pair alone.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one shared input, does not affect routing, state, or data behavior, and improves every table surface at once.
+- Updated `app/src/components/data-table/DataTableToolbar.tsx` so the search input now exposes `aria-label={t('table.searchPlaceholder')}`.
+- Added a focused regression test in `app/src/components/data-table/DataTableToolbar.test.tsx` to verify the search field exposes the expected accessible label.
+
+### Result
+
+- Screen-reader users now get an explicit name for the shared table search field instead of depending on placeholder text alone.
+- The patch is visual-safe because it adds accessibility metadata only and does not change layout, spacing, or behavior.
+- The improvement applies across existing table views without touching route wiring, provider state, or exports.
+
+### Verification
+
+- `npm run test -- DataTableToolbar`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Add a stronger accessible summary for the shared table-toolbar result count so the current filtered/total context is announced more clearly than `visible/total` alone.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this UX/UI loop scoped to one minimal shell interaction without disturbing unrelated in-progress report, backend, test, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root with `lint`, `build`, `test`, and `smoke` available from root scripts.
+- Re-read the current route/layout/component path in `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, `app/src/features/shell/AppShell.test.tsx`, and this report before choosing the next smallest safe improvement.
+
+### Safe P3 candidates
+
+1. The notifications popover still exposed a no-op `Oznacz wszystkie` action even when there were no notifications to mark as read.
+2. The notifications trigger could later express expanded or collapsed state more explicitly in its accessible name instead of relying on `aria-expanded` alone.
+3. The topbar profile cluster could later expose stronger role or provider context grouping for assistive-technology users.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing popover action and does not affect routing, persisted preferences, data loading, or notification state shape.
+- Updated `app/src/features/shell/AppShell.tsx` so the `Oznacz wszystkie` button is now disabled when the notifications list is empty.
+- Added a focused regression test in `app/src/features/shell/AppShell.test.tsx` to verify the empty-state popover disables that action.
+
+### Result
+
+- Users no longer see an enabled dead-end action when the notifications panel is empty.
+- Keyboard and screen-reader users now get the expected disabled-state cue for that empty-state action without any layout or copy changes.
+- The patch stays visual-safe and behavior-safe because it only tightens an existing button state inside the current popover.
+
+### Verification
+
+- `npm run test -- AppShell`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Refine the notifications trigger label so the expanded or collapsed state is expressed directly in the accessible name alongside the unread-count context.
+
+## Latest run
+
+Date: 2026-06-01
+
+### Repository scan
+
+- Re-checked `git status` and kept this UX/UI loop isolated from unrelated in-progress backend, test, report, and shared-shell edits already present in the worktree.
+- Confirmed the package manager remains `npm` at the repository root, with lint/build/test/smoke available from root scripts.
+- Re-read the current shell route/layout path in `app/src/App.tsx`, `app/src/features/shell/AppShell.tsx`, `app/src/features/shell/AppShell.test.tsx`, and this report before choosing the next minimal change.
+
+### Safe P3 candidates
+
+1. The theme toggle still lacked explicit toggle-button state semantics, so assistive technology had to infer the active theme from iconography and the next-action label alone.
+2. The notifications trigger still relies on `aria-expanded` instead of expressing a clearer expanded/collapsed phrase in its accessible name.
+3. The notifications popover action for marking all items as read could later disable itself when no notifications are present to reduce dead-end interactions.
+
+### Selected change
+
+- Chose candidate `#1` as the lowest-risk P3 improvement because it stays inside one existing shell button and does not affect routing, persisted preferences, or data loading.
+- Updated `app/src/features/shell/AppShell.tsx` so the theme toggle now exposes `aria-pressed` for the active dark-theme state while keeping the existing action-oriented label.
+- Added a focused regression test in `app/src/features/shell/AppShell.test.tsx` to verify the theme toggle exposes the expected pressed state.
+
+### Result
+
+- Assistive-technology users now get explicit toggle-button state semantics in addition to the existing next-action label on the theme control.
+- The visible icon and behavior are unchanged, so the fix stays visually neutral and behavior-safe.
+- The patch remains local to the shared shell and does not affect navigation, notifications, or provider behavior.
+
+### Verification
+
+- `npm run test -- AppShell`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+### Next safe step
+
+- Refine the notifications trigger label so the expanded or collapsed state is expressed directly in the accessible name alongside the unread-count context.

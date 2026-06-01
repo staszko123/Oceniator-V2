@@ -14,8 +14,9 @@ export function formatPercent(value: number): string {
 }
 
 export function formatDate(dateStr: string): string {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
+  const normalized = dateStr.trim()
+  if (!normalized) return '-'
+  const date = new Date(normalized)
   if (Number.isNaN(date.getTime())) return dateStr
   return date.toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
