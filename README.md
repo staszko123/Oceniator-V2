@@ -1,8 +1,8 @@
 # Oceniator v2
 
 Oceniator v2 to aplikacja React + Vite + TypeScript do oceny jakosci obslugi w kanalach
-rozmow, maili i dzialan systemowych. Obecny kierunek produktu to portal jako?ci z
-logowaniem przez Supabase Auth + Google OAuth, wdra?any przez Vercel, z RLS i audytem po
+rozmow, maili i dzialan systemowych. Obecny kierunek produktu to portal jakości z
+logowaniem przez Supabase Auth + Google OAuth, wdrażany przez Vercel, z RLS i audytem po
 stronie Supabase. Glowne UI jest uruchamiane z rootowego `index.html`, a poprzednia
 aplikacja statyczna zostala zachowana w `legacy/` jako fallback referencyjny.
 
@@ -32,6 +32,25 @@ npm run test
 
 Rootowe skrypty buduja i sprawdzaja aplikacje React. Poprzedni wariant legacy nie jest juz
 glownym entrypointem produkcyjnym.
+
+## Routing
+
+Aplikacja nie uzywa `react-router`. Nawigacja jest trzymana w hashu URL i parsowana przez
+`app/src/lib/locationHash.ts`.
+
+- `#start` otwiera ekran startowy.
+- `#form?type=r` otwiera formularz dla typu `r`, `m` albo `s`.
+- `#registry?preset=all` otwiera ewidencje z presetem filtrow.
+- `#registry?preset=recent&focus=<assessmentId>` dodatkowo ustawia fokus na konkretnej karcie.
+
+Warstwa routingu jest rozdzielona tak:
+
+- `app/src/config/navigation.ts` trzyma dostepne widoki i metadane nawigacji,
+- `app/src/lib/locationHash.ts` buduje i odczytuje stan lokalizacji,
+- `app/src/App.tsx` pilnuje zgodnosci miedzy uprawnieniami uzytkownika, stanem widoku i hashem.
+
+Jesli dodajesz nowy widok, zaktualizuj wszystkie trzy miejsca, zamiast dopisywac
+warunkowa nawigacje tylko w jednym komponencie.
 
 ## Pierwsza prezentacja
 
@@ -76,8 +95,8 @@ Projekt jest przygotowany pod `Vercel`.
 
 - rootowy build nadal wychodzi przez `npm run build` do `dist/`,
 - `vercel.json` wskazuje build output,
-- deployment produkcyjny i preview powinny by?? zarz??dzane przez integracj?? Vercel z repo albo przez bezpo??redni deploy z aktualnej ga????zi,
-- dla logowania Google dodaj w Supabase Dashboard provider `Google` oraz allowlist?? redirect URL dla ??rodowisk `local`, `staging` i `production`.
+- deployment produkcyjny i preview powinny być zarządzane przez integrację Vercel z repo albo przez bezpośredni deploy z aktualnej gałęzi,
+- dla logowania Google dodaj w Supabase Dashboard provider `Google` oraz allowlistę redirect URL dla środowisk `local`, `staging` i `production`.
 
 ## Diagnostyka i start
 
@@ -119,8 +138,9 @@ Klucza `service_role` nie wolno dodawac do frontendu.
 ## Struktura
 
 - `index.html` - rootowy entrypoint React/Vite.
-- `app/src/App.tsx` - glowne widoki: login, start, formularz, ewidencja, dashboard, raporty, admin.
+- `app/src/App.tsx` - glowne widoki: login, start, formularz, ewidencja, dashboard, raporty, admin oraz synchronizacja hash-routingu.
 - `app/src/domain/` - typy, definicje formularzy i logika scoringu.
 - `app/src/data/` - providery danych local/Supabase i seed demo.
+- `app/src/lib/locationHash.ts` - parser i builder stanu routingu opartego o hash URL.
 - `legacy/` - poprzedni statyczny shell jako fallback referencyjny.
 - `supabase/` - schemat, polityki i Edge Function.

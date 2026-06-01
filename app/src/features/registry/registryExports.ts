@@ -2,6 +2,7 @@ import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import { lastHistoryAt, lastHistoryBy, lastHistoryNote } from '../../domain/history'
 import { ratingLabel } from '../../domain/scoring'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
+import { buildCsv, downloadFile } from '../../lib/fileExport'
 
 export const statusLabels: Record<AssessmentStatus, string> = {
   submitted: 'Do weryfikacji',
@@ -17,18 +18,6 @@ function esc(value: unknown): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
-}
-
-function downloadFile(fileName: string, mime: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 export function exportCsv(rows: Assessment[]) {
@@ -48,7 +37,7 @@ export function exportCsv(rows: Assessment[]) {
     lastHistoryBy(item),
     lastHistoryNote(item),
   ])
-  const csv = `\uFEFF${[header, ...body].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n')}`
+  const csv = buildCsv([header, ...body])
   downloadFile('oceniator-ewidencja.csv', 'text/csv;charset=utf-8', csv)
 }
 

@@ -3,7 +3,7 @@ import { LogIn } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
 import { createProvider } from './data/supabaseProvider'
-import { canAdminRole, canCreateRole, canViewTeamRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
+import { canAdminRole, canCreateRole, isViewerRole, scopeAssessmentsForUser } from './domain/access'
 import AppShell from './features/shell/AppShell'
 import { getErrorMessage } from './domain/errors'
 import { loadDiagnostics, recordDiagnostic, type DiagnosticEvent } from './domain/diagnostics'
@@ -20,8 +20,7 @@ import type {
 } from './domain/types'
 import type { DashboardPrefs } from './config/dashboard'
 import { defaultDashboardPrefs, normalizeDashboardPrefs } from './config/dashboard'
-import { navigationConfig, type ViewKey } from './config/navigation'
-import { hasPermission } from './config/permissions'
+import { getVisibleNavigationItems, type ViewKey } from './config/navigation'
 import { userPreferenceKeys } from './config/userPreferences'
 import type { Notification } from './types/notification'
 import { useLanguage } from './i18n/LanguageContext'
@@ -78,25 +77,7 @@ function preloadView(view: ViewKey) {
 }
 
 function availableNavItems(user: UserProfile, t: (key: string, fallback?: string) => string) {
-  const canViewTeam = canViewTeamRole(user.role)
-
-  if (!canViewTeam) {
-    return navigationConfig
-      .filter((item) => item.key === 'start' || item.key === 'registry')
-      .map((item) => ({
-        key: item.key,
-        label: t(item.viewerLabelKey || item.labelKey),
-        icon: item.icon,
-      }))
-  }
-
-  return navigationConfig
-    .filter((item) => !item.permission || hasPermission(user.role, item.permission))
-    .map((item) => ({
-      key: item.key,
-      label: t(item.labelKey),
-      icon: item.icon,
-    }))
+  return getVisibleNavigationItems(user.role, t)
 }
 
 function LoginScreen({
@@ -130,7 +111,7 @@ function LoginScreen({
     try {
       await onLogin(login, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie uda?o si? zalogowa?.'))
+      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie udało się zalogować.'))
     } finally {
       setBusy(false)
     }
@@ -142,7 +123,7 @@ function LoginScreen({
     try {
       await onGoogleLogin()
     } catch (err) {
-      setError(getErrorMessage(err, t('login.error.google', 'Nie uda?o si? uruchomi? logowania Google.')))
+      setError(getErrorMessage(err, t('login.error.google', 'Nie udało się uruchomić logowania Google.')))
     } finally {
       setBusy(false)
     }
@@ -382,11 +363,11 @@ function App() {
         await loadWorkspace(currentUser)
       } catch (error) {
         if (!cancelled) {
-          setBootError(getErrorMessage(error, t('app.error.boot', 'B??d startu aplikacji.')))
+          setBootError(getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')))
           refreshDiagnostics({
             scope: 'system',
             action: 'boot-error',
-            detail: getErrorMessage(error, t('app.error.boot', 'B??d startu aplikacji.')),
+            detail: getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')),
             level: 'error',
           })
         }
@@ -717,7 +698,7 @@ function App() {
         >
         {effectiveView === 'start' ? (
           isViewerRole(user.role) ? (
-            <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} />
+            <ViewerPortalView user={user} assessments={assessments} goals={admin.goals} loadComments={loadAssessmentComments} />
           ) : (
             <StartView
               user={user}

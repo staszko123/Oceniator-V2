@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { AlertTriangle, Plus, Save, Trash2, Users, X } from 'lucide-react'
 import { canAdminRole } from '../../domain/access'
 import { getErrorMessage } from '../../domain/errors'
@@ -308,70 +308,12 @@ export default function AdminView({
         </div>
       </section>
 
-      <section className="admin-change-bar">
-        <div className="admin-change-copy">
-          <span className="admin-change-kicker">{t('admin.workState', 'Stan roboczy')}</span>
-          <strong>{pendingBadges.length ? t('admin.hasPending', `Masz ${pendingBadges.length} obszary z niezapisanymi zmianami`).replace('{count}', String(pendingBadges.length)) : t('admin.allSaved', 'Wszystkie zmiany są zapisane')}</strong>
-          <p>{selectedSection === 'users' ? t('admin.workStateUsers', 'Zmiany użytkowników zapisujesz osobno na poziomie wybranego konta.') : t('admin.workStateOther', 'Zmiany konfiguracji słowników, specjalistów i okresów zapisz jednym przyciskiem z nagłówka.')}</p>
-        </div>
-        {pendingBadges.length ? (
-          <div className="admin-change-warning">
-            <AlertTriangle size={16} />
-            <span>{t('admin.leaveWarning', 'Przed opuszczeniem panelu zapisz zmiany konfiguracji.')}</span>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="data-panel admin-history-panel">
-        <div className="section-title">
-          <span>{t('admin.historyTitle', 'Ostatnie zmiany')}</span>
-          <small>{t('admin.historySubtitle', 'audyt konfiguracji i kont')}</small>
-        </div>
-        {adminHistory.length ? (
-          <div className="admin-history-list">
-            {adminHistory.slice(0, 8).map((entry) => (
-              <article key={entry.id || `${entry.changedAt}-${entry.description}`} className="admin-history-item">
-                <div className="admin-history-copy">
-                  <strong>{entry.description}</strong>
-                  <p>{entry.changedBy}</p>
-                </div>
-                <small>{shortDateTime(entry.changedAt)}</small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state compact-empty">{t('admin.historyEmpty', 'Brak wpisow audytu dla tego konta.')}</div>
-        )}
-      </section>
-
-      <section className="data-panel admin-history-panel">
-        <div className="section-title">
-          <span>{t('admin.diagnosticsTitle', 'Diagnostyka')}</span>
-          <small>{t('admin.diagnosticsSubtitle', 'ostatnie zdarzenia aplikacji')}</small>
-        </div>
-        {diagnostics.length ? (
-          <div className="admin-history-list">
-            {diagnostics.slice(0, 8).map((event) => (
-              <article key={event.id} className="admin-history-item">
-                <div className="admin-history-copy">
-                  <strong>{event.action}</strong>
-                  <p>{event.detail}</p>
-                </div>
-                <small>{shortDateTime(event.at)}</small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state compact-empty">{t('admin.diagnosticsEmpty', 'Brak zapisanych zdarzeń diagnostycznych.')}</div>
-        )}
-      </section>
-
       {selectedSection === 'goals' ? (
         <section className="data-panel">
           <div className="section-title"><span>{t('admin.goalsTitle', 'Cele jakościowe')}</span><small>{t('admin.goalsSubtitle', 'progi i wolumeny')}</small></div>
           <div className="field-grid two">
-            <label><span>{t('admin.goal.minAvg', 'Minimum sredniej')}</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
-            <label><span>{t('admin.goal.greatShare', 'Udzial bardzo dobrych')}</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
+            <label><span>{t('admin.goal.minAvg', 'Minimum średniej')}</span><input type="number" value={draftAdmin.goals.minAvg} onChange={(event) => updateGoals('minAvg', Number(event.target.value))} /></label>
+            <label><span>{t('admin.goal.greatShare', 'Udział bardzo dobrych')}</span><input type="number" value={draftAdmin.goals.greatShare} onChange={(event) => updateGoals('greatShare', Number(event.target.value))} /></label>
             <label><span>{t('admin.goal.callsPerPeriod', 'Rozmowy / okres')}</span><input type="number" value={draftAdmin.goals.callsPerPeriod} onChange={(event) => updateGoals('callsPerPeriod', Number(event.target.value))} /></label>
             <label><span>{t('admin.goal.mailsPerPeriod', 'Maile / okres')}</span><input type="number" value={draftAdmin.goals.mailsPerPeriod} onChange={(event) => updateGoals('mailsPerPeriod', Number(event.target.value))} /></label>
             <label><span>{t('admin.goal.systemsPerPeriod', 'Systemy / okres')}</span><input type="number" value={draftAdmin.goals.systemsPerPeriod} onChange={(event) => updateGoals('systemsPerPeriod', Number(event.target.value))} /></label>
@@ -422,10 +364,10 @@ export default function AdminView({
           </div>
           <div className="specialist-layout">
             <div className="specialist-list">
-              <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> {t('admin.addSpecialist', 'Dodaj specjaliste')}</button>
+              <button className="ghost-btn wide" type="button" onClick={addSpecialist}><Plus size={16} /> {t('admin.addSpecialist', 'Dodaj specjalistę')}</button>
               <div className="list-toolbar">
-                <input value={specialistQuery} onChange={(event) => setSpecialistQuery(event.target.value)} placeholder={t('admin.specialistSearchPlaceholder', 'Szukaj specjalisty, lidera lub dzialu')} />
-                <small>{filteredSpecialists.length} {t('admin.results', 'wynikow')}</small>
+                <input value={specialistQuery} onChange={(event) => setSpecialistQuery(event.target.value)} placeholder={t('admin.specialistSearchPlaceholder', 'Szukaj specjalisty, lidera lub działu')} />
+                <small>{filteredSpecialists.length} {t('admin.results', 'wynikĂłw')}</small>
               </div>
               {filteredSpecialists.map((specialist) => (
                 <button
@@ -438,18 +380,18 @@ export default function AdminView({
                   <small>{specialist.leader || t('admin.specialist.noLeader', 'Bez lidera')} - {specialist.active ? t('admin.specialist.active', 'aktywny') : t('admin.specialist.inactive', 'nieaktywny')}</small>
                 </button>
               ))}
-              {!filteredSpecialists.length ? <div className="empty-state compact-empty">{t('admin.specialistEmpty', 'Brak specjalistow dla tego filtra.')}</div> : null}
+              {!filteredSpecialists.length ? <div className="empty-state compact-empty">{t('admin.specialistEmpty', 'Brak specjalistów dla tego filtra.')}</div> : null}
             </div>
             <div className="specialist-editor">
               <div className="field-grid two">
-                <label><span>{t('admin.specialist.name', 'Imie i nazwisko')}</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
+                <label><span>{t('admin.specialist.name', 'Imię i nazwisko')}</span><input value={selectedSpecialist.name} onChange={(event) => updateSpecialist(selectedSpecialist.id, { name: event.target.value })} /></label>
                 <label><span>{t('admin.specialist.leader', 'Lider')}</span><select value={selectedSpecialist.leader} onChange={(event) => updateSpecialist(selectedSpecialist.id, { leader: event.target.value })}>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
-                <label><span>{t('admin.specialist.department', 'Dzial')}</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
+                <label><span>{t('admin.specialist.department', 'Dział')}</span><select value={selectedSpecialist.department} onChange={(event) => updateSpecialist(selectedSpecialist.id, { department: event.target.value })}>{draftAdmin.departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
                 <label><span>{t('admin.specialist.position', 'Stanowisko')}</span><select value={selectedSpecialist.position} onChange={(event) => updateSpecialist(selectedSpecialist.id, { position: event.target.value })}>{draftAdmin.positions.map((position) => <option key={position} value={position}>{position}</option>)}</select></label>
               </div>
               <div className="admin-inline-actions">
                 <label className="toggle-line"><input type="checkbox" checked={selectedSpecialist.active} onChange={(event) => updateSpecialist(selectedSpecialist.id, { active: event.target.checked })} /> {t('admin.specialist.activeToggle', 'Aktywny specjalista')}</label>
-                <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> {t('admin.removeFromList', 'Usun z listy')}</button>
+                <button className="ghost-btn" type="button" onClick={() => removeSpecialist(selectedSpecialist.id)}><Trash2 size={16} /> {t('admin.removeFromList', 'Usuń z listy')}</button>
               </div>
             </div>
           </div>
@@ -461,7 +403,7 @@ export default function AdminView({
           <div className="section-title"><span>{t('admin.usersTitle', 'Użytkownicy i role')}</span><small>{draftUsers.length} {t('admin.accounts', 'kont')}</small></div>
           <p className="hint-text">
             {isSupabaseMode
-              ? t('admin.usersHintSupabase', 'W trybie Supabase sterujesz prawdziwymi uprawnieniami konta: rola, leader scope i aktywność trafiają do profiles i od razu wpływają na RLS.')
+              ? t('admin.usersHintSupabase', 'W trybie Supabase sterujesz prawdziwymi uprawnieniami konta: rola, zakres lidera i aktywność trafiają do profiles i od razu wpływają na RLS.')
               : t('admin.usersHintLocal', 'W trybie lokalnym zmiany działają na danych demo i służą tylko do testowania układu uprawnień.')}
           </p>
           <div className="user-layout">
@@ -491,17 +433,17 @@ export default function AdminView({
                 <>
                   <div className="field-grid two">
                     <label><span>{t('admin.user.email', 'Email')}</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
-                    <label><span>{t('admin.user.fullName', 'Imie i nazwisko')}</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
+                    <label><span>{t('admin.user.fullName', 'Imię i nazwisko')}</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
                     <label><span>{t('admin.user.role', 'Rola')}</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-                    <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pelny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+                    <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pełny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
                     {!isSupabaseMode ? (
                       <>
                         <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={selectedUser.login || ''} onChange={(event) => updateUserDraft(selectedUser.id, { login: event.target.value })} /></label>
-                        <label><span>{t('admin.user.password', 'Haslo lokalne / startowe')}</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
+                        <label><span>{t('admin.user.password', 'Hasło lokalne / startowe')}</span><input type="password" value={selectedUser.password || ''} onChange={(event) => updateUserDraft(selectedUser.id, { password: event.target.value })} /></label>
                       </>
                     ) : (
                       <div className="empty-state compact-empty">
-                        {t('admin.user.supabaseNote', 'W Supabase login lokalny i haslo nie steruja dostepem. Zmieniaj role, zakres i aktywnosc.')}
+                        {t('admin.user.supabaseNote', 'W Supabase login lokalny i hasło nie sterują dostępem. Zmieniaj role, zakres i aktywność.')}
                       </div>
                     )}
                   </div>
@@ -517,7 +459,7 @@ export default function AdminView({
             <div className="section-title"><span>{t('admin.newUserTitle', 'Nowe konto')}</span><small>{user.source === 'supabase' ? t('admin.newUserSourceSupabase', 'tworzone przez Edge Function') : t('admin.newUserSourceLocal', 'konto lokalne demo')}</small></div>
             <div className="field-grid">
               <label><span>{t('admin.user.email', 'Email')}</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
-              <label><span>{t('admin.user.fullName', 'Imie i nazwisko')}</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
+              <label><span>{t('admin.user.fullName', 'Imię i nazwisko')}</span><input value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
               {!isSupabaseMode ? (
                 <>
                   <label><span>{t('admin.user.localLogin', 'Login lokalny')}</span><input value={newUser.login || ''} onChange={(event) => setNewUser({ ...newUser, login: event.target.value })} /></label>
@@ -527,11 +469,11 @@ export default function AdminView({
                 <label><span>{t('admin.user.passwordOptional', 'Hasło startowe (opcjonalne)')}</span><input type="password" value={newUser.password || ''} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
               )}
               <label><span>{t('admin.user.role', 'Rola')}</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
-              <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pelny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
+              <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={newUser.leaderScope} onChange={(event) => setNewUser({ ...newUser, leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pełny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
             </div>
             <p className="hint-text">
               {isSupabaseMode
-                ? t('admin.createUserHintSupabase', 'Jeśli hasło zostawisz puste, Supabase wyśle zaproszenie na e-mail. Rola i leader scope ustawiają dostęp od razu po utworzeniu profilu.')
+                ? t('admin.createUserHintSupabase', 'Jeśli hasło zostawisz puste, Supabase wyśle zaproszenie na e-mail. Rola i zakres lidera ustawią dostęp od razu po utworzeniu profilu.')
                 : t('admin.createUserHintLocal', 'W lokalnym trybie tworzone jest konto demo z lokalnym loginem i hasłem startowym.')}
             </p>
             <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> {isSupabaseMode ? t('admin.createUserSupabase', 'Utwórz / zaproś konto') : t('admin.createUser', 'Utwórz konto')}</button>
@@ -556,6 +498,65 @@ export default function AdminView({
           <button className="ghost-btn" type="button" onClick={addPeriod}><Plus size={16} /> {t('admin.addPeriod', 'Dodaj okres')}</button>
         </section>
       ) : null}
+
+      <section className="admin-change-bar">
+        <div className="admin-change-copy">
+          <span className="admin-change-kicker">{t('admin.workState', 'Stan roboczy')}</span>
+          <strong>{pendingBadges.length ? t('admin.hasPending', `Masz ${pendingBadges.length} obszary z niezapisanymi zmianami`).replace('{count}', String(pendingBadges.length)) : t('admin.allSaved', 'Wszystkie zmiany są zapisane')}</strong>
+          <p>{selectedSection === 'users' ? t('admin.workStateUsers', 'Zmiany użytkowników zapisujesz osobno na poziomie wybranego konta.') : t('admin.workStateOther', 'Zmiany konfiguracji słowników, specjalistów i okresów zapisz jednym przyciskiem z nagłówka.')}</p>
+        </div>
+        {pendingBadges.length ? (
+          <div className="admin-change-warning">
+            <AlertTriangle size={16} />
+            <span>{t('admin.leaveWarning', 'Przed opuszczeniem panelu zapisz zmiany konfiguracji.')}</span>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="data-panel admin-history-panel">
+        <div className="section-title">
+          <span>{t('admin.historyTitle', 'Ostatnie zmiany')}</span>
+          <small>{t('admin.historySubtitle', 'audyt konfiguracji i kont')}</small>
+        </div>
+        {adminHistory.length ? (
+          <div className="admin-history-list">
+            {adminHistory.slice(0, 8).map((entry) => (
+              <article key={entry.id || `${entry.changedAt}-${entry.description}`} className="admin-history-item">
+                <div className="admin-history-copy">
+                  <strong>{entry.description}</strong>
+                  <p>{entry.changedBy}</p>
+                </div>
+                <small>{shortDateTime(entry.changedAt)}</small>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">{t('admin.historyEmpty', 'Brak wpisów audytu dla tego konta.')}</div>
+        )}
+      </section>
+
+      <section className="data-panel admin-history-panel">
+        <div className="section-title">
+          <span>{t('admin.diagnosticsTitle', 'Diagnostyka')}</span>
+          <small>{t('admin.diagnosticsSubtitle', 'ostatnie zdarzenia aplikacji')}</small>
+        </div>
+        {diagnostics.length ? (
+          <div className="admin-history-list">
+            {diagnostics.slice(0, 8).map((event) => (
+              <article key={event.id} className="admin-history-item">
+                <div className="admin-history-copy">
+                  <strong>{event.action}</strong>
+                  <p>{event.detail}</p>
+                </div>
+                <small>{shortDateTime(event.at)}</small>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">{t('admin.diagnosticsEmpty', 'Brak zapisanych zdarzeń diagnostycznych.')}</div>
+        )}
+      </section>
+
     </main>
   )
 }

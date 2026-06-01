@@ -4,6 +4,7 @@ import { AnalyticsFilterBar } from '../analytics/shared'
 import { applyAnalyticsFilters, defaultAnalyticsFilters } from '../analytics/filters'
 import { recordDiagnostic } from '../../domain/diagnostics'
 import { scoreClass } from '../../lib/display'
+import { downloadFile } from '../../lib/fileExport'
 import { buildReportTable, exportTableCsv, exportTableExcel, type ReportMode } from './reporting'
 import { SpecialistProfileModal } from '../specialists/profile'
 import { printSpecialistProfileReport } from '../specialists/profileData'
@@ -11,18 +12,6 @@ import type { Assessment } from '../../domain/types'
 import { useLanguage } from '../../i18n/LanguageContext'
 
 type ViewKey = 'start' | 'form' | 'team' | 'registry' | 'dashboard' | 'reports' | 'admin'
-
-function downloadFile(fileName: string, mime: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
-}
 
 function exportJson(rows: Assessment[]) {
   downloadFile('oceniator-ewidencja.json', 'application/json;charset=utf-8', JSON.stringify(rows, null, 2))
