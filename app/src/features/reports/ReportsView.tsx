@@ -34,6 +34,7 @@ export default function ReportsView({
   const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const [showMore, setShowMore] = useState(true)
+  const reportToolsPanelId = 'report-tools-panel'
 
   const filtered = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
 
@@ -97,6 +98,9 @@ export default function ReportsView({
     activeBelow ? { label: t('report.goTeam', 'Przejdź do zespołu'), hint: t('report.teamHint', 'Wejdź do profili specjalistów z najsłabszymi wynikami.'), action: () => setView('team'), icon: Users } : null,
     { label: t('report.goDashboard', 'Przejdź do analityki'), hint: t('report.dashboardHint', 'Zobacz trend i priorytety dla tego samego filtra.'), action: () => setView('dashboard'), icon: TrendingUp },
   ].filter(Boolean) as Array<{ label: string; hint: string; action: () => void; icon: typeof ClipboardCheck }>
+  const reportToolsActionLabel = showMore
+    ? t('report.toolsCollapseAction', 'Zwiń narzędzia raportu')
+    : t('report.toolsExpandAction', 'Rozwiń narzędzia raportu')
 
   function exportSpecialistPdf() {
     if (!filters.specialist || filters.specialist === 'all') return
@@ -179,6 +183,9 @@ export default function ReportsView({
           {reportTable.rows.length ? (
             <div className="table-wrap">
               <table className="data-table">
+                <caption className="sr-only">
+                  {`${reportTable.title}. ${reportTable.rows.length} ${t('report.resultRows', 'wierszy wynikowych')}.`}
+                </caption>
                 <thead>
                   <tr>{reportTable.columns.map((column) => <th key={column}>{column}</th>)}</tr>
                 </thead>
@@ -199,21 +206,29 @@ export default function ReportsView({
       </section>
 
       <details className="report-more" open={showMore} onToggle={(event) => setShowMore(event.currentTarget.open)}>
-        <summary>
-          <span>{t('report.tools', 'Narzędzia raportu')}</span>
-          <small>{t('report.toolsSubtitle', 'tryby, eksporty i rankingi')}</small>
+        <summary aria-expanded={showMore} aria-controls={reportToolsPanelId}>
+          <span className="sr-only">{reportToolsActionLabel}</span>
+          <div className="report-more-summary-copy">
+            <span>{t('report.tools', 'Narzędzia raportu')}</span>
+            <small>{t('report.toolsSubtitle', 'tryby, eksporty i rankingi')}</small>
+          </div>
+          <span className="report-more-state" aria-live="polite">
+            {showMore
+              ? t('report.toolsStateExpanded', 'Sekcja rozwinięta')
+              : t('report.toolsStateCollapsed', 'Sekcja zwinięta')}
+          </span>
         </summary>
-        <div className="report-more-body">
+        <div className="report-more-body" id={reportToolsPanelId}>
           <section className="data-panel">
             <div className="section-title"><span>{t('report.format', 'Format')}</span><small>{t('report.oneMode', 'wybierz jeden widok na raz')}</small></div>
-            <div className="report-mode-group">
-              <button className={mode === 'detail' ? 'active' : ''} type="button" onClick={() => setMode('detail')}>
+            <div className="report-mode-group" role="group" aria-label={t('report.format', 'Format')}>
+              <button className={mode === 'detail' ? 'active' : ''} type="button" aria-pressed={mode === 'detail'} onClick={() => setMode('detail')}>
                 <FileText size={15} /> {t('report.detail', 'Szczegółowy')}
               </button>
-              <button className={mode === 'summary' ? 'active' : ''} type="button" onClick={() => setMode('summary')}>
+              <button className={mode === 'summary' ? 'active' : ''} type="button" aria-pressed={mode === 'summary'} onClick={() => setMode('summary')}>
                 <Users size={15} /> {t('report.specialists', 'Specjaliści')}
               </button>
-              <button className={mode === 'trend' ? 'active' : ''} type="button" onClick={() => setMode('trend')}>
+              <button className={mode === 'trend' ? 'active' : ''} type="button" aria-pressed={mode === 'trend'} onClick={() => setMode('trend')}>
                 <TrendingUp size={15} /> {t('report.trends', 'Trendy')}
               </button>
             </div>
@@ -271,6 +286,9 @@ export default function ReportsView({
             </div>
             <div className="table-wrap">
               <table className="data-table">
+                <caption className="sr-only">
+                  {`${t('report.leaders', 'Liderzy')}. ${byLeader.length} ${t('report.resultRows', 'wierszy wynikowych')}.`}
+                </caption>
                 <thead>
                   <tr>
                     <th>{t('report.leader', 'Lider')}</th>
@@ -301,6 +319,9 @@ export default function ReportsView({
             <div className="section-title"><span>{t('report.lowestAverages', 'Najniższe średnie')}</span><small>{t('report.lowestInFilter', 'najsłabsze średnie w filtrze')}</small></div>
             <div className="table-wrap">
               <table className="data-table">
+                <caption className="sr-only">
+                  {`${t('report.lowestAverages', 'Najniższe średnie')}. ${bySpecialist.length} ${t('report.resultRows', 'wierszy wynikowych')}.`}
+                </caption>
                 <thead>
                   <tr>
                     <th>{t('table.specialist', 'Specjalista')}</th>

@@ -33,4 +33,28 @@ describe('diagnostics helpers', () => {
     expect(scopeLabel('admin')).toBe('Administracja')
     expect(scopeLabel('reports')).toBe('Raporty')
   })
+
+  it('keeps only the newest 120 events', () => {
+    let sequence = 0
+    const uuidSpy = vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
+      const suffix = String(sequence++).padStart(12, '0')
+      return `00000000-0000-4000-8000-${suffix}`
+    })
+
+    for (let index = 0; index < 125; index += 1) {
+      recordDiagnostic({
+        scope: 'system',
+        action: 'heartbeat',
+        detail: `event-${index}`,
+        level: 'info',
+      })
+    }
+
+    const events = loadDiagnostics()
+    expect(events).toHaveLength(120)
+    expect(events[0]?.detail).toBe('event-124')
+    expect(events.at(-1)?.detail).toBe('event-5')
+
+    uuidSpy.mockRestore()
+  })
 })

@@ -103,4 +103,10 @@ describe('settingsService', () => {
 
     expect(getOAuthRedirectUrl()).toBe('https://oceniator.test/app')
   })
+
+  it('returns an empty OAuth redirect URL without window state', () => {
+    Reflect.deleteProperty(globalThis, 'window')
+
+    expect(getOAuthRedirectUrl()).toBe('')
+  })
 })

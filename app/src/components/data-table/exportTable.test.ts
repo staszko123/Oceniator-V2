@@ -63,4 +63,21 @@ describe('exportTableToXlsx', () => {
     expect(xlsx.writeFile).toHaveBeenCalledWith(expect.any(Object), 'oceniator-test_2026-05-30.xlsx')
 
   })
+
+  it('truncates sheet names to the Excel 31-character limit', async () => {
+    await exportTableToXlsx({
+      rows: [],
+      columns,
+      filePrefix: 'oceniator-test',
+      sheetName: 'Quarterly evaluation registry export 2026',
+      getLabel: (column) => column.label || column.key,
+    })
+
+    const xlsx = await import('xlsx')
+    expect(xlsx.utils.book_append_sheet).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.any(Object),
+      'Quarterly evaluation registry e'
+    )
+  })
 })

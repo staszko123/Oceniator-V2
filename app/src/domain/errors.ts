@@ -1,5 +1,12 @@
 export type ErrorKind = 'validation' | 'auth' | 'forbidden' | 'network' | 'conflict' | 'storage' | 'unknown'
 
+type ErrorContext = {
+  kind: ErrorKind
+  code?: string
+  status?: number
+  name?: string
+}
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message
   if (typeof error === 'string') return error
@@ -32,4 +39,18 @@ export function getErrorKind(error: unknown): ErrorKind {
 export function isRetryableError(error: unknown): boolean {
   const kind = getErrorKind(error)
   return kind === 'network' || kind === 'storage'
+}
+
+export function getSafeErrorContext(error: unknown): ErrorContext {
+  const kind = getErrorKind(error)
+  if (!error || typeof error !== 'object') return { kind }
+
+  const candidate = error as { code?: unknown; status?: unknown; name?: unknown }
+  const context: ErrorContext = { kind }
+
+  if (typeof candidate.code === 'string' && candidate.code.trim()) context.code = candidate.code
+  if (typeof candidate.status === 'number' && Number.isFinite(candidate.status)) context.status = candidate.status
+  if (typeof candidate.name === 'string' && candidate.name.trim()) context.name = candidate.name
+
+  return context
 }

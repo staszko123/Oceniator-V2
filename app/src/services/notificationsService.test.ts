@@ -11,6 +11,25 @@ describe('notifications helpers', () => {
     vi.restoreAllMocks()
   })
 
+  it('leaves notifications unchanged when marking an unknown id', () => {
+    const notifications = [
+      {
+        id: 'notification-1',
+        type: 'systemAction' as const,
+        title: 'System',
+        message: 'Processed',
+        read: false,
+        createdAt: '2026-05-30T08:00:00.000Z',
+      },
+    ]
+
+    const marked = markNotificationRead(notifications, 'missing-id')
+
+    expect(marked).toEqual(notifications)
+    expect(marked[0]).toBe(notifications[0])
+    expect(unreadNotificationCount(marked)).toBe(1)
+  })
+
   it('creates notifications and keeps unread counts in sync', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('11111111-1111-4111-8111-111111111111')
 

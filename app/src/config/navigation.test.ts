@@ -22,4 +22,27 @@ describe('navigation visibility', () => {
       'registry',
     ])
   })
+
+  it('keeps translated privileged navigation labels in stable order for admins', () => {
+    const items = getVisibleNavigationItems('admin', t)
+
+    expect(items.map((item) => item.key)).toEqual([
+      'start',
+      'form',
+      'team',
+      'registry',
+      'dashboard',
+      'reports',
+      'admin',
+    ])
+    expect(items.map((item) => item.label)).toEqual([
+      'translated:nav.start',
+      'translated:nav.evaluation',
+      'translated:nav.team',
+      'translated:nav.registry',
+      'translated:nav.dashboard',
+      'translated:nav.reports',
+      'translated:nav.admin',
+    ])
+  })
 })

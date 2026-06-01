@@ -65,6 +65,8 @@ describe('storage utils', () => {
 
     installWindowWithStorage(failingStorage)
 
+    expect(canUsePersistentStorage()).toBe(false)
+
     writeStorageItem('draft', 'backup')
     expect(readStorageItem('draft')).toBe('backup')
 

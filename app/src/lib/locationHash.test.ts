@@ -1,7 +1,22 @@
-import { describe, expect, it } from 'vitest'
-import { buildLocationHash, parseLocationHash } from './locationHash'
+import { afterEach, describe, expect, it } from 'vitest'
+import { buildLocationHash, parseLocationHash, readLocationState } from './locationHash'
+
+const originalWindow = globalThis.window
 
 describe('location hash routing', () => {
+  afterEach(() => {
+    if (originalWindow) {
+      Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        writable: true,
+        value: originalWindow,
+      })
+      return
+    }
+
+    Reflect.deleteProperty(globalThis, 'window')
+  })
+
   it('falls back to start for empty and unknown views', () => {
     expect(parseLocationHash('')).toEqual({ view: 'start' })
     expect(parseLocationHash('#unknown')).toEqual({ view: 'start' })
@@ -50,5 +65,11 @@ describe('location hash routing', () => {
     states.forEach((state) => {
       expect(parseLocationHash(`#${buildLocationHash(state)}`)).toEqual(state)
     })
+  })
+
+  it('returns the start view when read without window state', () => {
+    Reflect.deleteProperty(globalThis, 'window')
+
+    expect(readLocationState()).toEqual({ view: 'start' })
   })
 })

@@ -5,7 +5,17 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Cache-Control": "no-store",
+  "Pragma": "no-cache",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+  "Referrer-Policy": "no-referrer",
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
 };
+
+const MAX_EMAIL_LENGTH = 254;
+const MAX_FULL_NAME_LENGTH = 120;
+const MAX_LEADER_SCOPE_LENGTH = 120;
 
 type UserPayload = {
   email?: string;
@@ -18,12 +28,17 @@ type UserPayload = {
 
 // Must stay aligned with BACKEND_SCOPE.md and the UI role helpers.
 const ALLOWED_ROLES = new Set(["admin", "director", "leader", "assessor", "viewer"]);
+const UNSAFE_CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function hasUnsafeControlChars(value: string): boolean {
+  return UNSAFE_CONTROL_CHARS.test(value);
 }
 
 serve(async (req) => {
@@ -72,6 +87,24 @@ serve(async (req) => {
   const password = String(payload.password || "");
 
   if (!email || !email.includes("@")) return json({ error: "Valid email is required" }, 400);
+  if (email.length > MAX_EMAIL_LENGTH) {
+    return json({ error: `Email must be at most ${MAX_EMAIL_LENGTH} characters` }, 400);
+  }
+  if (hasUnsafeControlChars(email)) {
+    return json({ error: "Email contains unsupported control characters" }, 400);
+  }
+  if (fullName.length > MAX_FULL_NAME_LENGTH) {
+    return json({ error: `Full name must be at most ${MAX_FULL_NAME_LENGTH} characters` }, 400);
+  }
+  if (hasUnsafeControlChars(fullName)) {
+    return json({ error: "Full name contains unsupported control characters" }, 400);
+  }
+  if (leaderScope.length > MAX_LEADER_SCOPE_LENGTH) {
+    return json({ error: `Leader scope must be at most ${MAX_LEADER_SCOPE_LENGTH} characters` }, 400);
+  }
+  if (hasUnsafeControlChars(leaderScope)) {
+    return json({ error: "Leader scope contains unsupported control characters" }, 400);
+  }
   if (password && password.length < 8) return json({ error: "Password must have at least 8 characters" }, 400);
 
   const authRequest = password
