@@ -30,4 +30,9 @@ describe('location hash routing', () => {
     expect(parseLocationHash('#form?type=broken')).toEqual({ view: 'form', form: undefined })
     expect(buildLocationHash({ view: 'start' })).toBe('start')
   })
+
+  it('builds the default registry preset when state is omitted', () => {
+    expect(buildLocationHash({ view: 'registry' })).toBe('registry?preset=all')
+    expect(buildLocationHash({ view: 'registry', registry: undefined })).toBe('registry?preset=all')
+  })
 })

@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { DemoDataProvider } from './localProvider'
 import { describeAdminConfigSave, describeUserCreate, describeUserUpdate } from '../domain/audit'
 import { canAdminRole, scopeAssessmentsForUser } from '../domain/access'
+import { getSafeErrorContext } from '../domain/errors'
 import type { AdminConfig, AdminHistoryEntry, Assessment, AssessmentComment, AssessmentDraft, AssessmentType, DataProvider, ManagedUser, Role, UserProfile } from '../domain/types'
 import type { Notification } from '../types/notification'
 import { assertCanAdmin, assertCanEditAssessment } from '../lib/security'
@@ -190,7 +191,7 @@ export class SupabaseDataProvider implements DataProvider {
         })),
       }
     } catch (error) {
-      console.warn('Supabase admin load failed:', error)
+      console.warn('Supabase admin load failed:', getSafeErrorContext(error))
       throw error
     }
   }
@@ -279,7 +280,7 @@ export class SupabaseDataProvider implements DataProvider {
         changedAt: item.changed_at,
       }))
     } catch (error) {
-      console.warn('Supabase admin history load failed:', error)
+      console.warn('Supabase admin history load failed:', getSafeErrorContext(error))
       return []
     }
   }
@@ -303,7 +304,7 @@ export class SupabaseDataProvider implements DataProvider {
         createdAt: item.created_at || '',
       }))
     } catch (error) {
-      console.warn('Supabase users load failed:', error)
+      console.warn('Supabase users load failed:', getSafeErrorContext(error))
       return []
     }
   }
@@ -377,7 +378,7 @@ export class SupabaseDataProvider implements DataProvider {
       const mapped = (data || []).map(mapRow)
       return this.currentUser ? scopeAssessmentsForUser(mapped, this.currentUser) : mapped
     } catch (error) {
-      console.warn('Supabase assessments load failed:', error)
+      console.warn('Supabase assessments load failed:', getSafeErrorContext(error))
       throw error
     }
   }
@@ -601,7 +602,7 @@ export class SupabaseDataProvider implements DataProvider {
         source: 'supabase',
       }
     } catch (error) {
-      console.warn('Supabase profile load failed:', error)
+      console.warn('Supabase profile load failed:', getSafeErrorContext(error))
       throw error
     }
   }
@@ -612,7 +613,7 @@ export class SupabaseDataProvider implements DataProvider {
       description,
       changed_by: this.currentUser.id,
     })
-    if (error) console.warn('Admin history write failed:', error.message)
+    if (error) console.warn('Admin history write failed:', getSafeErrorContext(error))
   }
 }
 

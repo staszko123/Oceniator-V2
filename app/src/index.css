@@ -78,6 +78,18 @@ body {
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .login-page {
   min-height: 100vh;
   position: relative;
@@ -3095,6 +3107,10 @@ input:focus, select:focus, textarea:focus { border-color: rgba(96,165,250,.82); 
   background: var(--surface);
 }
 .report-more > summary::-webkit-details-marker { display: none; }
+.report-more-summary-copy {
+  display: grid;
+  gap: 2px;
+}
 .report-more > summary span {
   color: var(--text);
   font-size: 13px;
@@ -3103,6 +3119,20 @@ input:focus, select:focus, textarea:focus { border-color: rgba(96,165,250,.82); 
 .report-more > summary small {
   color: var(--muted);
   font-size: 12px;
+}
+.report-more-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 .report-more-body {
   display: grid;

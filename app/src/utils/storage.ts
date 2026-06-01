@@ -1,11 +1,19 @@
 const memoryStorage = new Map<string, string>()
+const storageProbeKey = '__oceniator_storage_probe__'
 
 function hasLocalStorage(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 }
 
 export function canUsePersistentStorage(): boolean {
-  return hasLocalStorage()
+  if (!hasLocalStorage()) return false
+  try {
+    window.localStorage.setItem(storageProbeKey, '1')
+    window.localStorage.removeItem(storageProbeKey)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function readStorageItem(key: string): string | null {

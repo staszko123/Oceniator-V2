@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getErrorKind, getErrorMessage, isRetryableError } from './errors'
+import { getErrorKind, getErrorMessage, getSafeErrorContext, isRetryableError } from './errors'
 
 describe('error helpers', () => {
   it('prefers concrete error messages', () => {
@@ -21,5 +21,18 @@ describe('error helpers', () => {
     expect(isRetryableError(new Error('Failed to fetch'))).toBe(true)
     expect(isRetryableError(new Error('Quota exceeded'))).toBe(true)
     expect(isRetryableError(new Error('Unauthorized'))).toBe(false)
+  })
+
+  it('returns sanitized diagnostic context without raw messages', () => {
+    expect(getSafeErrorContext({ message: 'secret backend detail', code: '42501', status: 403, name: 'PostgrestError' })).toEqual({
+      kind: 'unknown',
+      code: '42501',
+      status: 403,
+      name: 'PostgrestError',
+    })
+    expect(getSafeErrorContext(new Error('Failed to fetch'))).toEqual({
+      kind: 'network',
+      name: 'Error',
+    })
   })
 })

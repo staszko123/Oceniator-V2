@@ -116,6 +116,24 @@ export default function AppShell({
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const notificationsPopoverRef = useRef<HTMLDivElement | null>(null)
   const notificationsButtonRef = useRef<HTMLButtonElement | null>(null)
+  const nextLanguage = language === 'pl' ? 'en' : 'pl'
+  const unreadCount = notifications.filter((item) => !item.read).length
+  const themeToggleLabel = theme === 'dark'
+    ? t('action.theme.switchToLight')
+    : t('action.theme.switchToDark')
+  const languageToggleLabel = language === 'pl'
+    ? t('action.language.switchToEnglish')
+    : t('action.language.switchToPolish')
+  const providerModeLabel = t('layout.providerModeSummary', 'Tryb danych: {provider}').replace('{provider}', PROVIDER_LABELS[providerMode])
+  const notificationsButtonLabel = (
+    notificationsOpen
+      ? unreadCount > 0
+        ? t('notifications.closeWithUnread', 'Zamknij powiadomienia, {count} nieprzeczytanych').replace('{count}', String(unreadCount))
+        : t('notifications.close')
+      : unreadCount > 0
+        ? t('notifications.openWithUnread', 'Otwórz powiadomienia, {count} nieprzeczytanych').replace('{count}', String(unreadCount))
+        : t('notifications.open')
+  )
 
   useEffect(() => {
     if (!notificationsOpen) return undefined
@@ -143,9 +161,6 @@ export default function AppShell({
     setNotificationsOpen(false)
     onNotificationSelect?.(notification)
   }
-
-  const unreadCount = notifications.filter((item) => !item.read).length
-
   return (
     <div className={collapsed ? 'app-shell sidebar-collapsed' : 'app-shell'}>
       <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
@@ -177,6 +192,7 @@ export default function AppShell({
                 onClick={() => setView(item.key)}
                 onMouseEnter={() => onViewIntent?.(item.key)}
                 onFocus={() => onViewIntent?.(item.key)}
+                aria-current={view === item.key ? 'page' : undefined}
                 title={collapsed ? item.label : undefined}
                 type="button"
               >
@@ -187,7 +203,7 @@ export default function AppShell({
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="mode-chip">
+          <div className="mode-chip" aria-label={providerModeLabel} title={providerModeLabel}>
             <Database size={14} />
             <span>{PROVIDER_LABELS[providerMode]}</span>
           </div>
@@ -225,22 +241,39 @@ export default function AppShell({
                 className="topbar-icon-btn"
                 type="button"
                 onClick={() => setNotificationsOpen((value) => !value)}
-                title={t('notifications.open')}
-                aria-label={t('notifications.open')}
+                title={notificationsButtonLabel}
+                aria-label={notificationsButtonLabel}
                 aria-expanded={notificationsOpen}
                 aria-controls="notifications-popover"
               >
                 <Bell size={15} />
                 {unreadCount > 0 ? <span className="topbar-badge">{unreadCount}</span> : null}
               </button>
-              <button className="topbar-icon-btn" type="button" onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')} title={t('action.language')}>
+              <button
+                className="topbar-icon-btn"
+                type="button"
+                onClick={() => setLanguage(nextLanguage)}
+                title={languageToggleLabel}
+                aria-label={languageToggleLabel}
+              >
                 <Globe size={15} />
                 <span>{t(`language.${language}`)}</span>
               </button>
-              <button className="topbar-theme" type="button" onClick={toggleTheme} title={t('action.theme')}>
+              <button
+                className="topbar-theme"
+                type="button"
+                onClick={toggleTheme}
+                title={themeToggleLabel}
+                aria-label={themeToggleLabel}
+              >
                 {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
               </button>
-              <button type="button" onClick={onLogout} title={t('action.logout')}>
+              <button
+                type="button"
+                onClick={onLogout}
+                title={t('action.logout')}
+                aria-label={t('action.logout')}
+              >
                 <LogOut size={15} />
                 {t('action.logout')}
               </button>
