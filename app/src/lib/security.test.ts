@@ -85,7 +85,7 @@ describe('security guards', () => {
   })
 
   it('throws on forbidden admin and assessment writes', () => {
-    expect(() => assertCanAdmin(makeUser({ role: 'viewer' }))).toThrow('Brak dostepu')
-    expect(() => assertCanEditAssessment(makeUser({ role: 'viewer' }), makeAssessment({}))).toThrow('Brak dostepu')
+    expect(() => assertCanAdmin(makeUser({ role: 'viewer' }))).toThrow('Brak dostępu')
+    expect(() => assertCanEditAssessment(makeUser({ role: 'viewer' }), makeAssessment({}))).toThrow('Brak dostępu')
   })
 })

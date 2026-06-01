@@ -388,3 +388,43 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Return to task `#9` as a read-first audit of `app/src/styles/theme.css` tokens and utility classes, but only remove anything after proving it is unused outside the dormant component layer.
+
+---
+
+## Run update 2026-06-01 06:03
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and small helper/config modules under `app/src/lib/` and `app/src/config/`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed and that the worktree still contains unrelated local modifications outside this run, so the change needed to stay isolated.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - a `theme.css` token audit,
+  - a `theme.css` dead-selector audit,
+  - helper-level regression coverage for `app/src/lib/display.ts`,
+  - a helper-level mojibake cleanup in `app/src/lib/format.ts`,
+  - extra config-only coverage for `app/src/config/status.ts`.
+
+### Selected task
+
+- Chose a helper-only change set around `app/src/lib/display.ts` and `app/src/lib/security.ts` because it improves user-facing copy in an untouched module and adds a tiny regression test without touching business logic, auth, roles, schema, or feature flows.
+
+### Change
+
+- Added [`app/src/lib/display.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/display.test.ts) covering:
+  - score threshold to CSS-class mapping,
+  - role/provider labels used by the shell.
+- Updated [`app/src/lib/security.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/security.ts) to normalize the default access-denied messages to proper Polish (`Brak dostępu ...`).
+- Updated [`app/src/lib/security.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/security.test.ts) to assert the corrected copy.
+- Marked task `#14` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/lib/display.test.ts app/src/lib/security.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Continue with task `#9` or `#13` as a read-first audit only; keep the next change similarly isolated from the already modified feature files in the current worktree.
