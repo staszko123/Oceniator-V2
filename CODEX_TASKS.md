@@ -11,3 +11,5 @@
 9. Audit `app/src/styles/theme.css` variables for unused tokens.
 10. Done: document the hash-based routing model in `README.md`.
 11. Done: add a focused regression test for `app/src/lib/theme.ts` root-class and persistence sync.
+12. Done: add an accessibility-focused render test for `app/src/components/ui/ThemeToggle.tsx`.
+13. Audit `app/src/styles/theme.css` utility classes for dead selectors before any cleanup.

@@ -346,3 +346,45 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Return to task `#9`, but only after a read-first audit that separates genuinely unused `theme.css` utilities from helper APIs still referenced by the dormant UI component set.
+
+---
+
+## Run update 2026-06-01 05:13
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/lib/locationHash.ts`, `app/src/features/start/StartView.tsx`, `app/src/features/dashboard/DashboardView.tsx`, `app/src/features/shell/AppShell.tsx`, and the current theme/config files.
+- Confirmed routing still relies on hash state and that the safest untouched area for this run was the isolated theme toggle component.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - `theme.css` token audit,
+  - `theme.css` utility-class audit,
+  - `ThemeToggle` render/accessibility coverage,
+  - remaining mojibake in small UI helpers,
+  - a read-only config cleanup pass.
+
+### Selected task
+
+- Chose task `#12`: add accessibility-focused coverage for `app/src/components/ui/ThemeToggle.tsx`, because it improves a user-facing control without touching business logic, auth, roles, schema, or already modified large UI flows.
+
+### Change
+
+- Updated [`app/src/components/ui/ThemeToggle.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/components/ui/ThemeToggle.tsx) to:
+  - normalize the component comment text,
+  - derive a single `title` string from the current theme action,
+  - reuse that same value for `aria-label`, so the control exposes the actual action instead of a generic label.
+- Added [`app/src/components/ui/ThemeToggle.test.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/components/ui/ThemeToggle.test.tsx) covering:
+  - dark-theme hydration rendering the correct accessible action,
+  - post-click label/title updates together with persisted theme state.
+- Marked task `#12` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/components/ui/ThemeToggle.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Return to task `#9` as a read-first audit of `app/src/styles/theme.css` tokens and utility classes, but only remove anything after proving it is unused outside the dormant component layer.
