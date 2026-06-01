@@ -633,3 +633,47 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#18`, `#19`, or `#20` next, because each stays inside isolated helper/config code and avoids the already modified feature and backend files in the current worktree.
+
+---
+
+## Run update 2026-06-01 11:53
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/features/viewer/viewerMetrics.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one pure helper test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts`,
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a tiny test for `app/src/features/dashboard/utils.ts`,
+  - audit `app/public/` assets for unused files.
+- While reviewing candidates, confirmed `app/src/services/notificationsService.test.ts` and `app/src/data/demoExport.test.ts` already exist, so backlog items `#21` and `#24` are stale and should be reconciled later rather than duplicated now.
+
+### Selected task
+
+- Chose task `#18`: add focused helper coverage for `app/src/features/viewer/viewerMetrics.ts`, because it protects viewer-facing summaries and sorting without touching business logic, auth, roles, database schema, or already modified UI files.
+
+### Change
+
+- Added [`app/src/features/viewer/viewerMetrics.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/viewer/viewerMetrics.test.ts) covering:
+  - `averageScore` returning `null` for empty input,
+  - ascending period sorting with blank/duplicate filtering,
+  - newest-first assessment ordering,
+  - section and criterion averages derived from snapshot scores,
+  - `null` fallback when a section has no recorded scores.
+- Marked task `#18` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/features/viewer/viewerMetrics.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- `npm run test`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#19` or `#20` next, because both stay inside isolated table configuration and avoid the already modified shell and backend files in the current worktree.
