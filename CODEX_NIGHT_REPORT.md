@@ -307,3 +307,42 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#9` next: audit `app/src/styles/theme.css` for genuinely unused tokens, and only remove anything after confirming it is not referenced from `app/src/index.css`.
+
+---
+
+## Run update 2026-06-01 04:24
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and the theme-related files under `app/src/lib/`, `app/src/services/`, and `app/src/styles/`.
+- Confirmed routing still relies on hash state, `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed, and the current worktree still contains unrelated local modifications outside this run.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - theme token audit in `app/src/styles/theme.css`,
+  - theme hook regression coverage in `app/src/lib/theme.ts`,
+  - `ThemeToggle` rendering coverage,
+  - README cleanup for remaining mojibake,
+  - a static audit note for unused UI utility classes.
+
+### Selected task
+
+- Chose the theme hook regression coverage path because it adds protection around a user-visible preference without touching already modified feature files or business logic.
+
+### Change
+
+- Added [`app/src/lib/theme.test.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/lib/theme.test.tsx) covering:
+  - hydrating the stored theme from `localStorage`,
+  - applying the correct `light`/`dark` root class on mount,
+  - persisting the toggled theme back to storage.
+- Added task `#11` to [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md) and marked it done.
+
+### Verification
+
+- `npm run test -- app/src/lib/theme.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Return to task `#9`, but only after a read-first audit that separates genuinely unused `theme.css` utilities from helper APIs still referenced by the dormant UI component set.
