@@ -547,3 +547,42 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#16` or `#17` next, because both stay inside isolated config/helper code and avoid the already modified feature files in the current worktree.
+
+---
+
+## Run update 2026-06-01 10:12
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/config/userPreferences.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one config test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add focused coverage for `app/src/config/userPreferences.ts`,
+  - add helper-level coverage for `app/src/lib/format.ts`,
+  - add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts`,
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add a small regression test for `app/src/services/notificationsService.ts`.
+
+### Selected task
+
+- Chose task `#16`: add a small normalization test for `app/src/config/userPreferences.ts` exported keys, because it protects persisted preference identifiers without touching business logic, auth, roles, database schema, or feature flows.
+
+### Change
+
+- Added [`app/src/config/userPreferences.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/userPreferences.test.ts) covering:
+  - stable exported keys for dashboard and shell preferences,
+  - uniqueness of persisted key values to avoid accidental storage collisions.
+- Marked task `#16` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/config/userPreferences.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#17` or `#21` next, because both stay inside isolated helper/service code and avoid the already modified feature files in the current worktree.
