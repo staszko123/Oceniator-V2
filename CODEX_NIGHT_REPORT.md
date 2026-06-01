@@ -428,3 +428,43 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Continue with task `#9` or `#13` as a read-first audit only; keep the next change similarly isolated from the already modified feature files in the current worktree.
+
+---
+
+## Run update 2026-06-01 06:54
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and the current style entrypoints.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits, so this run stayed within a single isolated CSS entrypoint and backlog/report files.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - detach the unused `theme.css` import from the active bundle,
+  - audit `theme.css` utility selectors for live references,
+  - audit `theme.css` token names against active CSS variables,
+  - add config-only coverage for `app/src/config/status.ts`,
+  - add a small read-only test around `app/src/lib/theme.ts`.
+
+### Selected task
+
+- Chose task `#13`: verify whether `app/src/styles/theme.css` is still part of the active UI path, then detach it only if the utility layer is not referenced by current screens.
+
+### Change
+
+- Removed the `@import './styles/theme.css';` line from [`app/src/index.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/index.css) after confirming:
+  - active screens use tokens defined directly in `index.css`,
+  - `theme.css` utility classes are not referenced by current feature views,
+  - the remaining references are limited to currently unused `app/src/components/ui/{Button,Card,Input}.tsx`.
+- Marked task `#13` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- `npm run test`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Return to task `#9` as a read-only token audit of [`app/src/styles/theme.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/styles/theme.css) and decide whether the dormant file should be deleted entirely or kept for the unused UI component set.

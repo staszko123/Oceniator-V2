@@ -12,5 +12,5 @@
 10. Done: document the hash-based routing model in `README.md`.
 11. Done: add a focused regression test for `app/src/lib/theme.ts` root-class and persistence sync.
 12. Done: add an accessibility-focused render test for `app/src/components/ui/ThemeToggle.tsx`.
-13. Audit `app/src/styles/theme.css` utility classes for dead selectors before any cleanup.
+13. Done: detach unused `app/src/styles/theme.css` import after confirming its utility layer is not referenced by active screens.
 14. Done: add regression coverage for `app/src/lib/display.ts` and normalize access-denied copy in `app/src/lib/security.ts`.
