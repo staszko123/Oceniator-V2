@@ -508,3 +508,42 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Pick a similarly isolated config/test cleanup next, such as focused coverage for [`app/src/config/status.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/status.ts), while continuing to avoid the already modified shell files in the current worktree.
+
+---
+
+## Run update 2026-06-01 09:23
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/config/status.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one config test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add focused coverage for `app/src/config/status.ts`,
+  - add a small normalization test for `app/src/config/userPreferences.ts`,
+  - add helper-level coverage for `app/src/lib/format.ts`,
+  - add a tiny test for `app/src/features/viewer/viewerMetrics.ts`,
+  - audit `app/public/` assets for unused files.
+
+### Selected task
+
+- Chose task `#15`: add focused regression coverage for `app/src/config/status.ts`, because it protects user-visible labels/tones without touching business logic, auth, roles, database schema, or feature flows.
+
+### Change
+
+- Added [`app/src/config/status.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/status.test.ts) covering:
+  - explicit label/tone mappings for assessment statuses,
+  - complete notification-type coverage with stable tone assignments.
+- Extended [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md) with a fresh batch of small low-risk follow-up tasks and marked task `#15` as done.
+
+### Verification
+
+- `npm run test -- app/src/config/status.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#16` or `#17` next, because both stay inside isolated config/helper code and avoid the already modified feature files in the current worktree.
