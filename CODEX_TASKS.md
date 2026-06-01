@@ -2,7 +2,7 @@
 
 1. Done: add unit tests for `app/src/utils/storage.ts` fallback behavior.
 2. Done: add unit tests for `app/src/lib/locationHash.ts` parse/build round-trips.
-3. Normalize mojibake fallback strings in `app/src/App.tsx` and `README.md`.
+3. Done: normalize mojibake fallback strings in `app/src/App.tsx` and `README.md`.
 4. Done: add a small test for `app/src/services/settingsService.ts` theme/language persistence.
 5. Done: add a smoke test for `app/src/config/navigation.ts` viewer-visible items.
 6. Done: extract duplicated export helpers into shared `app/src/lib/fileExport.ts`.

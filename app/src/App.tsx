@@ -111,7 +111,7 @@ function LoginScreen({
     try {
       await onLogin(login, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie uda?o si? zalogowa?.'))
+      setError(err instanceof Error ? err.message : t('login.error.default', 'Nie udało się zalogować.'))
     } finally {
       setBusy(false)
     }
@@ -123,7 +123,7 @@ function LoginScreen({
     try {
       await onGoogleLogin()
     } catch (err) {
-      setError(getErrorMessage(err, t('login.error.google', 'Nie uda?o si? uruchomi? logowania Google.')))
+      setError(getErrorMessage(err, t('login.error.google', 'Nie udało się uruchomić logowania Google.')))
     } finally {
       setBusy(false)
     }
@@ -363,11 +363,11 @@ function App() {
         await loadWorkspace(currentUser)
       } catch (error) {
         if (!cancelled) {
-          setBootError(getErrorMessage(error, t('app.error.boot', 'B??d startu aplikacji.')))
+          setBootError(getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')))
           refreshDiagnostics({
             scope: 'system',
             action: 'boot-error',
-            detail: getErrorMessage(error, t('app.error.boot', 'B??d startu aplikacji.')),
+            detail: getErrorMessage(error, t('app.error.boot', 'Błąd startu aplikacji.')),
             level: 'error',
           })
         }

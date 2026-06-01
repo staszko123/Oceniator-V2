@@ -276,3 +276,34 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Tackle task `#9` next as a read-first cleanup: verify which theme tokens in `app/src/styles/theme.css` are genuinely unused before removing or consolidating any of them.
+
+---
+
+## Run update 2026-06-01 03:32
+
+### Repository inspection
+
+- Re-read `package.json`, root directory structure, `app/src/main.tsx`, `app/src/App.tsx`, hash-routing touchpoints, and the existing automation notes/backlog before making changes.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed, so this run only updated them in place.
+- Preserved unrelated local modifications already present in shared data, report, storage, shell, i18n, Supabase, and backend-contract files.
+
+### Selected task
+
+- Reviewed the lowest-risk remaining candidates and chose task `#3`: normalize mojibake in fallback UI copy and documentation, because it improves operator-facing clarity without touching business logic.
+
+### Change
+
+- Updated [`app/src/App.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/App.tsx) to fix corrupted fallback messages for local login failure, Google login startup failure, and boot error reporting.
+- Updated [`README.md`](C:/Users/stanl/Documents/Oceniator%20v2/README.md) to fix corrupted Polish text in the product overview and deployment guidance.
+- Marked task `#3` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#9` next: audit `app/src/styles/theme.css` for genuinely unused tokens, and only remove anything after confirming it is not referenced from `app/src/index.css`.
