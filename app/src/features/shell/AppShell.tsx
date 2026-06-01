@@ -38,12 +38,24 @@ function NotificationList({
   popoverRef?: RefObject<HTMLDivElement | null>
 }) {
   const { t, language } = useLanguage()
+  const notificationTitleId = 'notifications-popover-title'
 
   return (
-    <div className="notification-popover" id="notifications-popover" ref={popoverRef}>
+    <div
+      className="notification-popover"
+      id="notifications-popover"
+      ref={popoverRef}
+      role="region"
+      aria-labelledby={notificationTitleId}
+    >
       <div className="notification-popover-head">
-        <strong>{t('notifications.title')}</strong>
-        <button type="button" className="ghost-btn" onClick={onMarkAllRead}>
+        <strong id={notificationTitleId}>{t('notifications.title')}</strong>
+        <button
+          type="button"
+          className="ghost-btn"
+          onClick={onMarkAllRead}
+          disabled={notifications.length === 0}
+        >
           {t('action.markAllAsRead')}
         </button>
       </div>
@@ -125,6 +137,11 @@ export default function AppShell({
     ? t('action.language.switchToEnglish')
     : t('action.language.switchToPolish')
   const providerModeLabel = t('layout.providerModeSummary', 'Tryb danych: {provider}').replace('{provider}', PROVIDER_LABELS[providerMode])
+  const activeSectionSummary = t('layout.activeSectionSummary', 'Aktywna sekcja: {section}').replace('{section}', activeTitle)
+  const userSummaryLabel = t('layout.userSummary', 'Zalogowano jako {name}, {email}, rola {role}')
+    .replace('{name}', user.fullName)
+    .replace('{email}', user.email)
+    .replace('{role}', ROLE_LABELS[user.role])
   const notificationsButtonLabel = (
     notificationsOpen
       ? unreadCount > 0
@@ -178,11 +195,13 @@ export default function AppShell({
             onClick={() => onCollapsedChange(!collapsed)}
             title={collapsed ? t('action.expandSidebar') : t('action.collapseSidebar')}
             aria-label={collapsed ? t('action.expandSidebar') : t('action.collapseSidebar')}
+            aria-expanded={!collapsed}
+            aria-controls="sidebar-navigation"
           >
             {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </button>
         </div>
-        <nav className="side-nav">
+        <nav className="side-nav" id="sidebar-navigation">
           {navItems.map((item) => {
             const Icon = item.icon
             return (
@@ -202,6 +221,7 @@ export default function AppShell({
             )
           })}
         </nav>
+        {collapsed ? <span className="sr-only">{activeSectionSummary}</span> : null}
         <div className="sidebar-footer">
           <div className="mode-chip" aria-label={providerModeLabel} title={providerModeLabel}>
             <Database size={14} />
@@ -228,7 +248,7 @@ export default function AppShell({
             <p>{activeMeta.description}</p>
           </div>
           <div className="user-pill">
-            <div className="topbar-user">
+            <div className="topbar-user" aria-label={userSummaryLabel}>
               <UserRound size={15} />
               <div>
                 <strong>{user.fullName}</strong>
@@ -265,6 +285,7 @@ export default function AppShell({
                 onClick={toggleTheme}
                 title={themeToggleLabel}
                 aria-label={themeToggleLabel}
+                aria-pressed={theme === 'dark'}
               >
                 {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
               </button>
@@ -289,15 +310,13 @@ export default function AppShell({
             popoverRef={notificationsPopoverRef}
           />
         ) : null}
-        {systemNotice ? <div className="system-notice">{systemNotice}</div> : null}
+        {systemNotice ? (
+          <div className="system-notice" role="status" aria-live="polite" aria-atomic="true">
+            {systemNotice}
+          </div>
+        ) : null}
         {children}
       </section>
-      <div className="desktop-guard">
-        <div className="desktop-guard-card">
-          <strong>{t('layout.desktopOnlyTitle')}</strong>
-          <p>{t('layout.desktopOnlyDescription')}</p>
-        </div>
-      </div>
     </div>
   )
 }

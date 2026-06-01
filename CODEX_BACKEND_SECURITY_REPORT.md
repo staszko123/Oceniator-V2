@@ -1,4 +1,343 @@
 Data i godzina:
+2026-06-01 12:12:14 +02:00
+Tryb:
+Backend security loop, report-only review
+
+Skanowane obszary:
+1. `package.json` i `app/package.json`
+2. `supabase/functions/admin-users/index.ts`
+3. `tests/backend-contract.test.ts`
+
+Znalezione bezpieczne obszary:
+1. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` w `admin-users` ma zwracac `400`, zamiast cichego fallbacku do `viewer`.
+2. Rozwazyc ograniczenie user-facing bledow z `createError?.message` i `upsertError.message`, bo dzis zmieniloby to komunikaty API dla administratora.
+3. Dalej monitorowac `xlsx`, bo `npm audit` nadal raportuje wysokie ryzyko bez dostepnej poprawki upstream.
+
+Wybrane zadanie:
+Status:
+NEEDS_REVIEW
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najnizsze ryzyko pozostale po ostatnich malych utwardzeniach `admin-users`. Dalsze zmiany nie sa juz czysto defensywnymi naglowkami lub guardami i ingerowalyby w kontrakt API albo widoczne komunikaty bledu.
+Co zmieniono:
+Nie zmieniano kodu. Udokumentowano decyzje do przegladu: dzisiejszy bieg pozostawia fallback `role -> viewer` oraz surowsze komunikaty bledow bez zmian, zeby nie wprowadzac cichej zmiany zachowania bez akceptacji.
+Zmienione pliki:
+`CODEX_BACKEND_SECURITY_REPORT.md`
+Uruchomione komendy:
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Bez zmian w kodzie. Edge function nadal mapuje nieznana `role` do `viewer`, co jest bezpieczne od strony uprawnien, ale ukrywa blad wejscia i utrudnia jednoznaczna walidacje kontraktu. Nadal zwraca tez surowsze bledy z Supabase przy nieudanym tworzeniu lub upsercie uzytkownika.
+Co sprawdzic recznie:
+Podjac decyzje, czy panel admina ma pokazywac jawny blad `400` dla nieobslugiwanej `role` i czy odpowiedzi `create user` / `upsert profile` powinny zostac znormalizowane do bezpieczniejszych komunikatow.
+Nastepny rekomendowany krok:
+Jesli akceptowalne jest zaciecie kontraktu API, zmienic `admin-users`, zeby odrzucal nieprawidlowa `role` kodem `400`, a potem dopisac test kontraktowy i komunikat UI.
+
+---
+
+Data i godzina:
+2026-06-01 11:28:01 +02:00
+Tryb:
+Backend and security loop, 15 min
+
+Skanowane obszary:
+1. `package.json`
+2. `supabase/functions/admin-users/index.ts`
+3. `tests/backend-contract.test.ts`
+
+Znalezione bezpieczne obszary:
+1. Dodac `X-Permitted-Cross-Domain-Policies: none` do odpowiedzi `admin-users`, zeby zablokowac legacy cross-domain policy loading dla administracyjnego endpointu.
+2. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast cichego fallbacku do `viewer`, bo to zmienia kontrakt API.
+3. Dalej monitorowac lub ograniczyc uzycie `xlsx`, bo `npm audit` nadal raportuje wysokie ryzyko bez poprawki upstream.
+
+Wybrane zadanie:
+Status:
+DONE
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najnizsze ryzyko w aktualnym stanie repo: dodaje tylko kolejny defensywny naglowek odpowiedzi edge function i nie zmienia auth, RLS, schematu, payloadu ani poprawnych odpowiedzi API.
+Co zmieniono:
+Dodano `X-Permitted-Cross-Domain-Policies: none` do wspolnych naglowkow `admin-users` oraz rozszerzono test kontraktowy, zeby pilnowal obecnosci tego naglowka.
+Zmienione pliki:
+`supabase/functions/admin-users/index.ts`
+`tests/backend-contract.test.ts`
+Uruchomione komendy:
+`npm test -- --run tests/backend-contract.test.ts`
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik testu kontraktowego:
+PASS
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Minimalnie nizsze. Odpowiedz funkcji admina blokuje teraz rowniez legacy cross-domain policy loading, ale nadal pozostaje decyzja produktowa dla nieprawidlowej `role`.
+Co sprawdzic recznie:
+Zweryfikowac w narzedziach sieciowych, ze odpowiedz `POST /functions/v1/admin-users` zwraca `X-Permitted-Cross-Domain-Policies: none`.
+Nastepny rekomendowany krok:
+Najbezpieczniej przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast fallbacku do `viewer`, bo to kolejna mala zmiana backendowa, ale zmienia kontrakt API.
+
+---
+
+Data i godzina:
+2026-06-01 12:57:47 +02:00
+Tryb:
+Backend and security loop, 15 min
+
+Skanowane obszary:
+1. `package.json` i `app/package.json`
+2. `supabase/functions/admin-users/index.ts`
+3. `tests/backend-contract.test.ts`
+
+Znalezione bezpieczne obszary:
+1. Dodac `CDN-Cache-Control: no-store` do odpowiedzi `admin-users`, zeby ograniczyc ryzyko cache po stronie CDN lub proxy dla odpowiedzi administracyjnej.
+2. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast cichego fallbacku do `viewer`, bo to zmienia kontrakt API.
+3. Rozwazyc pozniejsze znormalizowanie user-facing bledow z `createError?.message` i `upsertError.message`, bo dzis zmieniloby to komunikaty widoczne dla administratora.
+
+Wybrane zadanie:
+Status:
+DONE
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najmniejsza zmiana backend/security pozostajaca bez wchodzenia w walidacje wejscia albo kontrakt widocznych bledow API. Utwardza tylko polityke braku cache dla odpowiedzi edge function.
+Co zmieniono:
+Dodano `CDN-Cache-Control: no-store` do wspolnych naglowkow `admin-users` oraz rozszerzono test kontraktowy, zeby pilnowal obecnosci tego naglowka.
+Zmienione pliki:
+`supabase/functions/admin-users/index.ts`
+`tests/backend-contract.test.ts`
+`CODEX_BACKEND_SECURITY_REPORT.md`
+Uruchomione komendy:
+`npm test -- --run tests/backend-contract.test.ts`
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik testu kontraktowego:
+PASS
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Minimalnie nizsze. Odpowiedzi funkcji admina sa teraz bardziej jednoznacznie oznaczone jako niecacheowalne rowniez dla warstwy CDN/proxy, bez zmiany auth, RLS, schematu, payloadu ani poprawnych odpowiedzi API.
+Co sprawdzic recznie:
+Zweryfikowac w narzedziach sieciowych, ze odpowiedz `POST /functions/v1/admin-users` zwraca `CDN-Cache-Control: no-store`.
+Nastepny rekomendowany krok:
+Najbezpieczniej przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast fallbacku do `viewer`, bo to kolejna mala zmiana backendowa, ale zmienia kontrakt API.
+
+---
+
+Data i godzina:
+2026-06-01 09:57:38 +02:00
+Tryb:
+Backend and security loop, 15 min
+
+Skanowane obszary:
+1. `package.json`
+2. `supabase/functions/admin-users/index.ts`
+3. `tests/backend-contract.test.ts`
+
+Znalezione bezpieczne obszary:
+1. Dodac `Permissions-Policy` do odpowiedzi `admin-users`, zeby zablokowac niepotrzebne uprawnienia przegladarki przy konsumpcji administracyjnego endpointu.
+2. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast cichego fallbacku do `viewer`, bo to zmienia kontrakt API.
+3. Dalej monitorowac `xlsx`, bo `npm audit` nadal raportuje wysokie ryzyko bez poprawki upstream.
+
+Wybrane zadanie:
+Status:
+DONE
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najnizsze ryzyko pozostale po poprzednich utwardzeniach naglowkow `admin-users`: dodaje kolejny defensywny naglowek odpowiedzi i nie zmienia auth, RLS, schematu, payloadu ani poprawnych odpowiedzi API.
+Co zmieniono:
+Dodano `Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()` do wspolnych naglowkow `admin-users` oraz rozszerzono test kontraktowy, zeby pilnowal obecnosci tego naglowka.
+Zmienione pliki:
+`supabase/functions/admin-users/index.ts`
+`tests/backend-contract.test.ts`
+Uruchomione komendy:
+`npm test -- --run tests/backend-contract.test.ts`
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik testu kontraktowego:
+PASS
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Minimalnie nizsze. Odpowiedz funkcji admina jawnie wyłącza kilka browser capabilities, ale nadal pozostaje decyzja produktowa dla nieprawidlowej `role`.
+Co sprawdzic recznie:
+Zweryfikowac w narzedziach sieciowych, ze odpowiedz `POST /functions/v1/admin-users` zwraca rowniez `Permissions-Policy`.
+Nastepny rekomendowany krok:
+Najbezpieczniej przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast fallbacku do `viewer`, bo to kolejna mala zmiana backendowa, ale zmienia kontrakt API.
+
+---
+
+Data i godzina:
+2026-06-01 10:42:40 +02:00
+Tryb:
+Backend and security loop, 15 min
+
+Skanowane obszary:
+1. `supabase/functions/admin-users/index.ts`
+2. `tests/backend-contract.test.ts`
+3. `package.json`
+
+Znalezione bezpieczne obszary:
+1. Dodac `Expires: 0` do odpowiedzi `admin-users`, zeby domknac polityke braku cache dla odpowiedzi administracyjnej w starszych i posredniczacych cache.
+2. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast cichego fallbacku do `viewer`, bo to zmienia kontrakt API.
+3. Dalej monitorowac lub ograniczyc uzycie `xlsx`, bo `npm audit` nadal raportuje wysokie ryzyko bez poprawki upstream.
+
+Wybrane zadanie:
+Status:
+DONE
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najmniejsza zmiana backend/security w obecnym stanie repo: wzmacnia tylko polityke anty-cache odpowiedzi edge function i nie zmienia auth, RLS, schematu, payloadu ani poprawnych odpowiedzi API.
+Co zmieniono:
+Dodano `Expires: 0` do wspolnych naglowkow `admin-users` oraz rozszerzono test kontraktowy, zeby pilnowal obecnosci tego naglowka. Pozostawiono bez zmian inne lokalne, wczesniej rozpoczete modyfikacje w tych samych plikach.
+Zmienione pliki:
+`supabase/functions/admin-users/index.ts`
+`tests/backend-contract.test.ts`
+Uruchomione komendy:
+`npm test -- --run tests/backend-contract.test.ts`
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik testu kontraktowego:
+PASS
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Nizsze. Odpowiedzi funkcji admina sa teraz bardziej jednoznacznie niecacheowalne, ale nadal pozostaje decyzja produktowa dla nieprawidlowej `role`.
+Co sprawdzic recznie:
+Zweryfikowac w narzedziach sieciowych, ze odpowiedz `POST /functions/v1/admin-users` zwraca `Expires: 0`.
+Nastepny rekomendowany krok:
+Najbezpieczniej przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast fallbacku do `viewer`, bo to kolejna mala zmiana backendowa, ale zmienia kontrakt API.
+
+---
+
+Data i godzina:
+2026-06-01 09:13:13 +02:00
+Tryb:
+Backend and security loop, 15 min
+
+Skanowane obszary:
+1. `supabase/functions/admin-users/index.ts`
+2. `tests/backend-contract.test.ts`
+3. `package.json`
+
+Znalezione bezpieczne obszary:
+1. Dodac `X-Robots-Tag: noindex, nofollow` do odpowiedzi `admin-users`, zeby zmniejszyc ryzyko indeksowania administracyjnego endpointu i jego odpowiedzi przez crawlery.
+2. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast cichego fallbacku do `viewer`, bo to zmienia kontrakt API.
+3. Dalej monitorowac `xlsx`, bo `npm audit` nadal raportuje wysokie ryzyko bez poprawki upstream.
+
+Wybrane zadanie:
+Status:
+DONE
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najmniejsza zmiana backend/security pozostajaca po wczesniejszym hardeningu funkcji admina: utwardza tylko naglowki odpowiedzi i nie zmienia auth, RLS, schematu, payloadu ani poprawnych odpowiedzi API.
+Co zmieniono:
+Dodano `X-Robots-Tag: noindex, nofollow` do wspolnych naglowkow `admin-users` oraz rozszerzono test kontraktowy, zeby pilnowal obecnosci tego naglowka.
+Zmienione pliki:
+`supabase/functions/admin-users/index.ts`
+`tests/backend-contract.test.ts`
+Uruchomione komendy:
+`npm test -- --run tests/backend-contract.test.ts`
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik testu kontraktowego:
+PASS
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Minimalnie nizsze. Endpoint administracyjny wysyla teraz takze sygnal dla crawlerow, ze odpowiedzi nie powinny byc indeksowane, ale nadal pozostaje decyzja produktowa dla nieprawidlowej `role`.
+Co sprawdzic recznie:
+Zweryfikowac w narzedziach sieciowych, ze odpowiedz `POST /functions/v1/admin-users` zwraca `X-Robots-Tag: noindex, nofollow`.
+Nastepny rekomendowany krok:
+Najbezpieczniej przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast fallbacku do `viewer`, bo to kolejna mala zmiana backendowa, ale zmienia kontrakt API.
+
+---
+
+Data i godzina:
 2026-05-31 23:35:48 +02:00
 Tryb:
 Backend and security loop, 15 min
@@ -328,6 +667,59 @@ Co sprawdzic recznie:
 Zweryfikowac w narzedziach sieciowych, ze odpowiedz `POST /functions/v1/admin-users` zwraca `Cache-Control: no-store`.
 Nastepny rekomendowany krok:
 Najbezpieczniej przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` ma zwracac `400` zamiast fallbacku do `viewer`, bo to kolejna mala zmiana backendowa, ale zmienia kontrakt API.
+
+---
+
+Data i godzina:
+2026-06-01 07:42:12 +02:00
+Tryb:
+Backend security loop, report-only review
+
+Skanowane obszary:
+1. `supabase/functions/admin-users/index.ts`
+2. `tests/backend-contract.test.ts`
+3. `package.json`
+
+Znalezione bezpieczne obszary:
+1. Przygotowac NEEDS_REVIEW dla decyzji, czy nieprawidlowa `role` w `admin-users` ma zwracac `400`, zamiast cichego fallbacku do `viewer`.
+2. Rozwazyc pozniejsze uscislenie user-facing bledow z `createError?.message` i `upsertError.message`, bo dzis zmieniloby to komunikaty API dla administratora.
+3. Dalej monitorowac `xlsx`, bo `npm audit` nadal raportuje wysokie ryzyko bez poprawki upstream.
+
+Wybrane zadanie:
+Status:
+NEEDS_REVIEW
+Poziom ryzyka:
+P3
+Dlaczego wybrane:
+To najnizsze ryzyko pozostale po serii malych utwardzen. Zmiana zachowania dla nieprawidlowej `role` jest backendowo sensowna, ale modyfikuje kontrakt API i moze zmienic to, co widzi formularz administratora.
+Co zmieniono:
+Nie zmieniano kodu. Udokumentowano decyzje do przegladu: dzisiejszy bieg pozostawia fallback `role -> viewer` bez zmian, zeby nie wprowadzac cichej zmiany zachowania bez akceptacji.
+Zmienione pliki:
+`CODEX_BACKEND_SECURITY_REPORT.md`
+Uruchomione komendy:
+`npm run lint`
+`npm run build`
+`npm test`
+`npm run smoke`
+`npm audit --audit-level=moderate`
+Wynik lint:
+PASS
+Wynik build:
+PASS
+Wynik testow:
+PASS
+Wynik smoke:
+PASS
+Wynik audit:
+FAIL - `xlsx` nadal ma wysokie ryzyko bez dostepnej poprawki upstream
+Commit:
+Not yet created
+Ryzyko po zmianie:
+Bez zmian w kodzie. Edge function nadal mapuje nieznana `role` do `viewer`, co jest bezpieczne od strony uprawnien, ale ukrywa blad wejscia i utrudnia jednoznaczna walidacje kontraktu.
+Co sprawdzic recznie:
+Podjac decyzje, czy panel admina ma pokazywac jawny blad `400` dla nieobslugiwanej `role`, czy zachowac dzisiejszy fallback do `viewer`.
+Nastepny rekomendowany krok:
+Jesli akceptowalne jest zaciecie kontraktu API, zmienic `admin-users`, zeby odrzucal nieprawidlowa `role` kodem `400`, a potem dopisac test kontraktowy i komunikat UI.
 
 ---
 

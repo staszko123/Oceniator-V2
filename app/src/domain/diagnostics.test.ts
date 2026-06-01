@@ -30,8 +30,13 @@ describe('diagnostics helpers', () => {
 
   it('maps scopes to human-readable labels', () => {
     expect(scopeLabel('auth')).toBe('Logowanie')
+    expect(scopeLabel('draft')).toBe('Szkic')
+    expect(scopeLabel('assessment')).toBe('Ocena')
     expect(scopeLabel('admin')).toBe('Administracja')
+    expect(scopeLabel('registry')).toBe('Ewidencja')
     expect(scopeLabel('reports')).toBe('Raporty')
+    expect(scopeLabel('system')).toBe('System')
+    expect(scopeLabel('r')).toBe('r')
   })
 
   it('keeps only the newest 120 events', () => {

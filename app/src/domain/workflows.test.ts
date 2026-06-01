@@ -89,4 +89,20 @@ describe('workflow helpers', () => {
     expect(replaceManagedUserById(users, nextUser)[1].email).toBe('updated@example.com')
     expect(prependManagedUser(users, nextUser)[0].id).toBe('user-2')
   })
+
+  it('deduplicates prepended managed users by id', () => {
+    const users = [
+      makeUser(),
+      makeUser({ id: 'user-2', email: 'two@example.com' }),
+      makeUser({ id: 'user-3', email: 'three@example.com' }),
+    ]
+    const nextUser = makeUser({ id: 'user-2', email: 'updated@example.com', fullName: 'Zmieniony Uzytkownik' })
+
+    const updatedUsers = prependManagedUser(users, nextUser)
+
+    expect(updatedUsers).toHaveLength(3)
+    expect(updatedUsers[0]).toEqual(nextUser)
+    expect(updatedUsers.filter((item) => item.id === 'user-2')).toHaveLength(1)
+    expect(updatedUsers.slice(1).map((item) => item.id)).toEqual(['user-1', 'user-3'])
+  })
 })

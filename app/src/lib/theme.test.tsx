@@ -68,5 +68,14 @@ describe('useTheme', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.documentElement.classList.contains('light')).toBe(false)
     expect(window.localStorage.getItem('oceniator-theme')).toBe('dark')
+
+    act(() => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(button.dataset.theme).toBe('light')
+    expect(document.documentElement.classList.contains('light')).toBe(true)
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+    expect(window.localStorage.getItem('oceniator-theme')).toBe('light')
   })
 })

@@ -48,6 +48,16 @@ describe('history helpers', () => {
     expect(hasEditHistory(makeAssessment({ statusHistory: [{ status: 'submitted', at: '2026-05-29T08:30:00.000Z', by: 'Anna Lider', note: 'Utworzono karte' }] }))).toBe(false)
   })
 
+  it('returns safe empty values when history is missing', () => {
+    const assessment = makeAssessment({ statusHistory: undefined })
+
+    expect(lastStatusEvent(assessment)).toBeUndefined()
+    expect(lastHistoryAt(assessment)).toBe('')
+    expect(lastHistoryBy(assessment)).toBe('')
+    expect(lastHistoryNote(assessment)).toBe('')
+    expect(hasEditHistory(assessment)).toBe(false)
+  })
+
   it('formats short date time safely', () => {
     expect(shortDateTime('')).toBe('-')
     expect(shortDateTime('2026-05-30T08:30:00.000Z')).toContain('30.05')

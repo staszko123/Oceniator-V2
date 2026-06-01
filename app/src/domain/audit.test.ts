@@ -31,4 +31,14 @@ describe('audit helpers', () => {
     expect(describeUserCreate(user)).toBe('Utworzono konto: Uzytkownik Testowy (leader)')
     expect(describeUserUpdate(user)).toBe('Zaktualizowano konto: Uzytkownik Testowy (leader)')
   })
+
+  it('falls back to email when full name is empty', () => {
+    const unnamedUser: ManagedUser = {
+      ...user,
+      fullName: '',
+    }
+
+    expect(describeUserCreate(unnamedUser)).toBe('Utworzono konto: user@example.com (leader)')
+    expect(describeUserUpdate(unnamedUser)).toBe('Zaktualizowano konto: user@example.com (leader)')
+  })
 })

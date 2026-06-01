@@ -5,6 +5,7 @@ describe('error helpers', () => {
   it('prefers concrete error messages', () => {
     expect(getErrorMessage(new Error('Brak dostepu'), 'fallback')).toBe('Brak dostepu')
     expect(getErrorMessage('  ', 'fallback')).toBe('fallback')
+    expect(getErrorMessage({ error: 'Quota exceeded' }, 'fallback')).toBe('Quota exceeded')
   })
 
   it('classifies common error types', () => {
@@ -14,6 +15,7 @@ describe('error helpers', () => {
     expect(getErrorKind(new Error('Failed to fetch'))).toBe('network')
     expect(getErrorKind(new Error('Already exists'))).toBe('conflict')
     expect(getErrorKind(new Error('localStorage quota exceeded'))).toBe('storage')
+    expect(getErrorKind({ error: 'Brak dostepu do raportu' })).toBe('forbidden')
     expect(getErrorKind('')).toBe('unknown')
   })
 

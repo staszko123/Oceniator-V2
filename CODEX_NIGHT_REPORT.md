@@ -468,3 +468,292 @@ Automation: oceniator-v2-upkeep
 ### Next recommended step
 
 - Return to task `#9` as a read-only token audit of [`app/src/styles/theme.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/styles/theme.css) and decide whether the dormant file should be deleted entirely or kept for the unused UI component set.
+
+---
+
+## Run update 2026-06-01 07:42
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, `app/src/index.css`, and the dormant `app/src/styles/theme.css`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report files, so this run stayed isolated to the dormant stylesheet plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - delete dormant `app/src/styles/theme.css`,
+  - keep the file and only document it as unused,
+  - add config-only coverage for `app/src/config/status.ts`,
+  - add a tiny helper test for `app/src/lib/format.ts`,
+  - audit unused static assets under `app/public/`.
+
+### Selected task
+
+- Chose task `#9`: finish the `theme.css` audit and remove the file if it is fully detached from the active application bundle.
+
+### Change
+
+- Deleted [`app/src/styles/theme.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/styles/theme.css) after confirming:
+  - the active bundle no longer imports it,
+  - its utility classes and CSS variables are not referenced outside the file itself,
+  - the live application styling is provided by [`app/src/index.css`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/index.css).
+- Marked task `#9` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Pick a similarly isolated config/test cleanup next, such as focused coverage for [`app/src/config/status.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/status.ts), while continuing to avoid the already modified shell files in the current worktree.
+
+---
+
+## Run update 2026-06-01 09:23
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/config/status.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one config test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add focused coverage for `app/src/config/status.ts`,
+  - add a small normalization test for `app/src/config/userPreferences.ts`,
+  - add helper-level coverage for `app/src/lib/format.ts`,
+  - add a tiny test for `app/src/features/viewer/viewerMetrics.ts`,
+  - audit `app/public/` assets for unused files.
+
+### Selected task
+
+- Chose task `#15`: add focused regression coverage for `app/src/config/status.ts`, because it protects user-visible labels/tones without touching business logic, auth, roles, database schema, or feature flows.
+
+### Change
+
+- Added [`app/src/config/status.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/status.test.ts) covering:
+  - explicit label/tone mappings for assessment statuses,
+  - complete notification-type coverage with stable tone assignments.
+- Extended [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md) with a fresh batch of small low-risk follow-up tasks and marked task `#15` as done.
+
+### Verification
+
+- `npm run test -- app/src/config/status.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#16` or `#17` next, because both stay inside isolated config/helper code and avoid the already modified feature files in the current worktree.
+
+---
+
+## Run update 2026-06-01 10:12
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/config/userPreferences.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one config test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add focused coverage for `app/src/config/userPreferences.ts`,
+  - add helper-level coverage for `app/src/lib/format.ts`,
+  - add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts`,
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add a small regression test for `app/src/services/notificationsService.ts`.
+
+### Selected task
+
+- Chose task `#16`: add a small normalization test for `app/src/config/userPreferences.ts` exported keys, because it protects persisted preference identifiers without touching business logic, auth, roles, database schema, or feature flows.
+
+### Change
+
+- Added [`app/src/config/userPreferences.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/userPreferences.test.ts) covering:
+  - stable exported keys for dashboard and shell preferences,
+  - uniqueness of persisted key values to avoid accidental storage collisions.
+- Marked task `#16` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/config/userPreferences.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#17` or `#21` next, because both stay inside isolated helper/service code and avoid the already modified feature files in the current worktree.
+
+---
+
+## Run update 2026-06-01 11:04
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/lib/format.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one helper plus its tests and backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add helper-level coverage for `app/src/lib/format.ts`,
+  - add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts`,
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a small regression test for `app/src/services/notificationsService.ts`.
+- While reviewing candidates, noticed `app/src/services/notificationsService.test.ts` already covers unread-count helpers, so task `#21` is likely stale and should be reconciled in a later housekeeping pass rather than duplicated.
+
+### Selected task
+
+- Chose task `#17`: add helper-level coverage for `app/src/lib/format.ts` and harden its date fallback behavior, because it is isolated, user-visible, and does not touch business logic, auth, roles, database schema, or migrations.
+
+### Change
+
+- Updated `app/src/lib/format.ts` so `formatDate` now:
+  - returns `-` for empty input,
+  - returns the original string for invalid dates instead of formatting `Invalid Date`.
+- Added `app/src/lib/format.test.ts` covering:
+  - HTML escaping of special characters and nullish values,
+  - rounded percent formatting,
+  - locale-aware currency and number formatting,
+  - valid, empty, and invalid date handling,
+  - `clsx` truthy-class joining.
+- Marked task `#17` as done in `CODEX_TASKS.md`.
+
+### Verification
+
+- `npm run test -- app/src/lib/format.test.ts`
+- `npm run test`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#18`, `#19`, or `#20` next, because each stays inside isolated helper/config code and avoids the already modified feature and backend files in the current worktree.
+
+---
+
+## Run update 2026-06-01 11:53
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, `app/src/config/navigation.ts`, `app/src/features/shell/AppShell.tsx`, and `app/src/features/viewer/viewerMetrics.ts`.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in shell/test/report/Supabase files, so this run stayed isolated to one pure helper test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add a tiny unit test for `app/src/features/viewer/viewerMetrics.ts`,
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a tiny test for `app/src/features/dashboard/utils.ts`,
+  - audit `app/public/` assets for unused files.
+- While reviewing candidates, confirmed `app/src/services/notificationsService.test.ts` and `app/src/data/demoExport.test.ts` already exist, so backlog items `#21` and `#24` are stale and should be reconciled later rather than duplicated now.
+
+### Selected task
+
+- Chose task `#18`: add focused helper coverage for `app/src/features/viewer/viewerMetrics.ts`, because it protects viewer-facing summaries and sorting without touching business logic, auth, roles, database schema, or already modified UI files.
+
+### Change
+
+- Added [`app/src/features/viewer/viewerMetrics.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/viewer/viewerMetrics.test.ts) covering:
+  - `averageScore` returning `null` for empty input,
+  - ascending period sorting with blank/duplicate filtering,
+  - newest-first assessment ordering,
+  - section and criterion averages derived from snapshot scores,
+  - `null` fallback when a section has no recorded scores.
+- Marked task `#18` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/features/viewer/viewerMetrics.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- `npm run test`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#19` or `#20` next, because both stay inside isolated table configuration and avoid the already modified shell and backend files in the current worktree.
+
+---
+
+## Run update 2026-06-01 12:42
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, and the current backlog/report files before changing anything.
+- Confirmed `CODEX_NIGHT_REPORT.md` and `CODEX_TASKS.md` already existed.
+- Confirmed the worktree still contains unrelated local edits in report, shell, i18n, CSS, test, and Supabase files, so this run stayed isolated to one new config test plus backlog/report updates.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add config-only coverage for `app/src/config/tableActionsConfig.tsx`,
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a tiny test for `app/src/features/dashboard/utils.ts`,
+  - audit `app/public/` assets for unused files,
+  - reconcile stale backlog items already covered by `notificationsService.test.ts` and `demoExport.test.ts`.
+
+### Selected task
+
+- Chose task `#19`: add focused coverage for `app/src/config/tableActionsConfig.tsx`, because it protects a stable UI configuration contract without touching business logic, auth, roles, database schema, or existing feature code.
+
+### Change
+
+- Added [`app/src/config/tableActionsConfig.test.tsx`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/config/tableActionsConfig.test.tsx) covering:
+  - stable action key ordering for the full handler set,
+  - expected permission mapping for each visible action,
+  - destructive flag on the delete action,
+  - omission of actions without handlers,
+  - preservation of the disabled reason when edit availability denies access.
+- Marked task `#19` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/config/tableActionsConfig.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+- `npm run test`
+- All checks passed on 2026-06-01.
+
+### Next recommended step
+
+- Tackle task `#20` or `#23` next, because both stay inside isolated config/helper code and avoid the already modified shell, styling, and backend files in the current worktree.
+
+---
+
+## Run update 2026-06-01 13:18
+
+### Repository inspection
+
+- Re-read `package.json`, root/app directory structure, `app/src/main.tsx`, `app/src/App.tsx`, and the current backlog/report files before changing anything.
+- Confirmed the app still uses hash-based routing without `react-router`, and the worktree still contains unrelated local edits in shell, styling, i18n, test, report, and Supabase files.
+- Reviewed five low-risk candidates before choosing the smallest safe change:
+  - add config-only coverage for `app/src/config/tableColumnsConfig.tsx`,
+  - add a tiny test for `app/src/features/dashboard/utils.ts`,
+  - audit `app/public/` assets for unused files,
+  - reconcile stale backlog item `#21` already covered by `notificationsService.test.ts`,
+  - reconcile stale backlog item `#24` already covered by `demoExport.test.ts`.
+
+### Selected task
+
+- Chose task `#23`: add focused helper coverage for `app/src/features/dashboard/utils.ts`, because it protects dashboard fallbacks and empty states without touching business logic, auth, roles, database schema, or existing feature flows.
+
+### Change
+
+- Added [`app/src/features/dashboard/utils.test.ts`](C:/Users/stanl/Documents/Oceniator%20v2/app/src/features/dashboard/utils.test.ts) covering:
+  - empty input returning empty aggregates for section, criteria, trend, and leader summaries,
+  - leader-ranking fallback to `oce` and then `Brak lidera` when `leaderScope` is absent.
+- Marked task `#23` as done in [`CODEX_TASKS.md`](C:/Users/stanl/Documents/Oceniator%20v2/CODEX_TASKS.md).
+
+### Verification
+
+- `npm run test -- app/src/features/dashboard/utils.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run smoke`
+
+### Next recommended step
+
+- Tackle task `#20` next for another isolated config-only safeguard, then reconcile stale backlog items `#21` and `#24` in a follow-up housekeeping pass.

@@ -24,6 +24,9 @@ export function DataTableToolbar({
   extraActions?: ReactNode
 }) {
   const { t } = useLanguage()
+  const resultCountLabel = t('table.resultCountSummary')
+    .replace('{visible}', String(visibleRows))
+    .replace('{total}', String(totalRows))
 
   return (
     <div className="data-table-toolbar">
@@ -33,10 +36,11 @@ export function DataTableToolbar({
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
           placeholder={t('table.searchPlaceholder')}
+          aria-label={t('table.searchPlaceholder')}
         />
       </label>
-      <div className="data-table-toolbar-meta">
-        <span>{visibleRows}/{totalRows}</span>
+      <div className="data-table-toolbar-meta" aria-live="polite">
+        <span aria-label={resultCountLabel}>{visibleRows}/{totalRows}</span>
       </div>
       <div className="data-table-toolbar-actions">
         <label className="data-table-page-size">

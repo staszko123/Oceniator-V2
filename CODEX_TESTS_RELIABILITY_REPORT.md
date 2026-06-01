@@ -682,3 +682,773 @@ Brak wymaganego manualnego follow-up dla tej zmiany.
 
 Nastepny rekomendowany krok:
 Dodac niskiemu ryzyku test drugiego przełączenia motywu z powrotem na `light` albo pelniejsze pokrycie map etykiet w `display.test.ts`.
+## Run 2026-06-01 07:12:26 +02:00
+
+Data i godzina:
+2026-06-01 07:12:26 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/lib/theme.ts` i `app/src/lib/theme.test.tsx`
+2. `app/src/lib/display.ts` i `app/src/lib/display.test.ts`
+3. `app/src/services/settingsService.ts` i `app/src/services/settingsService.test.ts`
+
+Znalezione problemy:
+1. `useTheme()` nie pilnowal osobnym testem powrotu z `dark` do `light` po drugim przelaczeniu i ponownego zapisu preferencji.
+2. `display.test.ts` nadal sprawdza tylko wybrane etykiety rol i providerow, bez pelniejszego pokrycia calych map labeli.
+3. `getAppEnvironment()` nadal nie ma izolowanego testu fallbacku dla nieprawidlowego `VITE_APP_ENV`, ale plik `settingsService.test.ts` pozostaje mniej atrakcyjny do ruszania w tej petli niz czysto lokalny test motywu.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu drugiego przelaczenia motywu.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana testowa w niezmodyfikowanym obszarze UI helpera. Domyka prosty kontrakt persystencji bez ingerencji w runtime aplikacji.
+
+Co zmieniono:
+Rozszerzono istniejacy test `useTheme()` o drugi klik, ktory potwierdza powrot do `light`, poprawne klasy na root elemencie oraz zapis `oceniator-theme=light` po ponownym przelaczeniu.
+
+Zmienione pliki:
+- `app/src/lib/theme.test.tsx`
+
+Dodane lub zmienione testy:
+- Rozszerzony test `toggles the theme class and persists the next preference`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/lib/theme.test.tsx`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 2 testy, full: 28 plikow passed, 1 skipped; 84 testy passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku pelniejsze pokrycie map etykiet w `display.test.ts` albo rozwazyc test fallbacku `getAppEnvironment()` po ustabilizowaniu obszaru `settingsService`.
+
+## Run 2026-06-01 07:47:17 +02:00
+
+Data i godzina:
+2026-06-01 07:47:17 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/domain/errors.ts` i `app/src/domain/errors.test.ts`
+2. `app/src/lib/display.ts` i `app/src/lib/display.test.ts`
+3. `app/src/services/settingsService.ts` i `app/src/services/settingsService.test.ts`
+
+Znalezione problemy:
+1. `getErrorMessage()` i `getErrorKind()` nie mialy jawnej regresyjnej asercji dla payloadow obiektowych z komunikatem w polu `{ error: ... }`.
+2. `display.test.ts` nadal sprawdza tylko wybrane etykiety rol i providerow, bez pelniejszego pokrycia calej mapy labeli.
+3. `getAppEnvironment()` nadal nie ma izolowanego testu fallbacku dla nieprawidlowego `VITE_APP_ENV`.
+
+Wybrane zadanie:
+Dodanie regresyjnych asercji dla obiektowego payloadu bledu `{ error: ... }`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w niezmodyfikowanym pliku testowym. Domyka kontrakt helperow bledow bez ingerencji w runtime i bez wchodzenia w obszary juz modyfikowane w worktree.
+
+Co zmieniono:
+Rozszerzono testy helperow bledow o przypadek obiektowego payloadu z polem `error`, tak aby pilnowac zarowno ekstrakcji komunikatu, jak i klasyfikacji `forbidden`.
+
+Zmienione pliki:
+- `app/src/domain/errors.test.ts`
+
+Dodane lub zmienione testy:
+- Rozszerzony test `prefers concrete error messages` o przypadek `{ error: 'Quota exceeded' }`.
+- Rozszerzony test `classifies common error types` o przypadek `{ error: 'Brak dostepu do raportu' }`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/domain/errors.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 4 testy, full: 28 plikow passed, 1 skipped; 85 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku pelniejsze pokrycie map etykiet w `display.test.ts` albo test fallbacku `getAppEnvironment()` dla nieprawidlowego `VITE_APP_ENV`.
+
+## Run 2026-06-01 08:58:17 +02:00
+
+Data i godzina:
+2026-06-01 08:58:17 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/lib/display.ts` i `app/src/lib/display.test.ts`
+2. `app/src/domain/diagnostics.ts` i `app/src/domain/diagnostics.test.ts`
+3. `app/src/services/settingsService.ts` i `app/src/services/settingsService.test.ts`
+
+Znalezione problemy:
+1. `display.test.ts` sprawdzal tylko wybrane etykiety roli i providera, bez pilnowania calej mapy labeli oraz kolejnosci `ROLE_OPTIONS`.
+2. `scopeLabel()` nadal nie ma pelnej asercji mapowania dla pozostalych scope'ow diagnostycznych, wiec przyszly refactor moglby zmienic pojedynczy label bez wykrycia.
+3. `getAppEnvironment()` nadal nie ma izolowanego testu fallbacku dla nieprawidlowego `VITE_APP_ENV`, ale powiazany plik testowy jest juz modyfikowany w worktree.
+
+Wybrane zadanie:
+Rozszerzenie regresyjnego testu map etykiet display helperow.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w niezmodyfikowanym pliku testowym. Wzmacnia stabilny kontrakt UI bez ruszania runtime ani obszarow juz edytowanych w worktree.
+
+Co zmieniono:
+Rozszerzono test `display helpers` tak, aby pilnowal calej mapy `ROLE_LABELS`, stabilnej kolejnosci `ROLE_OPTIONS` oraz kompletnej mapy `PROVIDER_LABELS`. Przy okazji test zostal skorygowany do kanonicznej etykiety `Oceniający`.
+
+Zmienione pliki:
+- `app/src/lib/display.test.ts`
+
+Dodane lub zmienione testy:
+- Rozszerzony test `exposes user-facing role and provider labels without mojibake`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/lib/display.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 2 testy, full: 28 plikow passed, 1 skipped; 86 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku pelniejsze pokrycie `scopeLabel()` dla brakujacych scope'ow diagnostycznych albo test fallbacku `getAppEnvironment()` po ustabilizowaniu `settingsService.test.ts`.
+
+## Run 2026-06-01 09:33:07 +02:00
+
+Data i godzina:
+2026-06-01 09:33:07 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/domain/diagnostics.ts` i `app/src/domain/diagnostics.test.ts`
+2. `app/src/services/settingsService.ts` i `app/src/services/settingsService.test.ts`
+3. `app/src/domain/history.ts` i `app/src/domain/history.test.ts`
+
+Znalezione problemy:
+1. `scopeLabel()` nie pilnowal pelnego mapowania wszystkich obslugiwanych scope'ow diagnostycznych, wiec przyszly refactor moglby zmienic pojedyncza etykiete bez wykrycia.
+2. `getAppEnvironment()` nadal nie ma izolowanego testu fallbacku dla nieprawidlowego `VITE_APP_ENV`.
+3. Helpery historii nie maja osobnej asercji dla pustego `statusHistory` i bezpiecznych pustych wartosci pochodnych.
+
+Wybrane zadanie:
+Rozszerzenie regresyjnego testu mapowania `scopeLabel()`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w niezmodyfikowanym pliku testowym. Wzmacnia stabilny kontrakt etykiet diagnostycznych bez ruszania runtime ani obszarow juz zmodyfikowanych w worktree.
+
+Co zmieniono:
+Rozszerzono test `maps scopes to human-readable labels`, aby pilnowal wszystkich wspieranych scope'ow diagnostycznych oraz fallbacku passthrough dla typu oceny `r`.
+
+Zmienione pliki:
+- `app/src/domain/diagnostics.test.ts`
+
+Dodane lub zmienione testy:
+- Rozszerzony test `maps scopes to human-readable labels`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/domain/diagnostics.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 3 testy, full: 29 plikow passed, 1 skipped; 89 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku test fallbacku `getAppEnvironment()` dla nieprawidlowego `VITE_APP_ENV` albo bezpieczne asercje pustego `statusHistory` w helperach historii.
+
+## Run 2026-06-01 10:07:50 +02:00
+
+Data i godzina:
+2026-06-01 10:07:50 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/services/settingsService.ts` i `app/src/services/settingsService.test.ts`
+2. `app/src/domain/history.ts` i `app/src/domain/history.test.ts`
+3. aktualny dirty worktree oraz root scripts z `package.json`
+
+Znalezione problemy:
+1. `getAppEnvironment()` nie mial izolowanego testu fallbacku dla nieprawidlowego `VITE_APP_ENV`, wiec przyszly refactor moglby latwo zgubic runtime fallback do `DEV`/produkcji.
+2. Helpery historii nadal nie maja osobnej asercji dla pustego `statusHistory` i bezpiecznych pustych wartosci pochodnych.
+3. Worktree jest brudny w kilku innych plikach testowych i UI, wiec petla powinna omijac obszary juz bedace w ruchu.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu fallbacku `getAppEnvironment()` dla nieprawidlowego `VITE_APP_ENV`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym pliku testowym. Wzmacnia kontrakt konfiguracji bez zmiany runtime aplikacji i bez kolizji z obszarami juz modyfikowanymi w worktree.
+
+Co zmieniono:
+Rozszerzono `settingsService.test.ts` o test, ktory stubuje nieprawidlowa wartosc `VITE_APP_ENV` i pilnuje fallbacku do aktualnej galezi runtime (`local` przy `import.meta.env.DEV`, w przeciwnym razie `production`). Pierwsza wersja testu zakladala stale `production`; po porazce w Vitest zostala skorygowana do rzeczywistego kontraktu helpera.
+
+Zmienione pliki:
+- `app/src/services/settingsService.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `falls back to the current runtime when VITE_APP_ENV is invalid`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/services/settingsService.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 6 testow, full: 29 plikow passed, 1 skipped; 90 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku bezpieczne asercje pustego `statusHistory` w `app/src/domain/history.test.ts` albo szukac kolejnego czystego helpera testowego poza plikami juz zmienianymi w worktree.
+
+## Run 2026-06-01 10:42:28 +02:00
+
+Data i godzina:
+2026-06-01 10:42:28 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/domain/history.ts` i `app/src/domain/history.test.ts`
+2. `app/src/utils/storage.ts` i `app/src/utils/storage.test.ts`
+3. aktualny dirty worktree oraz root scripts z `package.json`
+
+Znalezione problemy:
+1. Helpery historii nie mialy osobnej asercji dla braku `statusHistory`, mimo ze runtime zwraca bezpieczne puste wartosci pochodne.
+2. `storage.test.ts` nadal nie pilnuje fallbacku `readStorageJson()` dla pustego stringa z local storage, co jest niskim ryzykiem na kolejny przebieg.
+3. Worktree pozostaje brudny w wielu innych testach i plikach UI, wiec petla powinna dalej omijac obszary juz bedace w ruchu.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu bezpiecznego fallbacku helperow historii przy braku `statusHistory`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym pliku testowym. Wzmacnia kontrakt helperow domenowych bez zmiany runtime aplikacji i bez wchodzenia w obszary objete aktywnymi modyfikacjami.
+
+Co zmieniono:
+Rozszerzono `history.test.ts` o test, ktory ustawia `statusHistory: undefined` i pilnuje, ze `lastStatusEvent()` zwraca `undefined`, pola pochodne zwracaja puste stringi, a `hasEditHistory()` pozostaje `false`.
+
+Zmienione pliki:
+- `app/src/domain/history.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `returns safe empty values when history is missing`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/domain/history.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 4 testy, full: 30 plikow passed, 1 skipped; 93 testy passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku asercje fallbacku `readStorageJson()` dla pustego stringa w `app/src/utils/storage.test.ts` albo dalej szukac kolejnego czystego helpera testowego poza plikami juz zmienianymi w worktree.
+
+## Run 2026-06-01 11:17:38 +02:00
+
+Data i godzina:
+2026-06-01 11:17:38 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/utils/storage.ts` i `app/src/utils/storage.test.ts`
+2. `app/src/lib/format.ts` i `app/src/lib/format.test.ts`
+3. `app/src/domain/audit.ts` i `app/src/domain/audit.test.ts`
+
+Znalezione problemy:
+1. `readStorageJson()` nie mial osobnej asercji fallbacku dla pustego stringa z storage, mimo ze helper traktuje pusty payload jak brak danych.
+2. `formatDate()` nie ma izolowanego testu dla nieprawidlowych bialych znakow lub tekstu z samymi spacjami, wiec taki kontrakt pozostaje niejawny.
+3. `identity()` w helperach audytu nie ma osobnego testu priorytetu fallbacku `email/login`, gdy `fullName` jest pusty.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu fallbacku `readStorageJson()` dla pustego payloadu storage.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym pliku testowym. Domyka lokalny kontrakt helpera storage bez ingerencji w runtime aplikacji i omija pliki juz zmieniane w innych obszarach worktree.
+
+Co zmieniono:
+Dodano test potwierdzajacy, ze `readStorageJson()` zwraca przekazany fallback, gdy `localStorage.getItem()` zwroci pusty string zamiast poprawnego JSON-a.
+
+Zmienione pliki:
+- `app/src/utils/storage.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `returns fallback json on empty storage payloads`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/utils/storage.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 4 testy, full: 31 plikow passed, 1 skipped; 99 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku test fallbacku `identity()` w `app/src/domain/audit.test.ts` albo dalej szukac kolejnego czystego helpera poza plikami juz modyfikowanymi w worktree.
+
+## Run 2026-06-01 11:52:19 +02:00
+
+Data i godzina:
+2026-06-01 11:52:19 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/domain/audit.ts` i `app/src/domain/audit.test.ts`
+2. `app/src/lib/format.ts` i `app/src/lib/format.test.ts`
+3. aktualny dirty worktree oraz root scripts z `package.json`
+
+Znalezione problemy:
+1. Helper `identity()` nie mial osobnej asercji dla fallbacku `email`, gdy `fullName` jest pusty, mimo ze logi audytowe polegaja na tej degradacji.
+2. `formatDate()` nadal nie ma izolowanego testu dla wartosci z samych bialych znakow, wiec kontrakt dla takiego payloadu pozostaje niejawny.
+3. Worktree pozostaje brudny w wielu innych plikach UI i testach, wiec petla powinna dalej wybierac tylko czyste, lokalne obszary.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu fallbacku `identity()` do `email`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym pliku testowym. Wzmacnia kontrakt audytu bez zmiany runtime aplikacji i bez kolizji z obszarami juz edytowanymi w worktree.
+
+Co zmieniono:
+Dodano test potwierdzajacy, ze helpery audytu buduja opisy tworzenia i aktualizacji konta z adresem e-mail, gdy `fullName` jest pusty.
+
+Zmienione pliki:
+- `app/src/domain/audit.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `falls back to email when full name is empty`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/domain/audit.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 3 testy, full: 31 plikow passed, 1 skipped; 101 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku test dla `formatDate()` z bialymi znakami albo dalej szukac kolejnego czystego helpera testowego poza plikami juz modyfikowanymi w worktree.
+
+## Run 2026-06-01 12:27:40 +02:00
+
+Data i godzina:
+2026-06-01 12:27:40 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/domain/workflows.ts` i `app/src/domain/workflows.test.ts`
+2. `app/src/domain/access.ts` i `app/src/domain/access.test.ts`
+3. `app/src/config/status.ts` i `app/src/config/status.test.ts`
+
+Znalezione problemy:
+1. `prependManagedUser()` nie mial osobnej asercji pilnujacej deduplikacji po `id`, mimo ze helper filtruje istniejacy rekord przed prependem.
+2. `replaceAssessmentById()` i `replaceManagedUserById()` nadal nie maja jawnego testu no-op dla brakujacego `id`.
+3. `mergeImportedAssessments()` nadal nie ma osobnej asercji stabilnosci kolejnosci dla pustego importu.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu deduplikacji `prependManagedUser()`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym pliku testowym. Domyka lokalny kontrakt helpera workflow bez ruszania runtime aplikacji i bez wchodzenia w obszary juz modyfikowane w worktree.
+
+Co zmieniono:
+Dodano test potwierdzajacy, ze `prependManagedUser()` wstawia zaktualizowanego uzytkownika na poczatek, usuwa duplikat o tym samym `id` i zachowuje kolejnosc pozostalych rekordow.
+
+Zmienione pliki:
+- `app/src/domain/workflows.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `deduplicates prepended managed users by id`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/domain/workflows.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 4 testy, full: 32 pliki passed, 1 skipped; 108 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku test no-op dla `replaceAssessmentById()` lub `replaceManagedUserById()` przy brakujacym `id`, albo test stabilnosci `mergeImportedAssessments()` dla pustego importu.
+
+## Run 2026-06-01 13:02:32 +02:00
+
+Data i godzina:
+2026-06-01 13:02:32 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/lib/format.ts` i `app/src/lib/format.test.ts`
+2. `app/src/lib/fileExport.ts` i `app/src/lib/fileExport.test.ts`
+3. `app/src/services/notificationsService.ts` i `app/src/services/notificationsService.test.ts`
+
+Znalezione problemy:
+1. `formatDate()` traktowal pusty string jako brak danych, ale wartosc z samych bialych znakow przechodzila dalej i mogla trafic do UI jako puste spacje.
+2. `downloadFile()` nadal nie ma osobnej asercji cleanupu `URL.revokeObjectURL()` po kliknieciu linku eksportu.
+3. `createNotification()` nadal nie ma osobnej asercji dla zachowania opcjonalnego `relatedEntityId` w payloadzie.
+
+Wybrane zadanie:
+Normalizacja bialych znakow w `formatDate()`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym helperze i odpowiada juz istniejacemu fallbackowi `'-'` dla pustej daty, bez ingerencji w backend ani obszary aktualnie zmieniane w worktree.
+
+Co zmieniono:
+`formatDate()` przycina teraz wejscie przed walidacja, dzieki czemu wartosci z samych spacji sa traktowane jak pusta data i zwracaja `'-'`. Test formatu dat zostal rozszerzony o przypadek whitespace-only.
+
+Zmienione pliki:
+- `app/src/lib/format.ts`
+- `app/src/lib/format.test.ts`
+
+Dodane lub zmienione testy:
+- Rozszerzony test `handles valid, empty, and invalid date strings safely` o przypadek `'   '`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/lib/format.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 4 testy, full: 34 pliki passed, 1 skipped; 111 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku test cleanupu `downloadFile()` albo asercje opcjonalnego `relatedEntityId` w `createNotification()`.
+
+## Run 2026-06-01 13:37:51 +02:00
+
+Data i godzina:
+2026-06-01 13:37:51 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/lib/fileExport.ts` i `app/src/lib/fileExport.test.ts`
+2. `app/src/services/notificationsService.ts` i `app/src/services/notificationsService.test.ts`
+3. `app/src/domain/workflows.ts` i `app/src/domain/workflows.test.ts`
+
+Znalezione problemy:
+1. `downloadFile()` nie mial osobnej asercji cleanupu `URL.revokeObjectURL()` po kliknieciu tymczasowego linku eksportu.
+2. `createNotification()` nadal nie ma osobnej asercji dla zachowania opcjonalnego `relatedEntityId` w payloadzie.
+3. `replaceAssessmentById()` i `replaceManagedUserById()` nadal nie maja jawnego testu no-op dla brakujacego `id`.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu cleanupu `downloadFile()`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym helperze eksportu. Domyka kontrakt cleanupu zasobow przegladarki bez zmiany runtime aplikacji ani dotykania obszarow backendowych.
+
+Co zmieniono:
+Plik testowy `fileExport` zostal przestawiony na `jsdom`, dostal porzadkowanie DOM/timerow po kazdym tescie i nowa asercje pilnujaca, ze `downloadFile()` klika tymczasowy link, usuwa go z DOM oraz wywoluje `URL.revokeObjectURL()` dla wygenerowanego blob URL.
+
+Zmienione pliki:
+- `app/src/lib/fileExport.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `revokes temporary object URLs after triggering a download`.
+- Dodana adnotacja `// @vitest-environment jsdom` dla testow DOM helpera eksportu.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/lib/fileExport.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 3 testy, full: 35 plikow passed, 1 skipped; 115 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku asercje opcjonalnego `relatedEntityId` w `createNotification()` albo test no-op dla `replaceAssessmentById()` przy brakujacym `id`.
+
+## Run 2026-06-01 14:12:59 +02:00
+
+Data i godzina:
+2026-06-01 14:12:59 +02:00
+
+Tryb:
+Tests and reliability loop
+
+Skanowane obszary:
+1. `app/src/services/notificationsService.ts` i `app/src/services/notificationsService.test.ts`
+2. `app/src/domain/workflows.ts` i `app/src/domain/workflows.test.ts`
+3. `app/src/domain/access.ts` i `app/src/domain/access.test.ts`
+
+Znalezione problemy:
+1. `createNotification()` nie mial osobnej asercji pilnujacej zachowania opcjonalnego `relatedEntityId`, mimo ze payload sluzy do deeplinkow i kontekstu notyfikacji.
+2. `replaceAssessmentById()` i `replaceManagedUserById()` nadal nie maja jawnego testu no-op dla brakujacego `id`.
+3. Helpery dostepu nadal nie maja osobnej asercji dla deduplikacji tokenow viewer fallbacku `podglad`.
+
+Wybrane zadanie:
+Dodanie regresyjnego testu payloadu `createNotification()` dla opcjonalnego `relatedEntityId`.
+
+Status:
+`DONE`
+
+Poziom ryzyka:
+`P3`
+
+Dlaczego wybrane:
+To najmniejsza bezpieczna zmiana w czystym pliku testowym. Domyka kontrakt helpera notyfikacji bez ingerencji w runtime aplikacji i omija obszary juz edytowane w worktree.
+
+Co zmieniono:
+Dodano test, ktory zamraza czas, stubuje `crypto.randomUUID()` i potwierdza, ze `createNotification()` zachowuje `relatedEntityType`, `relatedEntityId`, `userId`, status `read: false` oraz stabilny `createdAt`.
+
+Zmienione pliki:
+- `app/src/services/notificationsService.test.ts`
+
+Dodane lub zmienione testy:
+- Nowy test `keeps optional related entity metadata in created notifications`.
+
+Uruchomione komendy:
+- `npm exec vitest run app/src/services/notificationsService.test.ts`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run smoke`
+
+Wynik lint:
+`PASS`
+
+Wynik build:
+`PASS`
+
+Wynik testow:
+`PASS` - targeted: 1 plik / 3 testy, full: 35 plikow passed, 1 skipped; 116 testow passed, 5 skipped
+
+Commit:
+brak
+
+Co sprawdzic recznie:
+Brak wymaganego manualnego follow-up dla tej zmiany.
+
+Nastepny rekomendowany krok:
+Dodac niskiemu ryzyku test no-op dla `replaceAssessmentById()` lub `replaceManagedUserById()` przy brakujacym `id`, albo osobna asercje dla tokenow viewer fallbacku `podglad`.
