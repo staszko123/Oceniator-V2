@@ -457,7 +457,12 @@ function App() {
 
   async function saveAssessment(draft: AssessmentDraft) {
     if (!user) return
-    const assessment = draftToAssessment(draft, user.leaderScope || draft.assessor)
+    // Older saved drafts may predate draft IDs. Persist the ID before the first request,
+    // so a retry after an uncertain response updates the same assessment.
+    const draftWithId = { ...draft, id: draft.id || draftsRef.current[draft.type]?.id || crypto.randomUUID() }
+    setDrafts({ ...draftsRef.current, [draft.type]: draftWithId })
+    if (formDraftOverride?.type === draft.type) setFormDraftOverride(draftWithId)
+    const assessment = draftToAssessment(draftWithId, user.leaderScope || draft.assessor)
     await draftWriter.current(draftsRef.current)
     await provider.saveAssessment(assessment)
     const nextDrafts = commitDraftAfterSave(draftsRef.current, draft.type)
