@@ -30,6 +30,8 @@ export default function EvaluationView({
   user,
   admin,
   draft,
+  saveStatus,
+  onRetrySave,
   specialistPrefillName,
   specialistPrefillToken,
   onSelectType,
@@ -39,6 +41,8 @@ export default function EvaluationView({
   user: UserProfile
   admin: AdminConfig
   draft: AssessmentDraft
+  saveStatus?: string
+  onRetrySave?: () => void
   specialistPrefillName?: string
   specialistPrefillToken?: number
   onSelectType: (type: AssessmentType) => void
@@ -47,6 +51,8 @@ export default function EvaluationView({
 }) {
   const { t } = useLanguage()
   const [notice, setNotice] = useState('')
+  const [saving, setSaving] = useState(false)
+  const submitting = useRef(false)
   const [validationTouched, setValidationTouched] = useState(false)
   const lastPrefillToken = useRef<number | null>(null)
   const def = ASSESSMENT_DEFS[draft.type]
@@ -56,11 +62,10 @@ export default function EvaluationView({
     if (canCompareLeadersRole(user.role)) return admin.specialists.filter((item) => item.active)
     return admin.specialists.filter((item) => item.active && item.leader === user.leaderScope)
   }, [admin.specialists, user])
-  const draftSaveState = draft.savedAt
+  const draftSaveState = saveStatus || (draft.savedAt
     ? `${t('evaluation.draftSaved', 'Szkic zapisany o')} ${new Date(draft.savedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`
-    : t('evaluation.autosave', 'Zmiany są zapisywane po każdej edycji.')
+    : 'Szkic jeszcze niezapisany')
   const filledIds = draft.contactIds.filter((item) => item.trim()).length
-  const noteCount = Object.values(draft.notes).reduce((sum, items) => sum + items.filter((item) => item.trim()).length, 0)
   const lowScoreCount = Object.values(draft.scores).reduce((sum, rows) => sum + rows.reduce((rowSum, row) => rowSum + row.filter((value) => value === 0 || value === 0.5).length, 0), 0)
   const completionPoints = [
     draft.specialist.trim() ? 1 : 0,
@@ -84,13 +89,14 @@ export default function EvaluationView({
     onDraftChange({
       ...draft,
       specialist: specialistPrefillName,
-      position: person?.position || draft.position,
-      department: person?.department || draft.department,
+      position: person?.position || '',
+      department: person?.department || '',
       assessor: draft.assessor || user.fullName || user.email,
     })
   }, [draft, onDraftChange, specialistPrefillName, specialistPrefillToken, specialists, user])
 
   function update(next: AssessmentDraft) {
+    if (submitting.current) return
     if (notice) setNotice('')
     onDraftChange(next)
   }
@@ -104,8 +110,8 @@ export default function EvaluationView({
     update({
       ...draft,
       specialist: name,
-      position: person?.position || draft.position,
-      department: person?.department || draft.department,
+      position: person?.position || '',
+      department: person?.department || '',
       assessor: draft.assessor || user.fullName || user.email,
     })
   }
@@ -133,11 +139,14 @@ export default function EvaluationView({
   }
 
   async function submit() {
+    if (submitting.current) return
     setValidationTouched(true)
     if (!validation.valid) {
       setNotice(validation.issues.map((issue) => issue.label).join(' '))
       return
     }
+    submitting.current = true
+    setSaving(true)
     try {
       await onSaveAssessment({
         ...draft,
@@ -147,6 +156,9 @@ export default function EvaluationView({
       setValidationTouched(false)
     } catch (error) {
       setNotice(getErrorMessage(error, t('evaluation.saveError', 'Nie udało się zapisać karty.')))
+    } finally {
+      submitting.current = false
+      setSaving(false)
     }
   }
 
@@ -163,6 +175,7 @@ export default function EvaluationView({
               {(Object.keys(ASSESSMENT_DEFS) as AssessmentType[]).map((item) => (
                 <button
                   key={item}
+                  disabled={saving}
                   className={draft.type === item ? 'active' : ''}
                   onClick={() => {
                     if (item !== draft.type) onSelectType(item)
@@ -175,19 +188,22 @@ export default function EvaluationView({
             </div>
           </div>
         </div>
-        <p className="form-intro">
-          {t('evaluation.stepInfo', 'Wybierz typ, specjalistę i podstawowe dane karty. Każda kolumna w tabeli niżej odpowiada jednemu kontaktowi.')}
-        </p>
+
 
         {validationTouched && !validation.valid ? (
           <section className="validation-panel">
             <strong>{t('evaluation.requiredData', 'Uzupełnij wymagane dane przed zapisem')}</strong>
             <div className="completion-list">
               {validation.issues.map((issue) => (
-                <div className="completion-list-item" key={issue.key}>
+                <button type="button" className="completion-list-item" key={issue.key} onClick={() => {
+                  const section = ['specialist', 'date', 'position', 'department'].includes(issue.key) ? 'data' : issue.key === 'contactIds' ? 'contacts' : issue.key === 'summary' ? 'summary' : 'criteria'
+                  const target = document.getElementById(`section-${section}`)
+                  target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  target?.querySelector<HTMLElement>('input, textarea, button')?.focus({ preventScroll: true })
+                }}>
                   <CheckCircle2 size={15} />
                   <span>{issue.label}</span>
-                </div>
+                </button>
               ))}
             </div>
           </section>
@@ -396,37 +412,10 @@ export default function EvaluationView({
           </details>
         </section>
 
-        <section className="form-card step-card" id="section-comments">
-          <header className="step-header">
-            <div>
-              <span className="step-index">4</span>
-              <div>
-                <h3>{t('evaluation.comments', 'Komentarze')}</h3>
-                <p>{t('evaluation.commentsDesc', 'Dodaj uzasadnienie bonusów i krótkie komentarze do karty.')}</p>
-              </div>
-            </div>
-            <small>{noteCount} {t('evaluation.notes', 'notatek')}</small>
-          </header>
-          <div className="field-grid two">
-            <div className="comment-helper">
-              <span>{t('evaluation.goldReason', 'Uzasadnienie złotego punktu')}</span>
-              <div className="section-note">
-                {draft.goldDescription.trim() || t('evaluation.goldReasonFill', 'Uzupełnij w sekcji złotego punktu.')}
-              </div>
-            </div>
-            <div className="comment-helper">
-              <span>{t('evaluation.lowScoreNotes', 'Uwagi do obniżonych ocen')}</span>
-              <div className="section-note">
-                {noteCount ? `${noteCount} ${t('evaluation.notesInSections', 'notatek w sekcjach scoringu.')}` : t('evaluation.lowScoreReminder', 'Przy obniżonych ocenach dodaj co najmniej jedną notatkę.')}
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="form-card step-card" id="section-summary">
           <header className="step-header">
             <div>
-              <span className="step-index">5</span>
+              <span className="step-index">4</span>
               <div>
                 <h3>{t('evaluation.summary', 'Podsumowanie')}</h3>
                 <p>{t('evaluation.summaryDesc', 'Sprawdź końcowy wynik, gotowość i krótki obraz karty.')}</p>
@@ -459,6 +448,14 @@ export default function EvaluationView({
       </section>
 
       <aside className="right-rail">
+        <nav className="rail-card evaluation-steps" aria-label="Etapy oceny">
+          {['Dane', 'Kontakty', 'Kryteria i uwagi', 'Podsumowanie'].map((label, index) => (
+            <a key={label} href={`#section-${['data', 'contacts', 'criteria', 'summary'][index]}`} onClick={(event) => {
+              event.preventDefault()
+              document.getElementById(`section-${['data', 'contacts', 'criteria', 'summary'][index]}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}><span>{index + 1}</span>{label}</a>
+          ))}
+        </nav>
         <section className="rail-card result-card">
           <div className="section-title">
             <span>{t('evaluation.resultScore', 'Wynik końcowy')}</span>
@@ -469,13 +466,14 @@ export default function EvaluationView({
             <strong>{completionLabel}</strong>
             <small>{completion}% {t('evaluation.ready', 'gotowe')}</small>
           </div>
-          <button className="primary-btn wide" onClick={submit} disabled={!canCreateRole(user.role)} type="button">
-            <Save size={16} /> {t('evaluation.addCard', 'Dodaj kartę')}
+          <button className="primary-btn wide" onClick={submit} disabled={saving || !canCreateRole(user.role)} type="button">
+            <Save size={16} /> {saving ? 'Zapisywanie…' : t('evaluation.addCard', 'Dodaj kartę')}
           </button>
-          <button className="ghost-btn wide" onClick={() => update(createDraft(draft.type))} type="button">
+          <button className="ghost-btn wide" disabled={saving} onClick={() => { if (window.confirm('Usunąć zawartość bieżącego szkicu?')) update(createDraft(draft.type)) }} type="button">
             <Trash2 size={16} /> {t('evaluation.clearDraft', 'Wyczyść szkic')}
           </button>
-          <p className="hint-text">{notice || draftSaveState}</p>
+          <p className="hint-text" role="status" aria-live="polite">{notice || draftSaveState}</p>
+          {saveStatus?.startsWith('Nie zapisano') ? <button className="ghost-btn wide" type="button" onClick={onRetrySave}>Ponów zapis szkicu</button> : null}
         </section>
 
         <section className="rail-card">
@@ -486,10 +484,15 @@ export default function EvaluationView({
           {validation.issues.length ? (
             <div className="completion-list">
               {validation.issues.map((issue) => (
-                <div className="completion-list-item" key={issue.key}>
+                <button type="button" className="completion-list-item" key={issue.key} onClick={() => {
+                  const section = ['specialist', 'date', 'position', 'department'].includes(issue.key) ? 'data' : issue.key === 'contactIds' ? 'contacts' : issue.key === 'summary' ? 'summary' : 'criteria'
+                  const target = document.getElementById(`section-${section}`)
+                  target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  target?.querySelector<HTMLElement>('input, textarea, button')?.focus({ preventScroll: true })
+                }}>
                   <CheckCircle2 size={15} />
                   <span>{issue.label}</span>
-                </div>
+                </button>
               ))}
             </div>
           ) : (

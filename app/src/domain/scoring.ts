@@ -1,3 +1,4 @@
+import { SCORE_GREAT_THRESHOLD, SCORE_GOOD_THRESHOLD } from './scoreThresholds'
 import { ASSESSMENT_DEFS } from './defs'
 import type {
   Assessment,
@@ -10,8 +11,8 @@ import type {
 } from './types'
 
 export function ratingForScore(score: number): Rating {
-  if (score >= 92) return 'great'
-  if (score >= 82) return 'good'
+  if (score >= SCORE_GREAT_THRESHOLD) return 'great'
+  if (score >= SCORE_GOOD_THRESHOLD) return 'good'
   return 'below'
 }
 

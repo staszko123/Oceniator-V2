@@ -1,3 +1,4 @@
+import { SCORE_GREAT_THRESHOLD, SCORE_GOOD_THRESHOLD } from '../domain/scoreThresholds'
 /** Eksport danych do plików */
 
 import { utils, writeFile } from 'xlsx'
@@ -28,7 +29,7 @@ export function exportExcel(rows: Assessment[]) {
     item.data,
     item.oce,
     `${item.avgFinal}%`,
-    item.avgFinal >= 92 ? 'Bardzo dobry' : item.avgFinal >= 82 ? 'Dobry' : 'Do poprawy',
+    item.avgFinal >= SCORE_GREAT_THRESHOLD ? 'Bardzo dobry' : item.avgFinal >= SCORE_GOOD_THRESHOLD ? 'Dobry' : 'Do poprawy',
     item.status === 'submitted' ? 'Do weryfikacji' : item.status === 'review' ? 'W weryfikacji' : item.status === 'approved' ? 'Zatwierdzona' : 'Archiwum',
   ])
   
@@ -46,7 +47,7 @@ export function exportCsv(rows: Assessment[]) {
     archived: 'Archiwum',
   }
   
-  const ratingLabel = (rating: number) => rating >= 92 ? 'Bardzo dobry' : rating >= 82 ? 'Dobry' : 'Do poprawy'
+  const ratingLabel = (rating: number) => rating >= SCORE_GREAT_THRESHOLD ? 'Bardzo dobry' : rating >= SCORE_GOOD_THRESHOLD ? 'Dobry' : 'Do poprawy'
   
   const header = ['Specjalista', 'Stanowisko', 'Dział', 'Typ', 'Okres', 'Data', 'Oceniający', 'Wynik', 'Ocena', 'Status']
   const body = rows.map((item) => [

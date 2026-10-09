@@ -48,7 +48,7 @@ describe('dashboard utils', () => {
 
     expect(dashboardLeaderRanking(rows)).toEqual([
       { leader: 'Lider A', count: 2, avg: 88, below: 0, review: 0 },
-      { leader: 'Brak lidera', count: 1, avg: 79, below: 0, review: 0 },
+      { leader: 'Brak lidera', count: 1, avg: 79, below: 1, review: 0 },
     ])
   })
 })

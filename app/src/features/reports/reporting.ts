@@ -1,4 +1,5 @@
-﻿import { TYPE_LABELS } from '../../domain/defs'
+import { ratingForScore } from '../../domain/scoring'
+import { TYPE_LABELS } from '../../domain/defs'
 import { ratingLabel } from '../../domain/scoring'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
 import { buildCsv, downloadFile } from '../../lib/fileExport'
@@ -51,7 +52,7 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
           item.dzial,
           item.stand,
           `${item.avgFinal}%`,
-          ratingLabel(item.rating),
+          ratingLabel(ratingForScore(item.avgFinal)),
           statusLabels[item.status],
           item.contactCount,
         ]),
@@ -82,9 +83,9 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
             `${average}%`,
             `${Math.min(...scores)}%`,
             `${Math.max(...scores)}%`,
-            specialistRows.filter((item) => item.rating === 'great').length,
-            specialistRows.filter((item) => item.rating === 'good').length,
-            specialistRows.filter((item) => item.rating === 'below').length,
+            specialistRows.filter((item) => ratingForScore(item.avgFinal) === 'great').length,
+            specialistRows.filter((item) => ratingForScore(item.avgFinal) === 'good').length,
+            specialistRows.filter((item) => ratingForScore(item.avgFinal) === 'below').length,
             last?.data || '',
           ]
         })
@@ -113,8 +114,8 @@ export function buildReportTable(rows: Assessment[], mode: ReportMode): ReportTa
           last?.dzial || '',
           trendRows.length,
           `${avg}%`,
-          trendRows.filter((item) => item.rating === 'great').length,
-          trendRows.filter((item) => item.rating === 'below').length,
+          trendRows.filter((item) => ratingForScore(item.avgFinal) === 'great').length,
+          trendRows.filter((item) => ratingForScore(item.avgFinal) === 'below').length,
           trendRows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
         ]
       })

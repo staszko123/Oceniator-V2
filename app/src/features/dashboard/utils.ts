@@ -1,3 +1,4 @@
+import { ratingForScore } from '../../domain/scoring'
 import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import type { Assessment } from '../../domain/types'
 import { dashboardPanelConfig, defaultDashboardPanelOrder } from '../../config/dashboard'
@@ -76,7 +77,7 @@ export function dashboardTrend(rows: Assessment[]) {
     const current = buckets.get(period) || { period, count: 0, sum: 0, below: 0, review: 0 }
     current.count += 1
     current.sum += assessment.avgFinal
-    if (assessment.rating === 'below') current.below += 1
+    if (ratingForScore(assessment.avgFinal) === 'below') current.below += 1
     if (assessment.status === 'review' || assessment.status === 'submitted') current.review += 1
     buckets.set(period, current)
   })
@@ -96,7 +97,7 @@ export function dashboardLeaderRanking(rows: Assessment[]) {
       leader,
       count: leaderRows.length,
       avg: leaderRows.length ? Math.round(leaderRows.reduce((acc, item) => acc + item.avgFinal, 0) / leaderRows.length) : 0,
-      below: leaderRows.filter((item) => item.rating === 'below').length,
+      below: leaderRows.filter((item) => ratingForScore(item.avgFinal) === 'below').length,
       review: leaderRows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
     }))
     .sort((a, b) => b.avg - a.avg || b.count - a.count)

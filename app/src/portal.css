@@ -168,3 +168,21 @@
   .dark .modal-card :is(.detail-stat, .detail-field, .detail-block) { background: var(--surface-2); color: var(--text); border-color: var(--line); box-shadow: none; }
   .dark .screen :is(.dashboard-priority-card, .trend-column) :is(strong, span, small, p) { color: var(--text); }
 }
+
+/* Desktop audit: clear steps and keyboard destinations in the long evaluation form. */
+.evaluation-screen .step-card { scroll-margin-top: 105px; }
+.evaluation-steps { display: grid; gap: 5px; }
+.evaluation-steps a { display: flex; align-items: center; gap: 10px; padding: 7px 9px; color: var(--text); text-decoration: none; border-radius: 8px; }
+.evaluation-steps a:hover, .evaluation-steps a:focus-visible { background: var(--bg); outline: 2px solid var(--blue); }
+.evaluation-steps a span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--bg); font-size: 12px; }
+.evaluation-screen button.completion-list-item { width: 100%; text-align: left; color: inherit; cursor: pointer; font: inherit; }
+.evaluation-screen button.completion-list-item:hover { text-decoration: underline; }
+
+.app-shell fieldset.user-editor, .app-shell fieldset.new-user-panel { min-width: 0; margin: 0; border: 0; padding: 0; }
+.registry-decision-queue > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+
+.start-center-grid:has(> .data-panel:only-child) { grid-template-columns: minmax(0, 1fr); }
+
+.evaluation-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; }
+.evaluation-steps a { gap: 6px; padding: 6px 2px; font-size: 12px; line-height: 1.35; }
+.evaluation-steps a span { flex: 0 0 21px; width: 21px; height: 21px; }

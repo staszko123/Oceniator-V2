@@ -1,6 +1,7 @@
+import { SCORE_GOOD_THRESHOLD } from '../../domain/scoreThresholds'
 import { ClipboardCheck, FileText, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
-import { canCreateRole } from '../../domain/access'
+import { canCreateRole, hasPermission } from '../../domain/access'
 import { draftHasContent } from '../../domain/scoring'
 import type { Assessment, AssessmentDraft, AssessmentType, UserProfile } from '../../domain/types'
 import { AssessmentTable } from '../registry/AssessmentTable'
@@ -29,7 +30,7 @@ export default function StartView({
   const active = assessments.filter((item) => item.status !== 'archived')
   const review = active.filter((item) => item.status === 'review').length
   const submitted = active.filter((item) => item.status === 'submitted').length
-  const lowScores = active.filter((item) => item.avgFinal < 82).length
+  const lowScores = active.filter((item) => item.avgFinal < SCORE_GOOD_THRESHOLD).length
   const decisionCount = review + submitted
   const savedDrafts = (Object.entries(drafts) as Array<[AssessmentType, AssessmentDraft | undefined]>)
     .filter((entry): entry is [AssessmentType, AssessmentDraft] => Boolean(entry[1] && draftHasContent(entry[1])))
@@ -63,6 +64,7 @@ export default function StartView({
       </section>
 
       <section className="start-center-grid">
+        {canCreateRole(user.role) ? (
         <div className="data-panel">
           <div className="section-title nested">
             <span>{t('start.drafts')}</span>
@@ -95,7 +97,9 @@ export default function StartView({
             </div>
           ) : <div className="empty-state">{t('start.noDraftsText')}</div>}
         </div>
+        ) : null}
 
+        {hasPermission(user.role, 'dashboard.read') || hasPermission(user.role, 'reports.read') ? (
         <div className="data-panel">
           <div className="section-title"><span>{t('start.shortcuts')}</span><small>{t('start.shortcutsSubtitle')}</small></div>
           <div className="quick-paths">
@@ -115,6 +119,7 @@ export default function StartView({
             </button>
           </div>
         </div>
+        ) : null}
       </section>
 
       <details className="start-details data-panel">

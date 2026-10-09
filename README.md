@@ -11,6 +11,9 @@ Portal do oceny jakości obsługi rozmów, maili i działań systemowych. Umożl
 - Wspólny styl desktopowy: start, formularz, Ewidencja, zespół, Analityka, Raporty, Administracja i okna szczegółów.
 - Widoczne szkice na starcie; jedna wyszukiwarka w Ewidencji i jedno menu eksportu wszystkich wyników po filtrach (CSV, Excel, JSON).
 - Ekran logowania zachowuje poprzedni wygląd z animowanym tłem.
+- Czterosekcyjny formularz z nawigacją, walidacją i potwierdzonym zapisem szkiców; zabezpieczenie przed podwójnym wysłaniem.
+- Wspólny okres i filtry Analityki/Raportów. Standard 82%, bardzo dobry wynik 92%, oddzielny konfigurowalny cel zespołu.
+- Dostęp specjalisty przez zatwierdzoną tożsamość lub powiązanie nadane przez administratora; nazwa z rejestracji nie udostępnia ocen.
 - Dotychczasowe kryteria i sposób obliczania wyniku pozostają zachowane.
 
 [Portal produkcyjny](https://oceniator-v2-pub-staszko.vercel.app) · [Audyt i plan rozwoju](docs/PORTAL_AUDIT.md)
@@ -52,6 +55,12 @@ Integracja GitHub → Vercel buduje gałęzie jako Preview, a `main` jako produk
 - `supabase/`: schematy, polityki i Edge Functions. Skrypty wymagają przeglądu przed użyciem; nie uruchamiaj automatycznie całego katalogu.
 - `legacy/`: archiwalny interfejs referencyjny, poza bieżącą aplikacją produkcyjną.
 
-## Dalsze prace
+## Baza i powiązania specjalistów
 
-Uproszczenie pracy z kryteriami formularza, przejście pełnego procesu oceny dla każdej roli, porządkowanie języka i CSS oraz dalsze uproszczenie raportów. Zmiany UI nie stanowią zakończonego audytu bezpieczeństwa. Kwestie dostępu i historycznych danych logowania wymagające osobnego zamknięcia opisano w audycie.
+Przyrostowa aktualizacja istniejącej bazy: `supabase/portal_access_completion.sql`. Test regresji: `supabase/tests/portal_access_rollback.sql` — wykonuje wyłącznie syntetyczne zmiany i kończy je ROLLBACK. Nie uruchamiaj wszystkich historycznych skryptów SQL ponownie. Nowe środowisko wymaga schematu oraz aktualnych poprawek i konfiguracji Auth.
+
+Administrator przypisuje konto do specjalisty w **Administracja → Użytkownicy → Powiązany specjalista**. Przypisanie wymaga sprawdzenia tożsamości; nie jest tworzone automatycznie po nazwisku. Dyrektor odczytuje oceny wszystkich zespołów, edytuje cele i specjalistów, ale nie zmienia kont ani decyzji ocen.
+
+## Otwarte prace
+
+Rotacja historycznie ujawnionego hasła administratora i oczyszczenie historii Git pozostają wymagane — usunięcie pliku z bieżącej wersji tego nie zastępuje. Dalej: migracja nazw specjalistów na identyfikatory, porządkowanie starszego CSS i pozostałych etykiet. Zakres i dowody weryfikacji opisano w audycie; nie jest to pełny skan bezpieczeństwa repozytorium.

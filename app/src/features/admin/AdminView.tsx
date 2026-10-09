@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AlertTriangle, Plus, Save, Trash2, Users, X } from 'lucide-react'
 import { canAdminRole } from '../../domain/access'
 import { getErrorMessage } from '../../domain/errors'
@@ -134,9 +134,9 @@ export default function AdminView({
     if (!sourceUser) return true
     return JSON.stringify(sourceUser) !== JSON.stringify(selectedUser)
   }, [selectedUser, users])
-  const canCreateUser = isSupabaseMode
+  const canCreateUser = user.role === 'admin' && (isSupabaseMode
     ? Boolean((newUser.email || '').trim())
-    : Boolean((newUser.email || '').trim() || (newUser.login || '').trim())
+    : Boolean((newUser.email || '').trim() || (newUser.login || '').trim()))
   const pendingBadges = [configDirty ? t('admin.pending.config', 'konfiguracja') : null, usersDirty ? t('admin.pending.users', 'użytkownicy') : null].filter(Boolean) as string[]
   const summaryStats = [
     `${t('admin.summary.specialists', 'Specjaliści')}: ${draftAdmin.specialists.length}`,
@@ -144,7 +144,7 @@ export default function AdminView({
     `${t('admin.summary.accounts', 'Konta')}: ${draftUsers.length}`,
     `${t('admin.summary.periods', 'Okresy')}: ${draftAdmin.periods.length}`,
   ]
-  const adminSections = useMemo(() => buildAdminSections(t), [t])
+  const adminSections = useMemo(() => buildAdminSections(t).filter(section => user.role === 'admin' || !['dictionaries', 'periods'].includes(section.key)), [t, user.role])
 
   if (!canAdminRole(user.role)) {
     return (
@@ -428,13 +428,14 @@ export default function AdminView({
               ))}
               {!filteredUsers.length ? <div className="empty-state compact-empty">{t('admin.userEmptyFiltered', 'Brak użytkowników dla tego filtra.')}</div> : null}
             </div>
-            <div className="user-editor">
+            <fieldset className="user-editor" disabled={user.role !== 'admin'}>
               {selectedUser ? (
                 <>
                   <div className="field-grid two">
-                    <label><span>{t('admin.user.email', 'Email')}</span><input value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
+                    <label><span>{t('admin.user.email', 'Email')}</span><input readOnly={isSupabaseMode} value={selectedUser.email} onChange={(event) => updateUserDraft(selectedUser.id, { email: event.target.value })} /></label>
                     <label><span>{t('admin.user.fullName', 'Imię i nazwisko')}</span><input value={selectedUser.fullName} onChange={(event) => updateUserDraft(selectedUser.id, { fullName: event.target.value })} /></label>
                     <label><span>{t('admin.user.role', 'Rola')}</span><select value={selectedUser.role} onChange={(event) => updateUserDraft(selectedUser.id, { role: event.target.value as UserProfile['role'] })}>{ROLE_OPTIONS.map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select></label>
+                    {selectedUser.role === 'viewer' ? <label><span>Powiązany specjalista (dostęp do ocen)</span><select disabled={user.role !== 'admin'} value={selectedUser.viewerSpecialistName || ''} onChange={(event) => updateUserDraft(selectedUser.id, { viewerSpecialistName: event.target.value })}><option value="">Bez powiązania</option>{draftAdmin.specialists.filter(item => item.active).map(item => <option key={item.id} value={item.name}>{item.name}</option>)}</select><small>Powiązanie nadaje administrator. Samo imię i nazwisko konta nie udostępnia ocen.</small></label> : null}
                     <label><span>{t('admin.user.leaderScope', 'Zakres lidera')}</span><select value={selectedUser.leaderScope} onChange={(event) => updateUserDraft(selectedUser.id, { leaderScope: event.target.value })}><option value="">{t('admin.user.noLeaderScope', 'Brak / pełny zakres')}</option>{draftAdmin.leaders.map((leader) => <option key={leader} value={leader}>{leader}</option>)}</select></label>
                     {!isSupabaseMode ? (
                       <>
@@ -453,9 +454,9 @@ export default function AdminView({
                   </div>
                 </>
               ) : <div className="empty-state">{t('admin.userEmpty', 'Brak użytkowników.')}</div>}
-            </div>
+            </fieldset>
           </div>
-          <div className="new-user-panel">
+          <fieldset className="new-user-panel" disabled={user.role !== 'admin'}>
             <div className="section-title"><span>{t('admin.newUserTitle', 'Nowe konto')}</span><small>{user.source === 'supabase' ? t('admin.newUserSourceSupabase', 'tworzone przez Edge Function') : t('admin.newUserSourceLocal', 'konto lokalne demo')}</small></div>
             <div className="field-grid">
               <label><span>{t('admin.user.email', 'Email')}</span><input value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
@@ -477,7 +478,7 @@ export default function AdminView({
                 : t('admin.createUserHintLocal', 'W lokalnym trybie tworzone jest konto demo z lokalnym loginem i hasłem startowym.')}
             </p>
             <button className="ghost-btn" disabled={!canCreateUser} type="button" onClick={createNewUser}><Plus size={16} /> {isSupabaseMode ? t('admin.createUserSupabase', 'Utwórz / zaproś konto') : t('admin.createUser', 'Utwórz konto')}</button>
-          </div>
+          </fieldset>
         </section>
       ) : null}
 

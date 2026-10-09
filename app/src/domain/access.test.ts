@@ -72,7 +72,7 @@ describe('access helpers', () => {
     expect(canCompareLeadersRole('leader')).toBe(false)
 
     expect(canAdvanceAssessmentStatusRole('admin')).toBe(true)
-    expect(canAdvanceAssessmentStatusRole('director')).toBe(true)
+    expect(canAdvanceAssessmentStatusRole('director')).toBe(false)
     expect(canAdvanceAssessmentStatusRole('leader')).toBe(true)
     expect(canAdvanceAssessmentStatusRole('assessor')).toBe(false)
 
@@ -112,4 +112,22 @@ describe('access helpers', () => {
     )
     expect(viewerView.map((item) => item.id)).toEqual(['assessment-1', 'assessment-2'])
   })
+  it('does not grant viewer access through the assessor or an empty identity', () => {
+    const rows = [
+      makeAssessment({ id: 'own', spec: 'user-1', status: 'approved' }),
+      makeAssessment({ id: 'foreign', spec: 'Other', oce: 'Uzytkownik Testowy', status: 'approved' }),
+      makeAssessment({ id: 'pending', spec: 'user-1', status: 'review' }),
+      makeAssessment({ id: 'empty', spec: '', status: 'approved' }),
+    ]
+    expect(scopeAssessmentsForUser(rows, makeUser({})).map(row => row.id)).toEqual(['own'])
+    expect(scopeAssessmentsForUser(rows, makeUser({ id: '', email: '', fullName: '' }))).toEqual([])
+  })
+
+  it('uses the trusted binding instead of signup display name in Supabase', () => {
+    const rows = [makeAssessment({ spec: 'Anna Kowalska', status: 'approved' })]
+    const viewer = makeUser({ source: 'supabase', fullName: 'Anna Kowalska' })
+    expect(scopeAssessmentsForUser(rows, viewer)).toEqual([])
+    expect(scopeAssessmentsForUser(rows, { ...viewer, viewerSpecialistName: 'Anna Kowalska' })).toEqual(rows)
+  })
+
 })

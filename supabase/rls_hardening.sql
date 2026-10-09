@@ -1,25 +1,29 @@
+alter table public.profiles add column if not exists viewer_specialist_name text;
+
 -- OCENIATOR - RLS hardening after moving auth/data to Supabase.
 -- Run after schema.sql. The important part is WITH CHECK on writes:
 -- the browser cannot insert or update rows outside its own role/scope.
 
 create or replace function public.my_role()
-returns text language sql stable security definer as $$
+returns text language sql stable security definer set search_path = public as $$
   select role from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.my_scope()
-returns text language sql stable security definer as $$
-  select leader_scope from public.profiles where id = auth.uid() and is_active = true;
+returns text language sql stable security definer set search_path = public as $$
+  select nullif(leader_scope, '') from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.current_profile_full_name()
-returns text language sql stable security definer as $$
-  select full_name from public.profiles where id = auth.uid() and is_active = true;
+returns text language sql stable security definer set search_path = public as $$
+  select viewer_specialist_name from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.current_profile_email()
-returns text language sql stable security definer as $$
-  select email from public.profiles where id = auth.uid() and is_active = true;
+returns text language sql stable security definer set search_path = public as $$
+  select p.email from public.profiles p join auth.users u on u.id = p.id
+    where p.id = auth.uid() and p.is_active = true
+      and u.email_confirmed_at is not null and u.email = p.email;
 $$;
 
 create or replace function public.can_access_assessment(target_assessment_id uuid)
@@ -40,8 +44,9 @@ as $$
           public.my_role() = 'viewer'
           and a.status = 'approved'
           and (
-            a.spec = public.current_profile_full_name()
-            or a.spec = public.current_profile_email()
+            a.spec = nullif(public.current_profile_full_name(), '')
+            or a.spec = auth.uid()::text
+            or a.spec = nullif(public.current_profile_email(), '')
           )
         )
       )
@@ -87,11 +92,11 @@ begin
    where id = auth.uid()
      and is_active = true;
 
-  if caller_role <> 'admin' then
+  if caller_role is distinct from 'admin' then
     raise exception 'Admin role required';
   end if;
 
-  if target_role not in ('admin','director','leader','assessor','viewer') then
+  if target_role is null or target_role not in ('admin','director','leader','assessor','viewer') then
     raise exception 'Invalid role: %', target_role;
   end if;
 
@@ -110,6 +115,8 @@ begin
   return updated_profile;
 end;
 $$;
+
+revoke all on function public.admin_update_profile(uuid,text,text,text,boolean) from public, anon;
 
 grant execute on function public.admin_update_profile(uuid,text,text,text,boolean) to authenticated;
 
@@ -190,8 +197,9 @@ create policy "assessments: viewer read"
     public.my_role() = 'viewer'
     and status = 'approved'
     and (
-      spec = public.current_profile_full_name()
-      or spec = public.current_profile_email()
+      spec = nullif(public.current_profile_full_name(), '')
+      or spec = auth.uid()::text
+      or spec = nullif(public.current_profile_email(), '')
     )
   );
 
@@ -283,3 +291,42 @@ create policy "user_preferences: owner update"
 create policy "user_preferences: owner delete"
   on public.user_preferences for delete
   using (user_id = auth.uid());
+
+-- Only an active administrator can bind an account to the named legacy specialist.
+create or replace function public.admin_link_viewer(target_id uuid, target_specialist_name text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if public.my_role() is distinct from 'admin' then raise exception 'Admin role required'; end if;
+  if nullif(target_specialist_name, '') is not null and
+     (select count(*) from public.specialists where name = target_specialist_name and is_active = true) <> 1 then
+    raise exception 'Select one unique active specialist';
+  end if;
+  update public.profiles set viewer_specialist_name = nullif(target_specialist_name, '')
+    where id = target_id and role = 'viewer';
+  if not found then raise exception 'Viewer profile not found'; end if;
+end;
+$$;
+revoke all on function public.admin_link_viewer(uuid,text) from public, anon;
+grant execute on function public.admin_link_viewer(uuid,text) to authenticated;
+
+-- Profile fields and the viewer binding commit together or not at all.
+create or replace function public.admin_update_profile_with_binding(
+ target_id uuid, target_full_name text, target_role text, target_leader_scope text,
+ target_is_active boolean, target_specialist_name text
+) returns public.profiles language plpgsql security definer set search_path = public as $$
+declare result public.profiles;
+begin
+  if public.my_role() is distinct from 'admin' then raise exception 'Admin role required'; end if;
+  if target_role = 'viewer' and nullif(target_specialist_name, '') is not null and
+    (select count(*) from public.specialists where name = target_specialist_name and is_active = true) <> 1 then
+    raise exception 'Select one unique active specialist';
+  end if;
+  perform public.admin_update_profile(target_id,target_full_name,target_role,target_leader_scope,target_is_active);
+  update public.profiles set viewer_specialist_name = case when target_role = 'viewer' then nullif(target_specialist_name, '') else null end
+    where id = target_id returning * into result;
+  return result;
+end;
+$$;
+revoke all on function public.admin_update_profile_with_binding(uuid,text,text,text,boolean,text) from public, anon;
+grant execute on function public.admin_update_profile_with_binding(uuid,text,text,text,boolean,text) to authenticated;
+notify pgrst, 'reload schema';

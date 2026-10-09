@@ -1,3 +1,4 @@
+import { ratingForScore } from '../../domain/scoring'
 import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import { lastHistoryAt, lastHistoryBy, lastHistoryNote } from '../../domain/history'
 import { ratingLabel } from '../../domain/scoring'
@@ -31,7 +32,7 @@ export function exportCsv(rows: Assessment[]) {
     item.data,
     item.oce,
     item.avgFinal,
-    ratingLabel(item.rating),
+    ratingLabel(ratingForScore(item.avgFinal)),
     statusLabels[item.status],
     lastHistoryAt(item),
     lastHistoryBy(item),
@@ -57,7 +58,7 @@ export async function exportExcel(rows: Assessment[]) {
     Data: item.data,
     Oceniający: item.oce,
     Wynik: item.avgFinal,
-    Ocena: ratingLabel(item.rating),
+    Ocena: ratingLabel(ratingForScore(item.avgFinal)),
     Status: statusLabels[item.status],
     'Ostatnia zmiana': lastHistoryAt(item),
     'Zmienił': lastHistoryBy(item),

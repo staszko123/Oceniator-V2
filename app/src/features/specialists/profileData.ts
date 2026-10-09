@@ -1,4 +1,6 @@
-﻿import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
+import { SCORE_GOOD_THRESHOLD } from '../../domain/scoreThresholds'
+import { ratingForScore } from '../../domain/scoring'
+import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
 import type { Assessment, AssessmentStatus } from '../../domain/types'
 
 const statusLabels: Record<AssessmentStatus, string> = {
@@ -54,11 +56,11 @@ export function specialistProfileData(assessments: Assessment[], specialist: str
   }))
   const weakAreas = weakestCriteria(rows).slice(0, 4)
   const avg = rows.length ? Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length) : 0
-  const great = rows.filter((item) => item.rating === 'great').length
-  const below = rows.filter((item) => item.rating === 'below').length
+  const great = rows.filter((item) => ratingForScore(item.avgFinal) === 'great').length
+  const below = rows.filter((item) => ratingForScore(item.avgFinal) === 'below').length
   const review = rows.filter((item) => item.status === 'review' || item.status === 'submitted').length
   const momentum = trend.length > 1 ? trend[trend.length - 1].score - trend[0].score : 0
-  const recommendation = weakAreas[0]?.avg && weakAreas[0].avg < 82
+  const recommendation = weakAreas[0]?.avg && weakAreas[0].avg < SCORE_GOOD_THRESHOLD
     ? `Największy potencjał poprawy jest w obszarze: ${weakAreas[0].label}.`
     : 'Profil jest stabilny. Warto utrzymać rytm informacji zwrotnej i monitorować ostatnie oceny.'
 
