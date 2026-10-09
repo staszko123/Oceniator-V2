@@ -180,6 +180,7 @@ export default function AppShell({
   }
   return (
     <div className={collapsed ? 'app-shell sidebar-collapsed' : 'app-shell'}>
+      <a className="skip-link" href="#workspace-content">{t('layout.skipContent', 'Przejdź do treści')}</a>
       <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
         <div className="sidebar-head">
           <div className="brand-block">
@@ -201,7 +202,7 @@ export default function AppShell({
             {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </button>
         </div>
-        <nav className="side-nav" id="sidebar-navigation">
+        <nav className="side-nav" id="sidebar-navigation" aria-label={t('layout.navigation', 'Nawigacja główna')}>
           {navItems.map((item) => {
             const Icon = item.icon
             return (
@@ -229,7 +230,7 @@ export default function AppShell({
           </div>
         </div>
       </aside>
-      <section className="workspace">
+      <section className="workspace" id="workspace-content" tabIndex={-1}>
         <header className="topbar">
           <div className="topbar-copy">
             <div className="topbar-eyebrow">
@@ -238,10 +239,6 @@ export default function AppShell({
             <div className="topbar-title-row">
               <h2>{activeTitle}</h2>
               <div className="topbar-meta">
-                <span className="topbar-chip provider-chip">
-                  <Database size={13} />
-                  {PROVIDER_LABELS[providerMode]}
-                </span>
                 <span className="topbar-chip neutral">{ROLE_LABELS[user.role]}</span>
               </div>
             </div>

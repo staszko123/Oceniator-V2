@@ -10,7 +10,7 @@ import { DataTableToolbar } from './DataTableToolbar'
 let activeContainer: HTMLDivElement | null = null
 let activeRoot: ReturnType<typeof createRoot> | null = null
 
-function renderToolbar() {
+function renderToolbar(searchable = true) {
   activeContainer = document.createElement('div')
   document.body.appendChild(activeContainer)
   activeRoot = createRoot(activeContainer)
@@ -18,6 +18,7 @@ function renderToolbar() {
   act(() => {
     activeRoot!.render(
       <DataTableToolbar
+        searchable={searchable}
         searchQuery=""
         onSearchQueryChange={vi.fn()}
         pageSize={10}
@@ -40,6 +41,13 @@ afterEach(() => {
 })
 
 describe('DataTableToolbar', () => {
+  it('keeps pagination when search is owned by the page', () => {
+    renderToolbar(false)
+    expect(document.querySelector('.data-table-search')).toBeNull()
+    expect(document.querySelector('.data-table-page-size select')).not.toBeNull()
+    expect(document.querySelector('.data-table-toolbar-meta span')?.getAttribute('aria-label')).toBe('Widoczne 10 z 20 wierszy')
+  })
+
   it('exposes an explicit accessible label on the search input', () => {
     renderToolbar()
 

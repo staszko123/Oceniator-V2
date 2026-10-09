@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useLanguage } from '../../i18n/LanguageContext'
 
 export function DataTableToolbar({
+  searchable = true,
   searchQuery,
   onSearchQueryChange,
   pageSize,
@@ -13,6 +14,7 @@ export function DataTableToolbar({
   onExportXlsx,
   extraActions,
 }: {
+  searchable?: boolean
   searchQuery: string
   onSearchQueryChange: (value: string) => void
   pageSize: number
@@ -30,7 +32,7 @@ export function DataTableToolbar({
 
   return (
     <div className="data-table-toolbar">
-      <label className="search-field data-table-search">
+      {searchable ? <label className="search-field data-table-search">
         <Search size={15} />
         <input
           value={searchQuery}
@@ -38,7 +40,7 @@ export function DataTableToolbar({
           placeholder={t('table.searchPlaceholder')}
           aria-label={t('table.searchPlaceholder')}
         />
-      </label>
+      </label> : null}
       <div className="data-table-toolbar-meta" aria-live="polite">
         <span aria-label={resultCountLabel}>{visibleRows}/{totalRows}</span>
       </div>
