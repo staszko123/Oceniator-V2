@@ -8,8 +8,9 @@ Portal do oceny jakości obsługi rozmów, maili i działań systemowych. Umożl
 
 - React 19, TypeScript, Vite; frontend wdrażany na Vercel.
 - Supabase: logowanie Google, baza danych, RLS i funkcje administracyjne.
-- Wspólny styl desktopowy: logowanie, start, formularz, Ewidencja, zespół, Analityka, Raporty, Administracja i okna szczegółów.
+- Wspólny styl desktopowy: start, formularz, Ewidencja, zespół, Analityka, Raporty, Administracja i okna szczegółów.
 - Widoczne szkice na starcie; jedna wyszukiwarka w Ewidencji i jedno menu eksportu wszystkich wyników po filtrach (CSV, Excel, JSON).
+- Ekran logowania zachowuje poprzedni wygląd z animowanym tłem.
 - Dotychczasowe kryteria i sposób obliczania wyniku pozostają zachowane.
 
 [Portal produkcyjny](https://oceniator-v2-pub-staszko.vercel.app) · [Audyt i plan rozwoju](docs/PORTAL_AUDIT.md)
