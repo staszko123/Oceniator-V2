@@ -176,4 +176,3 @@
   .dark .modal-card :is(.detail-stat, .detail-field, .detail-block) { background: var(--surface-2); color: var(--text); border-color: var(--line); box-shadow: none; }
   .dark .screen :is(.dashboard-priority-card, .trend-column) :is(strong, span, small, p) { color: var(--text); }
 }
-
