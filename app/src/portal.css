@@ -2,7 +2,7 @@
 .skip-link { position: fixed; top: -80px; left: 16px; z-index: 100; padding: 12px 18px; background: var(--surface); color: var(--text); border: 2px solid var(--blue); border-radius: 8px; }
 .skip-link:focus { top: 12px; }
 @media (min-width: 1024px) {
-  :root {
+  :root:has(.app-shell) {
     font-family: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
     --bg: #f5f7fb;
     --bg-2: #eef2f7;
@@ -16,7 +16,7 @@
     --shadow: 0 4px 20px rgba(24, 38, 59, .04);
     --app-gradient: var(--bg);
   }
-  .dark {
+  .dark:has(.app-shell) {
     --bg: #101826;
     --bg-2: #142033;
     --surface: #182438;
@@ -29,7 +29,7 @@
     --app-gradient: var(--bg);
   }
   body { min-width: 0; }
-  button, input, select, textarea { font: inherit; }
+  .app-shell :is(button, input, select, textarea) { font: inherit; }
   button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
   .app-shell, .app-shell.sidebar-collapsed { display: grid; grid-template-columns: 216px minmax(0, 1fr); }
   .app-shell.sidebar-collapsed { grid-template-columns: 76px minmax(0, 1fr); }
@@ -56,8 +56,8 @@
   .screen { padding: 24px; }
   .screen, .screen > *, .data-panel { min-width: 0; }
   .hero-panel, .metric-panel, .data-panel, .toolbar-panel, .form-card, .score-section, .rail-card, .chart-panel { box-shadow: var(--shadow); backdrop-filter: none; border-radius: 12px; }
-  .primary-btn { background: #2563eb; box-shadow: none; min-height: 40px; font-weight: 600; }
-  .ghost-btn { min-height: 40px; font-weight: 600; }
+  .app-shell .primary-btn { background: #2563eb; box-shadow: none; min-height: 40px; font-weight: 600; }
+  .app-shell .ghost-btn { min-height: 40px; font-weight: 600; }
   .table-wrap { max-width: 100%; overflow-x: auto; }
   .start-workspace { max-width: 1680px; margin-inline: auto; }
   .start-workspace .start-hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -103,7 +103,7 @@
 
 /* Shared desktop components across every portal view. */
 @media (min-width: 1024px) {
-  :root, .dark {
+  :root:has(.app-shell), .dark:has(.app-shell) {
     --field-surface: var(--surface); --field-text: var(--text);
     --field-border: var(--line); --field-placeholder: var(--soft);
     --field-shadow: none; --label-color: var(--muted);
@@ -150,12 +150,6 @@
   .registry-export-menu .registry-export-group { position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; display: grid; min-width: 230px; padding: 12px; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px #0002; }
   .registry-export-group small { color: var(--muted); padding: 4px; font-size: 12px; }
   .registry-export-group button { justify-content: flex-start; }
-  .login-page { background: var(--bg); }
-  .login-page::before, .login-page::after, .login-backdrop, .login-orb, .login-transition { display: none; }
-  .login-card { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px #18263b12; backdrop-filter: none; padding: 30px; }
-  .login-page label span { color: var(--muted); }
-  .login-card .primary-btn { background: #2563eb; box-shadow: none; border-radius: 8px; }
-  .login-watermark { color: var(--muted); text-shadow: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -164,8 +158,6 @@
   .screen .dashboard-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
   .screen .metric-panel::before, .screen .metric-panel::after { display: none; }
   .screen .analytics-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 12px; }
-  .login-page .brand-mark strong { color: var(--text); font-size: 32px; font-weight: 650; letter-spacing: -.03em; text-shadow: none; text-transform: none; }
-  .login-page .brand-mark small { color: var(--muted); }
 }
 
 @media (min-width: 1024px) {
