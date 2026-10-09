@@ -100,3 +100,80 @@
   .form-screen { grid-template-columns: minmax(0, 1fr) 250px; gap: 12px; }
   .right-rail { top: 84px; max-height: calc(100dvh - 100px); }
 }
+
+/* Shared desktop components across every portal view. */
+@media (min-width: 1024px) {
+  :root, .dark {
+    --field-surface: var(--surface); --field-text: var(--text);
+    --field-border: var(--line); --field-placeholder: var(--soft);
+    --field-shadow: none; --label-color: var(--muted);
+  }
+  .screen { background: transparent; line-height: 1.5; }
+  .screen h1 { font-size: 28px; line-height: 1.25; letter-spacing: -.025em; }
+  .screen h2, .screen h3 { letter-spacing: -.015em; }
+  .screen .hint-text, .modal-card .hint-text { color: var(--muted); }
+  .screen :is(.hero-panel, .metric-panel, .data-panel, .toolbar-panel, .form-card, .score-section, .rail-card, .chart-panel, .dashboard-hero, .report-hero, .team-hero, .admin-hero, .viewer-hero, .registry-ops-bar, .registry-active-filters, .analytics-filters, .dashboard-controls, .dashboard-config, .dashboard-diagnostics, .report-preview-panel, .registry-advanced-filters) {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); backdrop-filter: none; min-width: 0;
+  }
+  .screen :is(.dashboard-hero, .report-hero, .team-hero, .admin-hero, .viewer-hero) { padding: 22px 24px; gap: 20px; }
+  .screen :is(.metric-panel, .metric-panel.premium) { padding: 18px 22px; min-height: 110px; }
+  .screen .metric-panel strong { font-size: 30px; font-weight: 650; }
+  .screen .section-title > span { font-size: 15px; font-weight: 650; }
+  .screen :is(.quick-path, .draft-card, .team-specialist-card, .report-format-card, .viewer-comment-card, .dictionary-editor) { border: 1px solid var(--line); border-radius: 10px; box-shadow: none; }
+  .screen :is(.primary-btn, .ghost-btn), .modal-card :is(.primary-btn, .ghost-btn) { min-height: 38px; border-radius: 8px; padding: 9px 13px; font-size: 13px; font-weight: 600; box-shadow: none; }
+  .screen .primary-btn, .modal-card .primary-btn { background: #2563eb; color: #fff; }
+  .screen .ghost-btn, .modal-card .ghost-btn { background: var(--surface); color: var(--text); border-color: var(--line); }
+  .screen :is(.primary-btn, .ghost-btn):hover, .modal-card :is(.primary-btn, .ghost-btn):hover { transform: none; filter: brightness(.96); }
+  .screen :is(input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea), .modal-card :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { border-radius: 8px; font-size: 13px; background: var(--field-surface); color: var(--field-text); box-shadow: none; }
+  .screen :is(input, select, textarea):focus-visible, .modal-card :is(input, select, textarea):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+  .screen label > span { font-weight: 600; letter-spacing: .025em; }
+  .screen .search-field { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  .screen .search-field input { border: 0; background: transparent; }
+  .screen .data-table-shell { min-width: 0; }
+  .screen .data-table-toolbar { gap: 12px; flex-wrap: wrap; }
+  .screen .data-table th { background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 650; letter-spacing: .03em; }
+  .screen .data-table td { padding: 12px; border-color: var(--line); font-size: 13px; }
+  .screen .data-table tbody tr:hover { background: var(--surface-2); }
+  .screen .data-table-pagination { border-top: 1px solid var(--line); padding-top: 14px; }
+  .screen .empty-state { border-radius: 10px; color: var(--muted); background: var(--surface-2); }
+  .modal-card { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 80px #0003; max-height: calc(100dvh - 48px); }
+  .modal-card .modal-header, .modal-card .modal-footer { background: var(--surface); border-color: var(--line); }
+  .registry-toolbar { display: flex; flex-wrap: wrap; gap: 10px; }
+  .registry-toolbar .search-field { flex: 1 1 260px; }
+  .registry-toolbar > select { flex: 1 1 145px; width: auto; min-width: 0; }
+  .registry-ops-bar { gap: 16px; }
+  .registry-ops-actions { flex-wrap: wrap; align-items: center; }
+  .registry-export-menu { position: relative; }
+  .registry-export-menu > summary { cursor: pointer; list-style: none; }
+  .registry-export-menu > summary::-webkit-details-marker { display: none; }
+  .registry-export-menu .registry-export-group { position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; display: grid; min-width: 230px; padding: 12px; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px #0002; }
+  .registry-export-group small { color: var(--muted); padding: 4px; font-size: 12px; }
+  .registry-export-group button { justify-content: flex-start; }
+  .login-page { background: var(--bg); }
+  .login-page::before, .login-page::after, .login-backdrop, .login-orb, .login-transition { display: none; }
+  .login-card { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px #18263b12; backdrop-filter: none; padding: 30px; }
+  .login-page label span { color: var(--muted); }
+  .login-card .primary-btn { background: #2563eb; box-shadow: none; border-radius: 8px; }
+  .login-watermark { color: var(--muted); text-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@media (min-width: 1024px) {
+  .screen .dashboard-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .screen .metric-panel::before, .screen .metric-panel::after { display: none; }
+  .screen .analytics-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 12px; }
+  .login-page .brand-mark strong { color: var(--text); font-size: 32px; font-weight: 650; letter-spacing: -.03em; text-shadow: none; text-transform: none; }
+  .login-page .brand-mark small { color: var(--muted); }
+}
+
+@media (min-width: 1024px) {
+  .screen .report-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+}
+@media (min-width: 1024px) {
+  .dark .screen :is(.dashboard-priority-card, .dashboard-context-item, .trend-column, .team-specialist-card, .report-snapshot-card, .viewer-comment-card, .draft-card, .quick-path, .queue-card, .admin-nav-card),
+  .dark .modal-card :is(.detail-stat, .detail-field, .detail-block) { background: var(--surface-2); color: var(--text); border-color: var(--line); box-shadow: none; }
+  .dark .screen :is(.dashboard-priority-card, .trend-column) :is(strong, span, small, p) { color: var(--text); }
+}
+

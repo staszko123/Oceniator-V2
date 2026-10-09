@@ -38,6 +38,8 @@ export function DataTable<T>({
   exportFilePrefix = 'export',
   sheetName = 'Export',
   extraToolbar,
+  searchable = true,
+  exportable = true,
 }: {
   rows: T[]
   columns: Array<TableColumn<T>>
@@ -64,6 +66,8 @@ export function DataTable<T>({
   exportFilePrefix?: string
   sheetName?: string
   extraToolbar?: ReactNode
+  searchable?: boolean
+  exportable?: boolean
 }) {
   const { t } = useLanguage()
   const contextMenu = useContextMenu<T>()
@@ -114,6 +118,7 @@ export function DataTable<T>({
           </div>
         ) : null}
         <DataTableToolbar
+          searchable={searchable}
           searchQuery={dataTable.searchQuery}
           onSearchQueryChange={dataTable.setSearchQuery}
           pageSize={dataTable.pageSize}
@@ -121,7 +126,7 @@ export function DataTable<T>({
           pageSizeOptions={dataTable.pageSizeOptions}
           totalRows={dataTable.totalRows}
           visibleRows={visibleRows.length}
-          onExportXlsx={exportXlsx}
+          onExportXlsx={exportable ? exportXlsx : undefined}
           extraActions={extraToolbar}
         />
       </div>

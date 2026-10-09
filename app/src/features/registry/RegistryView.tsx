@@ -629,14 +629,14 @@ export default function RegistryView({
   }
 
   return (
-    <main className="screen">
+    <main className="screen registry-screen">
       <section className="toolbar-panel registry-toolbar">
-        <label className="search-field"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isViewer ? t('registry.searchViewer') : t('registry.searchOper')} /></label>
-        <select value={period} onChange={(event) => setPeriod(event.target.value)}>
+        <label className="search-field"><Search size={16} /><input aria-label={isViewer ? t('registry.searchViewer') : t('registry.searchOper')} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isViewer ? t('registry.searchViewer') : t('registry.searchOper')} /></label>
+        <select aria-label={t('registry.allPeriods')} value={period} onChange={(event) => setPeriod(event.target.value)}>
           <option value="all">{t('registry.allPeriods')}</option>
           {periods.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
-        <select value={type} onChange={(event) => setType(event.target.value as AssessmentType | 'all')}>
+        <select aria-label={t('registry.allTypes')} value={type} onChange={(event) => setType(event.target.value as AssessmentType | 'all')}>
           <option value="all">{t('registry.allTypes')}</option>
           <option value="r">Rozmowy</option>
           <option value="m">Maile</option>
@@ -644,11 +644,11 @@ export default function RegistryView({
         </select>
         {!isViewer ? (
           <>
-        <select value={leader} onChange={(event) => setLeader(event.target.value)}>
+        <select aria-label={t('registry.allLeaders')} value={leader} onChange={(event) => setLeader(event.target.value)}>
           <option value="all">{t('registry.allLeaders')}</option>
           {leaders.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
-        <select value={specialist} onChange={(event) => setSpecialist(event.target.value)}>
+        <select aria-label={t('registry.allSpecialists')} value={specialist} onChange={(event) => setSpecialist(event.target.value)}>
           <option value="all">{t('registry.allSpecialists')}</option>
           {specialists.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
@@ -695,11 +695,15 @@ export default function RegistryView({
               <button className={changeFilter === 'all' ? 'active' : ''} type="button" onClick={() => applyPreset('all')}>{t('registry.viewAll')}</button>
             </div>
           ) : null}
-          <div className="registry-export-group">
+          <details className="registry-export-menu">
+            <summary className="ghost-btn"><Download size={16} /> {t('registry.exportMenu', 'Eksport wyników')}</summary>
+            <div className="registry-export-group">
+            <small>{t('registry.exportScope', 'Wszystkie wyniki po filtrach')} ({rows.length})</small>
             <button className="ghost-btn" type="button" onClick={() => void exportRows('csv')}><Download size={16} /> {t('registry.exportCsv')}</button>
             <button className="ghost-btn" type="button" onClick={() => void exportRows('excel')}><Download size={16} /> {t('registry.exportExcel')}</button>
             <button className="ghost-btn" type="button" onClick={() => void exportRows('json')}><Download size={16} /> {t('registry.exportJson')}</button>
-          </div>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -756,6 +760,7 @@ export default function RegistryView({
         <div className="section-title"><span>Ewidencja kart</span><small>{notice || `${rows.length} pozycji`}</small></div>
         {rows.length ? (
           <AssessmentTable
+            externalControls
             assessments={rows}
             onPreview={setSelected}
             onPrint={printRow}

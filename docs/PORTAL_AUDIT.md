@@ -49,3 +49,14 @@ Wcześniejszy przegląd ujawnił hasło administratora zapisane w skrypcie SQL w
 Repozytorium lokalne: C:\Users\Jakubst\Documents\Codex\Oceniator.
 Gałąź: codex/portal-ux-foundation. Zmiana przeznaczona do przeglądu w PR; nie została scalona z main ani ręcznie opublikowana na produkcji.
 Folder projektu został utworzony. Dodanie go do zapisanych projektów aplikacji Codex wymaga opcji Dodaj projekt i wskazania tego folderu; dostępne narzędzia nie udostępniają operacji rejestracji projektu.
+
+
+## Aktualizacja — spójny styl i drugi etap, 2026-10-09
+
+Wprowadzono wspólne powierzchnie, obramowania, typografię, pola, przyciski i tabele w widokach PC, również na logowaniu i w oknach szczegółów. Skrócono nagłówki zespołu, Analityki i Raportów. Liczniki oraz filtry analityczne wykorzystują szerokość ekranu PC.
+
+Ewidencja ma jedną wyszukiwarkę i jedno menu eksportu CSV/Excel/JSON z podaną liczbą wszystkich wyników po filtrach. Usunięto powtórzone kontrolki tabeli, zachowując sortowanie i stronicowanie. Dodano jawne etykiety dostępności dla filtrów i test zachowania stronicowania po wyłączeniu wewnętrznej wyszukiwarki.
+
+Zweryfikowano lokalnie: 118 testów zaliczonych, 5 integracyjnych pominiętych; TypeScript, build, lint i smoke poprawne. Przegląd wizualny głównych widoków administratora przy 1280×720; kontrola szerokości dokumentu bez przewijania poziomego. To weryfikacja UI na danych demo, bez zmian ocen produkcyjnych. Pełny proces biznesowy wszystkich ról pozostaje osobnym zadaniem.
+
+README zastąpiono bieżącym opisem funkcji, zakresu PC, uruchamiania, testów, wdrożeń, struktury i ograniczeń. Publikację na produkcji autoryzował użytkownik; wcześniejsza informacja o pozostawieniu etapu pierwszego wyłącznie w PR dotyczyła stanu przed tą aktualizacją.

@@ -32,6 +32,7 @@ export function AssessmentTable({
   onToggleSelect,
   onToggleSelectAll,
   role = 'viewer',
+  externalControls = false,
 }: {
   assessments: Assessment[]
   compact?: boolean
@@ -47,6 +48,7 @@ export function AssessmentTable({
   onToggleSelect?: (id: string) => void
   onToggleSelectAll?: () => void
   role?: Role
+  externalControls?: boolean
 }) {
   const { t } = useLanguage()
   const specialistColumn = assessmentTableColumnMap.spec
@@ -149,6 +151,8 @@ export function AssessmentTable({
   return (
     <DataTable
       rows={assessments}
+      searchable={!externalControls}
+      exportable={!externalControls}
       columns={columns}
       getRowId={(row) => row.id}
       role={role}
