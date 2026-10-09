@@ -1,7 +1,7 @@
 import type { DataProvider, UserProfile } from '../domain/types'
 
-export const SCORE_GREAT_THRESHOLD = 92
-export const SCORE_GOOD_THRESHOLD = 82
+import { SCORE_GREAT_THRESHOLD, SCORE_GOOD_THRESHOLD } from '../domain/scoreThresholds'
+export { SCORE_GREAT_THRESHOLD, SCORE_GOOD_THRESHOLD }
 
 export function scoreClass(score: number): string {
   if (score >= SCORE_GREAT_THRESHOLD) return 'score score-great'

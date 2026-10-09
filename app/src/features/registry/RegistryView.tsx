@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Save, Search, ShieldCheck, Upload, X } from 'lucide-react'
 import { canAdvanceAssessmentStatus, canAdvanceAssessmentStatusRole, canCreateRole, isViewerRole } from '../../domain/access'
 import { getErrorMessage } from '../../domain/errors'
@@ -392,8 +392,6 @@ export default function RegistryView({
   const periods = useMemo(() => uniqueSorted(assessments.map((item) => item.period)), [assessments])
   const leaders = useMemo(() => uniqueSorted(assessments.map((item) => item.leaderScope)), [assessments])
   const specialists = useMemo(() => uniqueSorted(assessments.map((item) => item.spec)), [assessments])
-  const editedCount = useMemo(() => assessments.filter(hasEditHistory).length, [assessments])
-  const recentCount = useMemo(() => assessments.filter((item) => isRecentlyUpdated(item)).length, [assessments])
   const decisionCount = useMemo(() => assessments.filter((item) => item.status === 'submitted' || item.status === 'review').length, [assessments])
   const decisionQueue = useMemo(() => rows.filter((item) => item.status === 'submitted' || item.status === 'review').slice(0, 5), [rows])
   const visibleSelectedIds = useMemo(() => selectedIds.filter((id) => rows.some((item) => item.id === id)), [rows, selectedIds])
@@ -509,20 +507,25 @@ export default function RegistryView({
     }
   }
 
+  const advancingIds = useRef(new Set<string>())
   async function advance(item: Assessment) {
+    if (advancingIds.current.has(item.id)) return
     if (!canAdvanceRow(item)) {
       setNotice('Ta rola nie może zmieniać statusu tej karty.')
       return
     }
     const nextStatus = registryStatusTransitions[item.status]
 
-  try {
+    advancingIds.current.add(item.id)
+    try {
       const note = buildRegistryStatusHistoryNote(
         `Zmiana statusu z ewidencji: ${statusLabels[item.status]} -> ${statusLabels[nextStatus]}`,
         '',
         [],
       )
-      await onUpdate(appendRegistryStatusHistory(item, nextStatus, user, note))
+      const updated = appendRegistryStatusHistory(item, nextStatus, user, note)
+      await onUpdate(updated)
+      setSelected(current => current?.id === item.id ? updated : current)
       setNotice(`Status zmieniony na: ${statusLabels[nextStatus]}.`)
       recordDiagnostic({
         scope: 'registry',
@@ -531,7 +534,9 @@ export default function RegistryView({
         level: 'success',
       })
     } catch (error) {
-      setNotice(getErrorMessage(error, 'Nie udalo sie zmienic statusu.'))
+      setNotice(getErrorMessage(error, 'Nie udało się zmienić statusu.'))
+    } finally {
+      advancingIds.current.delete(item.id)
     }
   }
 
@@ -720,15 +725,8 @@ export default function RegistryView({
         </div>
       </section>
 
-      <section className="registry-summary">
-        <div className="status-chip">Wynik filtra: {rows.length}</div>
-        {isViewer ? <div className="status-chip">{t('registry.viewMode')}</div> : <div className="status-chip">{t('registry.changed')}: {editedCount}</div>}
-        {isViewer ? <div className="status-chip">{t('registry.readOnlyMode')}</div> : <div className="status-chip">{t('registry.active')}: {recentCount}</div>}
-        {!isViewer ? <div className="status-chip">{t('registry.toDecision')}: {decisionCount}</div> : null}
-      </section>
-
-      <section className="data-panel">
-        <div className="section-title"><span>{t('registry.queueTitle')}</span><small>{t('registry.queueSubtitle')}</small></div>
+      <details className="data-panel registry-decision-queue">
+        <summary>{t('registry.queueTitle')} · {decisionCount} kart w dostępnym zakresie</summary>
         <div className="registry-queue-head">
           <div className="registry-queue-copy">
             <strong>{decisionQueue.length} {t('registry.queueCount')}</strong>
@@ -754,7 +752,7 @@ export default function RegistryView({
             ))}
           </div>
         ) : <div className="empty-state compact-empty">{t('registry.noQueueShort', 'Brak kart w kolejce decyzji dla aktualnego filtra.')}</div>}
-      </section>
+      </details>
 
       <section className="data-panel">
         <div className="section-title"><span>Ewidencja kart</span><small>{notice || `${rows.length} pozycji`}</small></div>
@@ -784,13 +782,7 @@ export default function RegistryView({
             </div>
           </div>
         )}
-        <div className="row-action-strip">
-          {canAdvanceStatuses ? rows.filter(canAdvanceRow).slice(0, 6).map((item) => (
-            <button key={item.id} className="ghost-btn" type="button" onClick={() => advance(item)}>
-              {item.spec}: {statusLabels[item.status]} {'->'}
-            </button>
-          )) : <span className="hint-text">{t('registry.visibleOnlyReadOnly')}</span>}
-        </div>
+
       </section>
 
       {selected ? (

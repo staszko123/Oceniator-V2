@@ -1,3 +1,4 @@
+import { ratingForScore } from '../../domain/scoring'
 import { AlertTriangle, ChevronLeft, ChevronRight, MessageSquare, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ASSESSMENT_DEFS, TYPE_LABELS } from '../../domain/defs'
@@ -137,7 +138,7 @@ export function ViewerAssessmentModal({
           </div>
           <div>
             <span>{t('viewer.modal.kpiRating', 'Ocena')}</span>
-            <strong>{ratingLabel(assessment.rating)}</strong>
+            <strong>{ratingLabel(ratingForScore(assessment.avgFinal))}</strong>
           </div>
           <div>
             <span>{t('viewer.modal.kpiEvaluator', 'Oceniający')}</span>

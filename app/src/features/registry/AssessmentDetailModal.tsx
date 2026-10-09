@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FileText, MessageSquarePlus, Pencil, ShieldCheck, X } from 'lucide-react'
 import type { Assessment, AssessmentComment, UserProfile } from '../../domain/types'
 import { assessmentStatusConfig } from '../../config/status'
@@ -28,6 +28,22 @@ export function AssessmentDetailModal({
   onAddComment?: (body: string) => Promise<void>
 }) {
   const { t } = useLanguage()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    const dialog = dialogRef.current
+    dialog?.querySelector<HTMLElement>('button')?.focus()
+    function keydown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+      if (event.key !== 'Tab') return
+      const items = [...(dialog?.querySelectorAll<HTMLElement>('button:not(:disabled), input, textarea, select, a[href]') || [])].filter(item => item.getClientRects().length)
+      const first = items[0], last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    dialog?.addEventListener('keydown', keydown)
+    return () => { dialog?.removeEventListener('keydown', keydown); previous?.focus() }
+  }, [onClose])
   const [commentBody, setCommentBody] = useState('')
   const [commentError, setCommentError] = useState('')
   const [commentBusy, setCommentBusy] = useState(false)
@@ -54,14 +70,14 @@ export function AssessmentDetailModal({
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="modal-backdrop" role="dialog" aria-modal="true" aria-label={`Ocena: ${assessment.spec}`}>
       <section className="modal-card preview-modal assessment-detail-modal">
         <header className="modal-header">
           <div>
             <h3>{assessment.spec}</h3>
             <p>{assessment.period} • {assessment.type.toUpperCase()} • {status.label}</p>
           </div>
-          <button type="button" onClick={onClose}><X size={18} /></button>
+          <button type="button" aria-label="Zamknij szczegóły oceny" onClick={onClose}><X size={18} /></button>
         </header>
 
         <div className="detail-kpi-grid">
@@ -189,7 +205,7 @@ export function AssessmentDetailModal({
           ) : null}
           {onAdvance ? (
             <button className="ghost-btn" type="button" onClick={() => onAdvance(assessment)}>
-              <ShieldCheck size={16} /> {t('detail.changeStatus')}
+              <ShieldCheck size={16} /> {{ submitted: 'Rozpocznij weryfikację', review: 'Zatwierdź ocenę', approved: 'Archiwizuj ocenę', archived: 'Przywróć do weryfikacji' }[assessment.status]}
             </button>
           ) : null}
           <button className="primary-btn" type="button" onClick={onClose}>{t('detail.close')}</button>

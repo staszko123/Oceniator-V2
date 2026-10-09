@@ -32,7 +32,7 @@ export function canCompareLeadersRole(role: Role): boolean {
 }
 
 export function canAdvanceAssessmentStatusRole(role: Role): boolean {
-  return role === 'admin' || role === 'director' || role === 'leader'
+  return role === 'admin' || role === 'leader'
 }
 
 export function canAdvanceAssessmentStatus(user: UserProfile, assessment: Pick<Assessment, 'leaderScope'>): boolean {
@@ -42,7 +42,7 @@ export function canAdvanceAssessmentStatus(user: UserProfile, assessment: Pick<A
 }
 
 export function viewerAssessmentTokens(user: UserProfile): string[] {
-  const tokens = [user.id, user.fullName, user.email]
+  const tokens = [user.id, user.source === 'local' ? user.fullName : (user.viewerSpecialistName || ''), user.email]
     .map((item) => item.trim())
     .filter(Boolean)
 
@@ -63,8 +63,8 @@ export function scopeAssessmentsForUser(assessments: Assessment[], user: UserPro
     const specialistTokens = viewerAssessmentTokens(user)
     return assessments.filter((item) => (
       item.status === 'approved'
-      && specialistTokens.some((token) => item.spec === token || item.oce === token)
+      && specialistTokens.some((token) => item.spec === token)
     ))
   }
-  return assessments.filter((item) => item.leaderScope === user.leaderScope || item.oce === user.leaderScope)
+  return assessments.filter((item) => Boolean(user.leaderScope) && item.leaderScope === user.leaderScope)
 }

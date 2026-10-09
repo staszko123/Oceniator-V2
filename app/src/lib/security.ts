@@ -19,13 +19,10 @@ export function canViewTeam(user: UserProfile): boolean {
 }
 
 export function canEditAssessment(user: UserProfile, assessment: Pick<Assessment, 'oce' | 'leaderScope'>): boolean {
-  if (canCompareLeadersRole(user.role)) return true
+  if (user.role === 'admin') return true
+  if (user.role === 'director') return false
   if (user.role === 'leader') return Boolean(user.leaderScope) && assessment.leaderScope === user.leaderScope
-  if (user.role === 'assessor') {
-    return assessment.leaderScope === user.leaderScope
-      || assessment.oce === user.fullName
-      || assessment.oce === user.email
-  }
+  if (user.role === 'assessor') return Boolean(user.leaderScope) && assessment.leaderScope === user.leaderScope
   return false
 }
 

@@ -1,0 +1,2 @@
+export const SCORE_GREAT_THRESHOLD = 92
+export const SCORE_GOOD_THRESHOLD = 82

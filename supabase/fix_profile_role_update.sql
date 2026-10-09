@@ -24,11 +24,11 @@ begin
    where id = auth.uid()
      and is_active = true;
 
-  if caller_role <> 'admin' then
+  if caller_role is distinct from 'admin' then
     raise exception 'Admin role required';
   end if;
 
-  if target_role not in ('admin','director','leader','assessor','viewer') then
+  if target_role is null or target_role not in ('admin','director','leader','assessor','viewer') then
     raise exception 'Invalid role: %', target_role;
   end if;
 
@@ -47,6 +47,8 @@ begin
   return updated_profile;
 end;
 $$;
+
+revoke all on function public.admin_update_profile(uuid,text,text,text,boolean) from public, anon;
 
 grant execute on function public.admin_update_profile(uuid,text,text,text,boolean) to authenticated;
 

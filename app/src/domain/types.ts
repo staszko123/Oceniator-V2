@@ -21,6 +21,7 @@ export interface UserProfile {
   id: string
   email: string
   fullName: string
+  viewerSpecialistName?: string
   role: Role
   leaderScope: string
   isActive: boolean

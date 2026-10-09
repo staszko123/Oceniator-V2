@@ -1,3 +1,4 @@
+import { ratingForScore } from '../../domain/scoring'
 import { AlertTriangle, Eye, Plus, TimerReset, UserRoundSearch } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { canCompareLeadersRole, canCreateRole } from '../../domain/access'
@@ -34,7 +35,7 @@ function specialistPriorityScore(item: {
 
 function assessmentPriorityScore(assessment: Assessment): number {
   const statusWeight = assessment.status === 'review' ? 40 : assessment.status === 'submitted' ? 30 : 0
-  const ratingWeight = assessment.rating === 'below' ? 25 : assessment.rating === 'good' ? 10 : 0
+  const ratingWeight = ratingForScore(assessment.avgFinal) === 'below' ? 25 : ratingForScore(assessment.avgFinal) === 'good' ? 10 : 0
   return statusWeight + ratingWeight + (100 - assessment.avgFinal)
 }
 
@@ -88,7 +89,7 @@ export default function TeamView({
         ? Math.round(specialistAssessments.reduce((acc, item) => acc + item.avgFinal, 0) / specialistAssessments.length)
         : 0
       const pending = specialistAssessments.filter((item) => item.status === 'submitted' || item.status === 'review').length
-      const below = specialistAssessments.filter((item) => item.rating === 'below').length
+      const below = specialistAssessments.filter((item) => ratingForScore(item.avgFinal) === 'below').length
       const staleDays = daysSince(last?.data)
 
       return {
@@ -112,7 +113,7 @@ export default function TeamView({
 
   const avg = rows.length ? Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length) : 0
   const pending = rows.filter((item) => item.status === 'submitted' || item.status === 'review').length
-  const below = rows.filter((item) => item.rating === 'below').length
+  const below = rows.filter((item) => ratingForScore(item.avgFinal) === 'below').length
   const freshCards = rows.filter((item) => {
     const age = daysSince(item.data)
     return age !== null && age <= 14

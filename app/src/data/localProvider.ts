@@ -257,7 +257,7 @@ function ensureViewerDemoAssessments(assessments: Assessment[], session: UserPro
   const viewerTokens = session && isViewerRole(session.role) ? viewerAssessmentTokens(session) : []
   if (!viewerTokens.length) return assessments
 
-  const viewerCards = assessments.filter((item) => item.status === 'approved' && viewerTokens.some((token) => item.spec === token || item.oce === token))
+  const viewerCards = assessments.filter((item) => item.status === 'approved' && viewerTokens.some((token) => item.spec === token))
   if (viewerCards.length >= 5) return assessments
 
   const viewerDemoAssessments = buildViewerDemoAssessments()

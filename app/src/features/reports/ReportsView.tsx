@@ -1,7 +1,9 @@
+import { SCORE_GREAT_THRESHOLD, SCORE_GOOD_THRESHOLD } from '../../domain/scoreThresholds'
+import { ratingForScore } from '../../domain/scoring'
 import { useMemo, useState } from 'react'
 import { ClipboardCheck, Download, Eye, FileText, TrendingUp, Users } from 'lucide-react'
 import { AnalyticsFilterBar } from '../analytics/shared'
-import { applyAnalyticsFilters, defaultAnalyticsFilters } from '../analytics/filters'
+import { applyAnalyticsFilters, defaultAnalyticsFilters, type AnalyticsFilters } from '../analytics/filters'
 import { recordDiagnostic } from '../../domain/diagnostics'
 import { scoreClass } from '../../lib/display'
 import { downloadFile } from '../../lib/fileExport'
@@ -19,17 +21,25 @@ function exportJson(rows: Assessment[]) {
 
 export default function ReportsView({
   assessments,
+  sharedFilters,
+  onFiltersChange,
+  goal = 92,
   setView,
   openRegistry,
   onStartAssessmentForSpecialist,
 }: {
+  goal?: number
+  sharedFilters?: AnalyticsFilters
+  onFiltersChange?: (filters: AnalyticsFilters) => void
   assessments: Assessment[]
   setView: (view: ViewKey) => void
   openRegistry: (preset?: 'all' | 'decision' | 'recent' | 'edited') => void
   onStartAssessmentForSpecialist?: (name: string) => void
 }) {
   const { t } = useLanguage()
-  const [filters, setFilters] = useState(() => defaultAnalyticsFilters())
+  const [localFilters, setLocalFilters] = useState(() => defaultAnalyticsFilters())
+  const filters = sharedFilters ?? localFilters
+  const setFilters = onFiltersChange ?? setLocalFilters
   const [mode, setMode] = useState<ReportMode>('summary')
   const [selectedSpecialistProfile, setSelectedSpecialistProfile] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
@@ -50,8 +60,8 @@ export default function ReportsView({
         leader,
         count: rows.length,
         avg: rows.length ? Math.round(rows.reduce((acc, item) => acc + item.avgFinal, 0) / rows.length) : 0,
-        great: rows.filter((item) => item.rating === 'great').length,
-        below: rows.filter((item) => item.rating === 'below').length,
+        great: rows.filter((item) => ratingForScore(item.avgFinal) === 'great').length,
+        below: rows.filter((item) => ratingForScore(item.avgFinal) === 'below').length,
         review: rows.filter((item) => item.status === 'review' || item.status === 'submitted').length,
       }))
       .sort((a, b) => b.avg - a.avg)
@@ -77,16 +87,11 @@ export default function ReportsView({
   const reportTable = useMemo(() => buildReportTable(filtered, mode), [filtered, mode])
   const reportPreviewRows = reportTable.rows.slice(0, 18)
   const activeAvg = filtered.length ? Math.round(filtered.reduce((acc, item) => acc + item.avgFinal, 0) / filtered.length) : 0
-  const activeBelow = filtered.filter((item) => item.rating === 'below').length
-  const activeGreat = filtered.filter((item) => item.rating === 'great').length
+  const activeBelow = filtered.filter((item) => ratingForScore(item.avgFinal) === 'below').length
+  const activeGreat = filtered.filter((item) => ratingForScore(item.avgFinal) === 'great').length
   const activeReview = filtered.filter((item) => item.status === 'review' || item.status === 'submitted').length
-  const goalGap = activeAvg - 82
-  const reportHighlights = [
-    { label: t('report.avgScore', 'Średni wynik'), value: activeAvg ? `${activeAvg}%` : '-', tone: 'positive' as const },
-    { label: t('report.cards', 'Karty'), value: String(filtered.length), tone: 'neutral' as const },
-    { label: t('registry.onlyDecision', 'Do decyzji'), value: String(activeReview), tone: 'alert' as const },
-    { label: t('report.belowStandard', 'Poniżej standardu'), value: String(activeBelow), tone: 'risk' as const },
-  ]
+  const goalGap = activeAvg - goal
+
 
   const exportReadiness = [
     activeReview ? { label: t('registry.onlyDecision', 'Do decyzji'), value: activeReview, hint: t('report.reviewHint', 'Karty do domknięcia weryfikacji.') } : null,
@@ -128,15 +133,8 @@ export default function ReportsView({
             <small>{filtered.length} {t('report.cardsAfterFilters', 'kart po filtrach')}</small>
           </div>
           <h1>{t('report.entryHint', 'Szybkie podsumowanie, eksport i następny krok dla bieżącego filtra.')}</h1>
-          <p>{notice || reportTable.description}</p>
-          <div className="report-highlight-row">
-            {reportHighlights.map((item) => (
-              <div className={`report-highlight tone-${item.tone}`} key={item.label}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
+          <p>{notice || reportTable.description}</p><p className="hint-text">Eksport obejmuje wszystkie {filtered.length} kart po filtrach. Standard jakości: {SCORE_GOOD_THRESHOLD}%, bardzo dobry wynik: {SCORE_GREAT_THRESHOLD}%.</p>
+
         </div>
         <div className="report-hero-actions">
           <button className="primary-btn" type="button" onClick={() => openRegistry('decision')}>
@@ -152,10 +150,10 @@ export default function ReportsView({
       </section>
 
       <section className="report-kpi-grid">
-        <div className="metric-panel"><span>{t('report.avgScore', 'Średni wynik')}</span><strong>{activeAvg || '-'}</strong><small>{t('report.inFilter', 'w aktywnym filtrze')}</small></div>
+        <div className="metric-panel"><span>{t('report.avgScore', 'Średni wynik')}</span><strong>{filtered.length ? `${activeAvg}%` : '-'}</strong><small>{t('report.inFilter', 'w aktywnym filtrze')}</small></div>
         <div className="metric-panel"><span>{t('report.cards', 'Karty')}</span><strong>{filtered.length}</strong><small>{t('report.activeRange', 'aktywny zakres')}</small></div>
         <div className="metric-panel"><span>{t('report.belowStandard', 'Poniżej standardu')}</span><strong>{activeBelow}</strong><small>{t('report.needsAction', 'wymagają reakcji')}</small></div>
-        <div className="metric-panel"><span>{t('report.goalGap', 'Różnica do celu')}</span><strong>{goalGap ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>{t('report.goalThreshold', 'progiem jest 82%')}</small></div>
+        <div className="metric-panel"><span>{t('report.goalGap', 'Różnica do celu')}</span><strong>{filtered.length ? `${goalGap >= 0 ? '+' : ''}${goalGap} pp` : '-'}</strong><small>Cel zespołu: {goal}%</small></div>
       </section>
 
       <section className="report-ops-grid">

@@ -47,7 +47,7 @@ function makeAssessment(overrides: Partial<Assessment>): Assessment {
 describe('security guards', () => {
   it('allows creation only for operational roles', () => {
     expect(canCreate(makeUser({ role: 'admin' }))).toBe(true)
-    expect(canCreate(makeUser({ role: 'director' }))).toBe(true)
+    expect(canCreate(makeUser({ role: 'director' }))).toBe(false)
     expect(canCreate(makeUser({ role: 'leader' }))).toBe(true)
     expect(canCreate(makeUser({ role: 'assessor' }))).toBe(true)
     expect(canCreate(makeUser({ role: 'viewer' }))).toBe(false)
@@ -69,11 +69,12 @@ describe('security guards', () => {
     const scopedAssessment = makeAssessment({})
 
     expect(canEditAssessment(makeUser({ role: 'admin' }), scopedAssessment)).toBe(true)
-    expect(canEditAssessment(makeUser({ role: 'director' }), scopedAssessment)).toBe(true)
+    expect(canEditAssessment(makeUser({ role: 'director' }), scopedAssessment)).toBe(false)
     expect(canEditAssessment(makeUser({ role: 'leader', leaderScope: 'Anna Lider' }), scopedAssessment)).toBe(true)
     expect(canEditAssessment(makeUser({ role: 'leader', leaderScope: 'Inny Lider' }), scopedAssessment)).toBe(false)
-    expect(canEditAssessment(makeUser({ role: 'assessor', fullName: 'Anna Lider' }), scopedAssessment)).toBe(true)
-    expect(canEditAssessment(makeUser({ role: 'assessor', email: 'anna@example.com' }), makeAssessment({ oce: 'anna@example.com' }))).toBe(true)
+    expect(canEditAssessment(makeUser({ role: 'assessor', fullName: 'Anna Lider' }), scopedAssessment)).toBe(false)
+    expect(canEditAssessment(makeUser({ role: 'assessor', leaderScope: 'Anna Lider' }), scopedAssessment)).toBe(true)
+    expect(canEditAssessment(makeUser({ role: 'assessor', email: 'anna@example.com', leaderScope: 'Other' }), makeAssessment({ oce: 'anna@example.com' }))).toBe(false)
     expect(canEditAssessment(makeUser({ role: 'viewer' }), scopedAssessment)).toBe(false)
   })
 

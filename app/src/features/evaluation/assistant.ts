@@ -1,4 +1,5 @@
-﻿import { ASSESSMENT_DEFS } from '../../domain/defs'
+import { SCORE_GREAT_THRESHOLD, SCORE_GOOD_THRESHOLD } from '../../domain/scoreThresholds'
+import { ASSESSMENT_DEFS } from '../../domain/defs'
 import { calculateDraft, ratingLabel } from '../../domain/scoring'
 import type { AssessmentDraft } from '../../domain/types'
 
@@ -42,7 +43,7 @@ export function reviewDraftQuality(draft: AssessmentDraft): DraftAssistantResult
   if (hasGold && !draft.goldDescription.trim()) {
     warnings.push('Dodano złote punkty bez opisu sytuacji.')
   }
-  if (finalScore >= 92 && !draft.summary.trim()) {
+  if (finalScore >= SCORE_GREAT_THRESHOLD && !draft.summary.trim()) {
     suggestions.push('Przy bardzo dobrym wyniku warto dodać krótkie podsumowanie, żeby karta była czytelna w ewidencji.')
   }
 
@@ -63,9 +64,9 @@ export function buildDraftSummary(draft: AssessmentDraft): string {
   const parts = def.sections.map((section) => {
     const score = calculated.secAvg[section.key] || 0
     const notes = (draft.notes[section.key] || []).filter((item) => item.trim()).join(' ')
-    const intro = score >= 92
+    const intro = score >= SCORE_GREAT_THRESHOLD
       ? `${cleanSectionLabel(section.label)} jest na wysokim poziomie.`
-      : score >= 82
+      : score >= SCORE_GOOD_THRESHOLD
         ? `${cleanSectionLabel(section.label)} jest na dobrym poziomie, ale widać miejsce na doszlifowanie.`
         : `${cleanSectionLabel(section.label)} wymaga poprawy i doprecyzowania dalszych działań.`
     return `${intro} Wynik sekcji: ${score}%.${notes ? ` Uwagi: ${notes}` : ''}`

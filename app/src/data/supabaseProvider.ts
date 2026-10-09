@@ -211,13 +211,13 @@ export class SupabaseDataProvider implements DataProvider {
           great_share: goals.greatShare,
         })
         .eq('id', '00000000-0000-0000-0000-000000000001'),
-      config.departments.length
+      this.currentUser.role === 'admin' && config.departments.length
         ? this.client.from('departments').upsert(
             config.departments.map((name, index) => ({ name, is_active: true, sort_order: index })),
             { onConflict: 'name' },
           )
         : Promise.resolve({ error: null }),
-      config.positions.length
+      this.currentUser.role === 'admin' && config.positions.length
         ? this.client.from('positions').upsert(
             config.positions.map((name, index) => ({ name, is_active: true, sort_order: index })),
             { onConflict: 'name' },
@@ -242,6 +242,10 @@ export class SupabaseDataProvider implements DataProvider {
       if (failed?.error) throw failed.error
     })
 
+    if (this.currentUser.role !== 'admin') {
+      await this.recordAdminHistory(describeAdminConfigSave(config))
+      return
+    }
     const existingPeriods = await this.client.from('periods').select('id,code')
     if (existingPeriods.error) throw existingPeriods.error
     await Promise.all(config.periods.map((period, index) => {
@@ -290,13 +294,14 @@ export class SupabaseDataProvider implements DataProvider {
     try {
       const { data, error } = await this.client
         .from('profiles')
-        .select('id,email,full_name,role,leader_scope,is_active,created_at')
+        .select('id,email,full_name,viewer_specialist_name,role,leader_scope,is_active,created_at')
         .order('email', { ascending: true })
       if (error) return []
       return (data || []).map((item) => ({
         id: item.id,
         email: item.email || '',
         fullName: item.full_name || item.email || '',
+        viewerSpecialistName: item.viewer_specialist_name || '',
         role: (item.role || 'viewer') as Role,
         leaderScope: item.leader_scope || '',
         isActive: item.is_active !== false,
@@ -311,28 +316,22 @@ export class SupabaseDataProvider implements DataProvider {
 
   async updateUser(user: ManagedUser): Promise<ManagedUser> {
     if (!this.currentUser) throw new Error('Brak aktywnej sesji Supabase.')
-    assertCanAdmin(this.currentUser, 'Brak dostepu do edycji uzytkownikow.')
+    if (this.currentUser.role !== 'admin') throw new Error('Tylko administrator może zmieniać konta.')
     const payload = {
       full_name: user.fullName,
       role: user.role,
       leader_scope: user.leaderScope || null,
       is_active: user.isActive !== false,
     }
-    if (typeof this.client.rpc === 'function') {
-      const rpc = await this.client.rpc('admin_update_profile', {
-        target_id: user.id,
-        target_full_name: payload.full_name,
-        target_role: payload.role,
-        target_leader_scope: payload.leader_scope || '',
-        target_is_active: payload.is_active,
-      })
-      if (!rpc.error) {
-        await this.recordAdminHistory(describeUserUpdate({ ...user, source: 'supabase' }))
-        return { ...user, source: 'supabase' }
-      }
-    }
-    const { error } = await this.client.from('profiles').update(payload).eq('id', user.id)
-    if (error) throw error
+    const rpc = await this.client.rpc('admin_update_profile_with_binding', {
+      target_id: user.id,
+      target_full_name: payload.full_name,
+      target_role: payload.role,
+      target_leader_scope: payload.leader_scope || '',
+      target_is_active: payload.is_active,
+      target_specialist_name: user.viewerSpecialistName || '',
+    })
+    if (rpc.error) throw rpc.error
     await this.recordAdminHistory(describeUserUpdate({ ...user, source: 'supabase' }))
     return { ...user, source: 'supabase' }
   }
@@ -393,12 +392,13 @@ export class SupabaseDataProvider implements DataProvider {
       .maybeSingle()
     if (existingError) throw existingError
     const payload = mapAssessment(assessment)
-    if (existing?.created_by) {
-      payload.created_by = existing.created_by
-    } else {
-      payload.created_by = this.currentUser.id
-    }
-    const { error } = await this.client.from('assessments').upsert(payload, { onConflict: 'id' })
+    // Existing rows may have a NULL historical author. Never rewrite their ownership.
+    if (existing) delete payload.created_by
+    else payload.created_by = this.currentUser.id
+    const mutation = existing
+      ? this.client.from('assessments').update(payload).eq('id', assessment.id)
+      : this.client.from('assessments').insert(payload)
+    const { error } = await mutation.select('id').single()
     if (error) throw error
   }
 
@@ -585,7 +585,7 @@ export class SupabaseDataProvider implements DataProvider {
     try {
       const { data, error } = await this.client
         .from('profiles')
-        .select('id,email,full_name,role,leader_scope,is_active')
+        .select('id,email,full_name,viewer_specialist_name,role,leader_scope,is_active')
         .eq('id', userId)
         .single()
 
@@ -596,6 +596,7 @@ export class SupabaseDataProvider implements DataProvider {
         id: data.id,
         email: data.email || email,
         fullName: data.full_name || email,
+        viewerSpecialistName: data.viewer_specialist_name || '',
         role: (data.role || 'viewer') as Role,
         leaderScope: data.leader_scope || '',
         isActive: data.is_active !== false,

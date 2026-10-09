@@ -48,3 +48,7 @@ Thumbs.db
 .vercel
 .playwright-cli/
 artifacts/
+
+# Never commit account password reset scripts.
+supabase/*password*.sql
+supabase/*credential*.sql

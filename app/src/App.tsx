@@ -1,4 +1,6 @@
-﻿import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import { defaultAnalyticsFilters } from './features/analytics/filters'
+import { createSerializedWriter } from './domain/serializedWriter'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { LogIn } from 'lucide-react'
 import { createDraft, draftHasContent, draftToAssessment } from './domain/scoring'
 import { clearDraft as clearDraftState, commitDraftAfterSave, mergeImportedAssessments, prependManagedUser, replaceAssessmentById, replaceManagedUserById } from './domain/workflows'
@@ -201,7 +203,28 @@ function App() {
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>(() => loadDiagnostics())
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
-  const [drafts, setDrafts] = useState<Record<AssessmentType, AssessmentDraft | undefined>>({ r: undefined, m: undefined, s: undefined })
+  const [drafts, setDraftsState] = useState<Record<AssessmentType, AssessmentDraft | undefined>>({ r: undefined, m: undefined, s: undefined })
+  const [analyticsFilters, setAnalyticsFilters] = useState(defaultAnalyticsFilters)
+  const draftsRef = useRef(drafts)
+  const draftRevision = useRef(0)
+  const draftWriter = useRef(createSerializedWriter(provider.saveDrafts.bind(provider)))
+  const [draftSaveStatus, setDraftSaveStatus] = useState('')
+  function setDrafts(next: Record<AssessmentType, AssessmentDraft | undefined>) {
+    draftsRef.current = next
+    setDraftsState(next)
+  }
+  async function persistDrafts(next: Record<AssessmentType, AssessmentDraft | undefined>) {
+    const revision = ++draftRevision.current
+    setDraftSaveStatus('Zapisywanie szkicu…')
+    try {
+      await draftWriter.current(next)
+      if (revision === draftRevision.current) setDraftSaveStatus('Szkic zapisany')
+    } catch (error) {
+      if (revision === draftRevision.current) setDraftSaveStatus('Nie zapisano szkicu. Sprawdź połączenie i ponów zapis.')
+      throw error
+    }
+  }
+
   const [view, setViewState] = useState<ViewKey>(() => initialLocation.view)
   const [activeType, setActiveType] = useState<AssessmentType>('r')
   const [formDraftOverride, setFormDraftOverride] = useState<AssessmentDraft | null>(null)
@@ -299,6 +322,8 @@ function App() {
     setNotifications(nextNotifications)
     setAssessments(scopeAssessmentsForUser(nextAssessments, currentUser))
     setDrafts(nextDrafts)
+    setDraftSaveStatus('')
+    setAnalyticsFilters(defaultAnalyticsFilters())
     setFormDraftOverride(null)
     const requestedLocation = readLocationState()
     const allowedViews = availableNavItems(currentUser, t).map((item) => item.key)
@@ -394,6 +419,12 @@ function App() {
   }
 
   async function logout() {
+    try {
+      await draftWriter.current(draftsRef.current)
+    } catch {
+      setBootError('Nie udało się zapisać szkiców przed wylogowaniem. Sprawdź połączenie i spróbuj ponownie.')
+      return
+    }
     await provider.signOut()
     setUser(null)
     setUsers([])
@@ -414,25 +445,25 @@ function App() {
   async function updateDraft(draft: AssessmentDraft) {
     setActiveType(draft.type)
     const nextDraft = draftHasContent(draft)
-      ? { ...draft, savedAt: new Date().toISOString() }
+      ? { ...draft, id: draft.id || draftsRef.current[draft.type]?.id || crypto.randomUUID(), savedAt: new Date().toISOString() }
       : undefined
     if (formDraftOverride?.type === draft.type) {
       setFormDraftOverride(nextDraft || createDraft(draft.type))
     }
-    const next = { ...drafts, [draft.type]: nextDraft }
+    const next = { ...draftsRef.current, [draft.type]: nextDraft }
     setDrafts(next)
-    await provider.saveDrafts(next)
+    await persistDrafts(next).catch(() => undefined)
   }
 
   async function saveAssessment(draft: AssessmentDraft) {
     if (!user) return
     const assessment = draftToAssessment(draft, user.leaderScope || draft.assessor)
+    await draftWriter.current(draftsRef.current)
     await provider.saveAssessment(assessment)
-    const nextDrafts = commitDraftAfterSave(drafts, draft.type)
+    const nextDrafts = commitDraftAfterSave(draftsRef.current, draft.type)
     setDrafts(nextDrafts)
-    await provider.saveDrafts(nextDrafts)
-    const all = await provider.loadAssessments()
-    setAssessments(scopeAssessmentsForUser(all, user))
+    await persistDrafts(nextDrafts).catch(() => undefined)
+    setAssessments((current) => scopeAssessmentsForUser([assessment, ...current.filter(item => item.id !== assessment.id)], user))
     setFormDraftOverride(null)
     navigateToView('registry')
     refreshDiagnostics({
@@ -448,14 +479,14 @@ function App() {
       message: `${assessment.spec}: ${assessment.avgFinal}%`,
       relatedEntityType: 'evaluation',
       relatedEntityId: assessment.id,
-    })
+    }).catch(() => undefined)
   }
 
   async function discardDraft(type: AssessmentType) {
-    const nextDrafts = clearDraftState(drafts, type)
+    const nextDrafts = clearDraftState(draftsRef.current, type)
     setDrafts(nextDrafts)
     if (formDraftOverride?.type === type) setFormDraftOverride(createDraft(type))
-    await provider.saveDrafts(nextDrafts)
+    await persistDrafts(nextDrafts)
     refreshDiagnostics({
       scope: 'draft',
       action: 'clear',
@@ -555,15 +586,14 @@ function App() {
   async function updateAssessment(assessment: Assessment) {
     if (!user) return
     await provider.updateAssessment(assessment)
-    const all = await provider.loadAssessments()
-    setAssessments(scopeAssessmentsForUser(replaceAssessmentById(all, assessment), user))
+    setAssessments(current => scopeAssessmentsForUser(replaceAssessmentById(current, assessment), user))
     await pushWorkspaceNotification({
       type: 'systemAction',
       title: 'Zaktualizowano ocenę',
       message: `${assessment.spec}: ${assessment.status}`,
       relatedEntityType: 'evaluation',
       relatedEntityId: assessment.id,
-    })
+    }).catch(() => undefined)
   }
 
   async function bulkImportAssessments(imported: Assessment[]) {
@@ -710,6 +740,8 @@ function App() {
             user={user}
             admin={admin}
             draft={activeDraft}
+            saveStatus={draftSaveStatus}
+            onRetrySave={() => { void persistDrafts(draftsRef.current).catch(() => undefined) }}
             specialistPrefillName={specialistPrefill?.name}
             specialistPrefillToken={specialistPrefill?.token}
             onSelectType={(type) => {
@@ -738,6 +770,8 @@ function App() {
         ) : null}
         {effectiveView === 'dashboard' ? (
           <DashboardView
+            sharedFilters={analyticsFilters}
+            onFiltersChange={setAnalyticsFilters}
             userRole={user.role}
             assessments={assessments}
           goals={admin.goals}
@@ -748,7 +782,7 @@ function App() {
         />
       ) : null}
         {effectiveView === 'reports' ? (
-          <ReportsView assessments={assessments} setView={navigateToView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} />
+          <ReportsView sharedFilters={analyticsFilters} onFiltersChange={setAnalyticsFilters} goal={admin.goals.minAvg} assessments={assessments} setView={navigateToView} openRegistry={openRegistry} onStartAssessmentForSpecialist={startAssessmentForSpecialist} />
         ) : null}
         {effectiveView === 'admin' && canAdminRole(user.role) ? (
           <AdminView

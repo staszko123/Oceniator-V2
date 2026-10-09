@@ -1,62 +1,61 @@
-# Oceniator — audyt portalu i pierwszy etap przebudowy
+# Oceniator — audyt i przebudowa portalu
 
-Data: 2026-10-09. Zakres: PC, widoki 1280×720, 1366×768, 1600×900 i 1920×1080. Telefon poza zakresem.
+Stan: 2026-10-09. Zakres produktu: PC 1280×720–1920×1080; telefon poza zakresem. Poprzedni ekran logowania został zachowany.
 
-## Wnioski
-Portal ma działający fundament ocen, ról i raportowania. Największą przeszkodą w codziennej pracy jest nadmiar powtarzających się informacji i akcji, duża wysokość nagłówków oraz niespójna organizacja filtrów. Przebudowę warto prowadzić etapami z zachowaniem obecnych zasad obliczania ocen.
+## Zrealizowane zmiany
 
-## Potwierdzone obserwacje i priorytety
-| Priorytet | Obszar | Obserwacja | Działanie |
+| Obszar | Wynik |
+|---|---|
+| Wspólny interfejs | Spójne powierzchnie, typografia, przyciski, filtry, tabele i okna szczegółów; jasny i ciemny motyw. |
+| Start | Krótki nagłówek, widoczne szkice i skróty zgodne z rolą. Dyrektor nie dostaje formularza ocen, oceniający nie dostaje niedostępnych skrótów do raportów. |
+| Ewidencja | Jedna wyszukiwarka i menu eksportu wszystkich wyników po filtrach. Kolejka decyzji domyślnie zwinięta; usunięte powtórzone liczniki i przyciski zmiany statusu pod tabelą. |
+| Szczegóły oceny | Przyciski nazywają następny krok; otwarte szczegóły odświeżają się po decyzji. Escape, obsługa fokusu i etykieta zamknięcia. |
+| Formularz | Cztery sekcje: dane, kontakty, kryteria z uwagami, podsumowanie. Nawigacja po sekcjach, klikalna lista braków, mniej powtórzeń. |
+| Zapis | Kolejka zapisów szkiców zapobiega nadpisaniu nowej wersji starszą odpowiedzią. Stan potwierdza odpowiedź bazy, błędy umożliwiają ponowienie. Blokada podwójnego wysłania i stały identyfikator szkicu; niepowodzenie powiadomienia nie udaje błędu zapisanej oceny. |
+| Analityka i Raporty | Wspólny filtr zachowany przy przełączaniu widoków. Usunięte podwójne kafle raportu. Różnica do celu używa celu zespołu, także dla wartości 0; eksport ma jawny zakres. |
+| Wyniki | Jedna definicja progów: standard 82%, bardzo dobry 92%. Klasyfikacja ekranów i eksportów wynika z wyniku liczbowego, także przy niespójnej etykiecie importowanej karty. Cel zespołu jest osobną wartością konfiguracyjną. |
+
+## Role i proces
+
+| Rola | Oceny | Decyzje | Administracja |
 |---|---|---|---|
-| P1 | Start | Duży nagłówek i powielone skróty spychają zadania niżej; szkice są schowane | Kompaktowy nagłówek, dwie główne akcje, szkice dostępne od razu |
-| P1 | Układ PC | Minimalna szerokość body 1280 powoduje przewijanie poziome po pojawieniu się pionowego paska | Elastyczna kolumna treści, przewijanie wyłącznie wewnątrz szerokich tabel |
-| P1 | Ewidencja | Wyszukiwanie istnieje w filtrach i ponownie w tabeli; eksport także występuje w kilku miejscach | Jedna wyszukiwarka, jeden zestaw filtrów i jedno menu eksportu z jawnym zakresem danych |
-| P1 | Formularz | Długi arkusz, powtarzane instrukcje, wiele równorzędnych kontrolek | Nawigacja po sekcjach, krótsze instrukcje, widoczny wynik i braki do zapisu |
-| P2 | Słownictwo | Mieszanka polskiego i angielskiego (np. review), brak polskich znaków w części etykiet | Ujednolicić statusy i język całego procesu |
-| P2 | CSS | Duży index.css z kolejnymi nadpisaniami i konfliktującymi breakpointami | Stopniowo przenosić style do komponentów; obecny portal.css jest etapem przejściowym |
-| P2 | Wskaźniki | Start używa sztywnego progu avgFinal < 82 | Potwierdzić jedną definicję standardu i używać jej we wszystkich ekranach |
+| Administrator | Wszystkie, tworzenie i edycja | Weryfikacja, zatwierdzenie, archiwum, przywrócenie | Konta, powiązania specjalistów, konfiguracja |
+| Dyrektor | Odczyt wszystkich | Bez zmiany statusu | Cele i specjaliści; konta tylko do odczytu |
+| Lider | Tworzenie i edycja we własnym zakresie | We własnym zakresie | Brak |
+| Oceniający | Tworzenie i edycja we własnym zakresie | Brak | Brak |
+| Specjalista | Odczyt własnych zatwierdzonych ocen i komentarzy | Brak | Brak |
 
-## Pierwsza zmiana w kodzie
-- Neutralne powierzchnie, łagodniejsze obramowania i cienie, czytelniejsza typografia.
-- Stały pasek boczny, zwijanie nawigacji, kompaktowy nagłówek i link klawiaturowy do treści.
-- Krótszy ekran startowy, trzy wskaźniki w jednym rzędzie, widoczne szkice, usunięte powtórzenia głównych akcji.
-- Formularz w dwóch kolumnach z panelem wyniku, którego zawartość można przewijać na niskim ekranie.
-- Usunięcie technicznej plakietki dostawcy z głównego nagłówka.
-- Zachowane istniejące reguły ocen, model danych i uprawnienia. Próg 82 nie został zmieniony.
+Interfejs dyrektora dopasowano do istniejącego prawa odczytu ocen w bazie. Uprawnienia kont pozostają wyłącznie po stronie administratora. Zapis konfiguracji dyrektora pomija niedostępne słowniki i okresy.
 
-## Weryfikacja
-- TypeScript: PASS.
-- Build Vite: PASS.
-- ESLint: PASS.
-- Testy Vitest w trybie threads, maxWorkers=2: 117 zaliczonych, 5 pominiętych (integracja wymagająca osobnego środowiska).
-- Pierwsza próba w trybie forks: timeout startu jednego procesu w Windows; powtórzenie w threads zakończyło się poprawnie.
-- Static smoke: PASS; git diff --check: PASS.
-- Start w czterech rozdzielczościach: brak poziomego przewijania dokumentu. Dolna krawędź sekcji szkiców: ok. 642 px na 1280/1366, 678 px na 1600/1920.
-- Formularz 1280×720: brak poziomego przewijania dokumentu; panel wyniku mieści się do ok. 715 px po ograniczeniu wysokości.
-- Podgląd zmian używa lokalnych danych demonstracyjnych. Wcześniej osobno sprawdzono produkcyjne logowanie, odczyt ocen i zapis/odtworzenie szkicu. Nie wykonano pełnego zapisu nowej oceny w produkcji.
-- Szczegółowy audyt wizualny Analityki, Raportów, Administracji i wszystkich ról pozostaje do kolejnego etapu. Ten raport nie jest pełnym audytem bezpieczeństwa.
+Proces operacyjny: nowa ocena → do weryfikacji → w weryfikacji → zatwierdzona → archiwum. Przywrócenie z archiwum wraca do weryfikacji. Baza pilnuje decyzji administratora/lidera oraz niezmiennego autora i zakresu. Administrator może importować historyczne karty z zachowaniem statusu. Aktualizacja istniejącej oceny używa UPDATE, nowej INSERT; nie używa UPSERT uruchamiającego przedwcześnie trigger nowej oceny.
 
-## Kolejność dalszych prac
-1. Uprościć Ewidencję i szczegóły oceny: jedna wyszukiwarka, zwięzłe filtry, jedno menu eksportu, jednoznaczny status i następny krok.
-2. Skrócić formularz i przejść cały proces: szkic → wysłanie → decyzja → widok specjalisty. Sprawdzić oddzielnie każdą rolę.
-3. Uporządkować Analitykę i Raporty wokół pytań użytkownika oraz wspólnego okresu raportowania.
-4. Zakończyć porządkowanie CSS, języka i stanów pustych/błędów.
+## Dostęp w Supabase
 
-## Warunki przed szerszym udostępnieniem
-Wcześniejszy przegląd ujawnił hasło administratora zapisane w skrypcie SQL w repozytorium — wymaga rotacji i usunięcia z historii. Wymagają też osobnej weryfikacji polityki dostępu specjalisty do ocen, kontrola roli w admin_update_profile i uprawnienia funkcji bazodanowych. Nie są naprawione w zmianie interfejsu.
+Przygotowano przyrostowy, powtarzalny skrypt `supabase/portal_access_completion.sql` i test transakcyjny `supabase/tests/portal_access_rollback.sql`. Nie należy ponownie uruchamiać całego katalogu SQL ani historycznego hardeningu na istniejącej bazie.
 
-## Projekt i publikacja
-Repozytorium lokalne: C:\Users\Jakubst\Documents\Codex\Oceniator.
-Gałąź: codex/portal-ux-foundation. Zmiana przeznaczona do przeglądu w PR; nie została scalona z main ani ręcznie opublikowana na produkcji.
-Folder projektu został utworzony. Dodanie go do zapisanych projektów aplikacji Codex wymaga opcji Dodaj projekt i wskazania tego folderu; dostępne narzędzia nie udostępniają operacji rejestracji projektu.
+- Kontrola administratora odrzuca brak profilu i nieaktywne konto; odebrano anonimowe/PUBLIC wykonanie uprzywilejowanych RPC.
+- Specjalista nie uzyskuje dostępu przez wspólny zakres lidera ani nazwisko oceniającego.
+- Nazwa wyświetlana z rejestracji nie nadaje dostępu. Powiązanie z nazwanym specjalistą ustawia administrator w Administracja → Użytkownicy → Powiązany specjalista. UUID lub potwierdzony e-mail konta nadal mogą identyfikować zatwierdzoną kartę. Niepotwierdzony e-mail nie nadaje dostępu.
+- Zapis pól konta i powiązania odbywa się w jednej transakcji; błędne powiązanie nie zapisuje części zmian.
+- Istniejących kont nie połączono automatycznie po nazwisku. Przed nadaniem powiązania należy sprawdzić tożsamość; historyczne karty o jednakowych nazwiskach wymagają weryfikacji. Docelowo model powinien używać identyfikatora specjalisty zamiast nazwy.
 
+## Weryfikacja tego etapu
 
-## Aktualizacja — spójny styl i drugi etap, 2026-10-09
+- TypeScript, build Vite, ESLint, static smoke i git diff --check.
+- Vitest: 125 zaliczonych, 5 integracyjnych pominiętych; pominięte testy wymagają oddzielnego środowiska i nie są dowodem poprawności produkcji.
+- Niezależny przegląd granic uprawnień przed poprawką oraz przegląd kandydata po zmianie.
+- Odtworzono pierwotny błąd RPC na syntetycznym koncie w transakcji z ROLLBACK. Kandydat odrzucił ten sam przypadek.
+- Test SQL na rzeczywistym silniku: anonimowy/brak profilu/nieaktywny administrator/pozostałe role, wiarygodne powiązanie, odmowa samodzielnego powiązania, atomowy zapis konta, widoczność ocen i komentarzy, oceniający → lider → specjalista, odmowa zapisu obcego zakresu. Wszystkie dane testowe wycofano.
+- Przegląd lokalnego UI dla pięciu ról. Pełny scenariusz demo: szkic → odświeżenie i odtworzenie → wysłanie → weryfikacja → zatwierdzenie → odczyt w portalu specjalisty.
+- Potwierdzono zachowanie okresu między Raportami i Analityką. Kontrola bieżących widoków przy efektywnym obszarze 1280×720: bez przewijania poziomego dokumentu. Narzędzie zmiany viewportu w tej sesji pozostawało przy szerokości 1280; nie traktujemy prób ustawienia innych rozdzielczości jako nowych zaliczonych testów. Poprzedni etap fundamentu sprawdzono w czterech rozdzielczościach PC.
+- Nie tworzono ani nie zatwierdzano ocen biznesowych w produkcji. Testy silnika bazy wycofano, a testy UI wykonywano na danych demo.
 
-Wprowadzono wspólne powierzchnie, obramowania, typografię, pola, przyciski i tabele w widokach PC, również na logowaniu i w oknach szczegółów. Skrócono nagłówki zespołu, Analityki i Raportów. Liczniki oraz filtry analityczne wykorzystują szerokość ekranu PC.
+## Otwarte warunki szerszego udostępnienia
 
-Ewidencja ma jedną wyszukiwarkę i jedno menu eksportu CSV/Excel/JSON z podaną liczbą wszystkich wyników po filtrach. Usunięto powtórzone kontrolki tabeli, zachowując sortowanie i stronicowanie. Dodano jawne etykiety dostępności dla filtrów i test zachowania stronicowania po wyłączeniu wewnętrznej wyszukiwarki.
+1. **Rotacja ujawnionego hasła administratora i usunięcie go z historii Git.** Skrypt zawierający hasło usunięto z bieżącej wersji i dodano reguły ignorowania podobnych plików. To nie unieważnia hasła ani jego kopii w historii. Zmianę hasła musi wykonać właściciel konta; historii nie przepisywano siłowo.
+2. Zweryfikowane przypisania rzeczywistych kont specjalistów, szczególnie dla historycznych nazwisk.
+3. Przeniesienie starszych stylów do komponentów, domknięcie pozostałych starych etykiet i migracja identyfikacji specjalistów z nazw na ID. Są to dalsze prace utrzymaniowe; ten etap nie jest pełnym skanem bezpieczeństwa repozytorium.
 
-Zweryfikowano lokalnie: 118 testów zaliczonych, 5 integracyjnych pominiętych; TypeScript, build, lint i smoke poprawne. Przegląd wizualny głównych widoków administratora przy 1280×720; kontrola szerokości dokumentu bez przewijania poziomego. To weryfikacja UI na danych demo, bez zmian ocen produkcyjnych. Pełny proces biznesowy wszystkich ról pozostaje osobnym zadaniem.
+## Publikacja
 
-README zastąpiono bieżącym opisem funkcji, zakresu PC, uruchamiania, testów, wdrożeń, struktury i ograniczeń. Publikację na produkcji autoryzował użytkownik; wcześniejsza informacja o pozostawieniu etapu pierwszego wyłącznie w PR dotyczyła stanu przed tą aktualizacją.
+Kod jest publikowany z GitHub `main` przez integrację Vercel. Zmiany bazy wymagają osobnego zastosowania przyrostowego skryptu; sam deploy frontendu ich nie uruchamia. Wynik wdrożenia i adres produkcyjny należy sprawdzić po scaleniu.

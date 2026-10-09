@@ -1,3 +1,4 @@
+import { ratingForScore } from '../../domain/scoring'
 import { Fragment, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, Eye, EyeOff, GripVertical, LayoutDashboard, Maximize2, RotateCcw, Settings, Trophy } from 'lucide-react'
 import { TYPE_LABELS } from '../../domain/defs'
@@ -74,6 +75,8 @@ function DashboardWidget({
 export default function DashboardView({
   userRole,
   assessments,
+  sharedFilters,
+  onFiltersChange,
   goals,
   prefs,
   onPrefsChange,
@@ -81,6 +84,8 @@ export default function DashboardView({
   openRegistry,
 }: {
   userRole: Role
+  sharedFilters?: AnalyticsFilters
+  onFiltersChange?: (filters: AnalyticsFilters) => void
   assessments: Assessment[]
   goals: AdminConfig['goals']
   prefs: DashboardPrefs
@@ -89,14 +94,16 @@ export default function DashboardView({
   openRegistry: (preset?: 'all' | 'decision' | 'recent' | 'edited') => void
 }) {
   const { t } = useLanguage()
-  const [filters, setFilters] = useState<AnalyticsFilters>(() => defaultAnalyticsFilters())
+  const [localFilters, setLocalFilters] = useState<AnalyticsFilters>(() => defaultAnalyticsFilters())
+  const filters = sharedFilters ?? localFilters
+  const setFilters = onFiltersChange ?? setLocalFilters
   const [dragging, setDragging] = useState<DashboardPanelKey | null>(null)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const active = useMemo(() => applyAnalyticsFilters(assessments, filters), [assessments, filters])
   const avg = active.length ? Math.round(active.reduce((acc, item) => acc + item.avgFinal, 0) / active.length) : 0
-  const greatShare = active.length ? Math.round(active.filter((item) => item.rating === 'great').length / active.length * 100) : 0
-  const belowCount = active.filter((item) => item.rating === 'below').length
+  const greatShare = active.length ? Math.round(active.filter((item) => ratingForScore(item.avgFinal) === 'great').length / active.length * 100) : 0
+  const belowCount = active.filter((item) => ratingForScore(item.avgFinal) === 'below').length
   const reviewCount = active.filter((item) => item.status === 'review' || item.status === 'submitted').length
   const goalGap = avg ? avg - goals.minAvg : 0
   const byType = (Object.keys(TYPE_LABELS) as AssessmentType[]).map((type) => ({

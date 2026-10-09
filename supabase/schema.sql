@@ -260,19 +260,26 @@ create trigger trg_user_preferences_updated
   for each row execute function public.touch_updated_at();
 
 create or replace function public.guard_assessment_write()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
+declare caller_role text;
 begin
+  if auth.uid() is null then return new; end if;
+  caller_role := public.current_role_name();
   if tg_op = 'INSERT' then
-    new.created_by = coalesce(new.created_by, auth.uid());
-    new.leader_scope = coalesce(nullif(new.leader_scope, ''), public.current_leader_scope(), '');
-    new.created_at = coalesce(new.created_at, now());
+    new.created_by := auth.uid();
+    if caller_role is distinct from 'admin' and new.status is distinct from 'submitted' then raise exception 'New assessment must be submitted'; end if;
   else
-    new.created_by = old.created_by;
-    new.leader_scope = old.leader_scope;
-    new.created_at = old.created_at;
+    new.created_at := old.created_at;
+    if new.created_by is distinct from old.created_by or new.leader_scope is distinct from old.leader_scope then
+      raise exception 'Assessment author and scope are immutable';
+    end if;
+    if new.status is distinct from old.status then
+      if caller_role is null or caller_role not in ('admin','leader') then raise exception 'Status decision requires admin or leader'; end if;
+      if new.status is distinct from (case old.status when 'submitted' then 'review' when 'review' then 'approved' when 'approved' then 'archived' when 'archived' then 'submitted' end) then
+        raise exception 'Invalid status transition';
+      end if;
+    end if;
   end if;
-
-  new.updated_at = now();
   return new;
 end;
 $$;
@@ -318,14 +325,18 @@ returns text language sql stable security definer as $$
   select leader_scope from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
+alter table public.profiles add column if not exists viewer_specialist_name text;
+
 create or replace function public.current_profile_full_name()
 returns text language sql stable security definer as $$
-  select full_name from public.profiles where id = auth.uid() and is_active = true;
+  select viewer_specialist_name from public.profiles where id = auth.uid() and is_active = true;
 $$;
 
 create or replace function public.current_profile_email()
 returns text language sql stable security definer as $$
-  select email from public.profiles where id = auth.uid() and is_active = true;
+  select p.email from public.profiles p join auth.users u on u.id = p.id
+    where p.id = auth.uid() and p.is_active = true
+      and u.email_confirmed_at is not null and u.email = p.email;
 $$;
 
 
@@ -421,8 +432,9 @@ create policy "assessments: viewer odczyt"
     public.current_role_name() = 'viewer'
     and status = 'approved'
     and (
-      spec = public.current_profile_full_name()
-      or spec = public.current_profile_email()
+      spec = nullif(public.current_profile_full_name(), '')
+      or spec = auth.uid()::text
+      or spec = nullif(public.current_profile_email(), '')
     )
   );
 

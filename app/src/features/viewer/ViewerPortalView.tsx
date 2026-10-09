@@ -1,3 +1,4 @@
+import { ratingForScore } from '../../domain/scoring'
 import { AlertTriangle, CalendarDays, Filter, LineChart, Mail, MessageSquare, MonitorCog, PhoneCall, ShieldCheck, Sparkles, Target, TrendingDown, TrendingUp, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { TYPE_LABELS } from '../../domain/defs'
@@ -40,8 +41,8 @@ function plannedPerPeriod(goals: Goal, type: AssessmentType | 'all'): number {
 }
 
 function resultBand(item: Assessment): 'great' | 'good' | 'below' {
-  if (item.rating === 'great' || item.avgFinal >= 92) return 'great'
-  if (item.rating === 'good' || item.avgFinal >= 82) return 'good'
+  if (ratingForScore(item.avgFinal) === 'great') return 'great'
+  if (ratingForScore(item.avgFinal) === 'good') return 'good'
   return 'below'
 }
 
@@ -640,7 +641,7 @@ export default function ViewerPortalView({
                 </div>
                 <div>
                   <span>{t('viewer.feedback.rating', 'Ocena')}</span>
-                  <strong>{summaryLatest ? ratingLabel(summaryLatest.rating) : '-'}</strong>
+                  <strong>{summaryLatest ? ratingLabel(ratingForScore(summaryLatest.avgFinal)) : '-'}</strong>
                 </div>
               </div>
             </div>
@@ -672,7 +673,7 @@ export default function ViewerPortalView({
                 <div className="viewer-recent-meta">
                   <span className={`status ${item.status}`}>{statusLabels[item.status]}</span>
                   <strong className={scoreClass(item.avgFinal)}>{item.avgFinal}%</strong>
-                  <small>{ratingLabel(item.rating)}</small>
+                  <small>{ratingLabel(ratingForScore(item.avgFinal))}</small>
                 </div>
               </button>
             ))}
